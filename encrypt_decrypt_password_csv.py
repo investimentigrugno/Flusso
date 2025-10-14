@@ -63,46 +63,29 @@ def parse_csv_row(row):
     cells.append(cell)
     return cells
 
-# ===============================
-# FUNZIONE PRINCIPALE DELL'APP
-# ===============================
 def password_decryptor_app():
     """Funzione principale per l'app di decriptazione password"""
     
-    # Header principale
     st.title("🔐 CSV Password Decryptor")
     st.markdown("**Decripta in sicurezza i tuoi file CSV di credenziali crittografati**")
     
-    # Sidebar con informazioni
     with st.sidebar:
         st.header("ℹ️ Informazioni")
         st.markdown("""
-        ### Come usare:
-        
-        1. **Carica** il file CSV crittografato
-        2. **Inserisci** la chiave master
-        3. **Visualizza** i dati decriptati
-        4. **Scarica** il CSV in chiaro (opzionale)
-        
-        ### Sicurezza:
-        
-        ✅ **Decriptazione locale**  
-        I dati non vengono inviati a server esterni
-        
-        ✅ **Nessun salvataggio**  
-        I file vengono elaborati solo in memoria
-        
-        ✅ **Compatibile**  
-        Con Google Apps Script Password Manager
-        
-        ### Formato supportato:
-        
-        - File .csv crittografati
-        - Struttura: SITO | EMAIL/IBAN | PASSWORD | PIN | NOTE
-        - Chiave master (min 8 caratteri)
+### Come usare:
+
+1. **Carica** il file CSV crittografato
+2. **Inserisci** la chiave master
+3. **Visualizza** i dati decriptati
+4. **Scarica** il CSV in chiaro (opzionale)
+
+### Sicurezza:
+
+✅ Decriptazione locale  
+✅ Nessun salvataggio  
+✅ Compatibile con Google Apps Script
         """)
     
-    # Sezione principale
     col1, col2 = st.columns([1, 1])
     
     with col1:
@@ -116,12 +99,12 @@ def password_decryptor_app():
         
         if uploaded_file is not None:
             file_content = uploaded_file.read().decode('utf-8').strip()
-            
             st.success(f"✅ File caricato: **{uploaded_file.name}**")
             st.info(f"📊 Dimensione: {len(file_content)} caratteri")
             
             with st.expander("👁️ Anteprima contenuto crittografato"):
-                st.code(file_content[:100] + "..." if len(file_content) > 100 else file_content)
+                preview = file_content[:100] + "..." if len(file_content) > 100 else file_content
+                st.code(preview)
     
     with col2:
         st.header("🔑 Chiave Master")
@@ -139,7 +122,6 @@ def password_decryptor_app():
             else:
                 st.success(f"✅ Chiave inserita ({len(master_key)} caratteri)")
     
-    # Sezione decriptazione
     if uploaded_file is not None and master_key and len(master_key) >= 8:
         st.header("🔓 Decriptazione")
         
@@ -150,7 +132,7 @@ def password_decryptor_app():
                 data = [parse_csv_row(row) for row in rows if row.strip()]
                 
                 if 
-                    st.success(f"✅ **Decriptazione riuscita!** Caricate {len(data)-1} credenziali")
+                    st.success(f"✅ Decriptazione riuscita! Caricate {len(data)-1} credenziali")
                     
                     if len(data) > 1:
                         df = pd.DataFrame(data[1:], columns=data[0])
@@ -159,7 +141,6 @@ def password_decryptor_app():
                         
                         with tab1:
                             st.subheader("Credenziali Decriptate")
-                            
                             hide_passwords = st.checkbox("🙈 Nascondi password", value=True)
                             
                             display_df = df.copy()
@@ -169,7 +150,7 @@ def password_decryptor_app():
                                 )
                             
                             st.dataframe(display_df, use_container_width=True, height=400)
-                            st.info(f"📈 **Statistiche:** {len(df)} credenziali | {len(df.columns)} colonne")
+                            st.info(f"📈 Statistiche: {len(df)} credenziali - {len(df.columns)} colonne")
                         
                         with tab2:
                             st.subheader("Dati CSV Grezzi")
@@ -177,7 +158,6 @@ def password_decryptor_app():
                         
                         with tab3:
                             st.subheader("Scarica File Decriptato")
-                            
                             timestamp = pd.Timestamp.now().strftime("%Y%m%d_%H%M%S")
                             download_filename = f"credenziali_decriptate_{timestamp}.csv"
                             
@@ -188,16 +168,15 @@ def password_decryptor_app():
                                 mime='text/csv'
                             )
                             
-                            st.warning("⚠️ **ATTENZIONE SICUREZZA:** Il file scaricato conterrà le credenziali in chiaro. Conservalo in luogo sicuro.")
+                            st.warning("⚠️ ATTENZIONE: Il file conterrà credenziali in chiaro. Conservalo in luogo sicuro.")
                     else:
                         st.warning("⚠️ Il file sembra essere vuoto")
                 else:
                     st.error("❌ Nessun dato trovato")
         
         except Exception as e:
-            st.error(f"❌ **Errore durante la decriptazione:** {str(e)}")
-            st.info("**Possibili cause:** Chiave master errata o file corrotto")
+            st.error(f"❌ Errore durante la decriptazione: {str(e)}")
+            st.info("Possibili cause: Chiave master errata o file corrotto")
     
-    # Footer
     st.markdown("---")
     st.markdown("**CSV Password Decryptor** | Sicuro • Privato • Open Source")
