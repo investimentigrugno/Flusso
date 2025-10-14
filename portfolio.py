@@ -28,7 +28,7 @@ def portfolio_tracker_app():
             # Tabella dati principali portafoglio (righe 19-20, colonne 4-12)
             # Nota: pandas usa indice 0-based, quindi: righe 18-19, colonne 3-11
             df_summary = df.iloc[18:19, 3:12]
-            df_summary.colums = df.summary.iloc[0]
+            df_summary.colums = df_summary.iloc[0]
             
         st.success("✅ Dati caricati con successo!")
         
