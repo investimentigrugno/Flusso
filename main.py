@@ -68,8 +68,7 @@ with st.sidebar.expander("ℹ️ Info App"):
     **📊 Portfolio Tracker**
     - Visualizzazione portfolio in tempo reale
     - Connessione Google Sheets
-    - Statistiche e metriche
-    - Export CSV/Excel            
+    - Statistiche e metriche            
 
     **📈 Stock Screener**
     - Analisi titoli azionari
