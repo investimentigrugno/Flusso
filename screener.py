@@ -26,13 +26,6 @@ if 'top_5_stocks' not in st.session_state:
 if 'market_news' not in st.session_state:
     st.session_state.market_news = []
 
-# --- PAGE CONFIG ---
-st.set_page_config(
-    page_title="Financial Screener",
-    page_icon="📈",
-    layout="wide"
-)
-
 # --- API CONFIGURATION ---
 FINNHUB_API_KEY = "d38fnb9r01qlbdj59nogd38fnb9r01qlbdj59np0"
 FINNHUB_BASE_URL = "https://finnhub.io/api/v1"
