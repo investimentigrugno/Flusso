@@ -25,11 +25,11 @@ def portfolio_tracker_app():
             df_summary = df.iloc[18:19, 3:12].copy()  # Prendo soltanto la riga dati (es. riga 20)
             
             # Definisci manualmente i nomi delle colonne:
-            forced_headers = [
+            summary_headers = [
                 "DEPOSIT", "VALUE €", "P&L %", "P&L TOT", "P&L % LIVE", 
                 "P&L LIVE", "TOT $", "EUR/USD", "TOT €"]
             
-            df_summary.columns = forced_headers
+            df_summary.columns = summary_headers
             
             # Reset indice per pulizia tabella
             df_summary = df_summary.reset_index(drop=True)
