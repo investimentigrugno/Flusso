@@ -19,10 +19,10 @@ except Exception as e:
     stock_ok = False
 
 try:
-    from encrypt_decrypt_password_csv import password_decryptor_app, password_encryptor_app
+    from encrypt_decrypt_password_csv import password_decryptor_app
     password_ok = True
 except Exception as e:
-    st.sidebar.error(f"Password tools error: {e}")
+    st.sidebar.error(f"Password Decryptor error: {e}")
     password_ok = False
 
 # Menu di navigazione
@@ -32,7 +32,6 @@ if stock_ok:
     MENU["📈 Stock Screener"] = stock_screener_app
 
 if password_ok:
-    MENU["🔒 Password Encryptor"] = password_encryptor_app
     MENU["🔐 Password Decryptor"] = password_decryptor_app
 
 if not MENU:
@@ -49,7 +48,7 @@ scelta = st.sidebar.radio(
 )
 
 st.sidebar.markdown("---")
-st.sidebar.info(f"Moduli attivi: {len(MENU)}/3")
+st.sidebar.info(f"Moduli attivi: {len(MENU)}/2")
 
 # Info aggiuntive
 with st.sidebar.expander("ℹ️ Info App"):
@@ -58,9 +57,6 @@ with st.sidebar.expander("ℹ️ Info App"):
     
     **📈 Stock Screener**
     - Analisi titoli azionari
-    
-    **🔒 Password Encryptor**
-    - Cripta file CSV con credenziali
     
     **🔐 Password Decryptor**
     - Decripta file CSV crittografati
