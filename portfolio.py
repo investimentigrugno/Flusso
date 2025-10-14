@@ -87,7 +87,7 @@ def portfolio_tracker_app():
                 position_counts = df_filtered['LUNGO/BREVE'].value_counts()
                 for position, count in position_counts.items():
                     if position:
-                        st.write(f"• {position}: {            # Grafico a torta Portfolio
+                        st.write(f"• {position}: {count}")           # Grafico a torta Portfolio
             
             st.markdown("---")
             st.subheader("🥧 Distribuzione Valore Portfolio")
