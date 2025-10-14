@@ -87,7 +87,55 @@ def portfolio_tracker_app():
                 position_counts = df_filtered['LUNGO/BREVE'].value_counts()
                 for position, count in position_counts.items():
                     if position:
-                        st.write(f"• {position}: {count}")
+                        st.write(f"• {position}: {            # Grafico a torta Portfolio
+            
+            st.markdown("---")
+            st.subheader("🥧 Distribuzione Valore Portfolio")
+            
+            # Prepara i dati per il grafico a torta
+            # Rimuovi il simbolo € e converti in float
+            df_chart = df_filtered[['NAME', 'VALUE']].copy()
+            
+            # Pulisci la colonna VALUE rimuovendo € e sostituendo virgola con punto
+            df_chart['VALUE_CLEAN'] = df_chart['VALUE'].str.replace('€', '').str.replace('.', '').str.replace(',', '.').str.strip()
+            
+            # Converti in numerico
+            df_chart['VALUE_NUMERIC'] = pd.to_numeric(df_chart['VALUE_CLEAN'], errors='coerce')
+            
+            # Rimuovi righe con valori NaN o negativi
+            df_chart = df_chart[df_chart['VALUE_NUMERIC'] > 0].dropna()
+            
+            # Crea il grafico a torta
+            import plotly.express as px
+            
+            fig = px.pie(
+                df_chart, 
+                values='VALUE_NUMERIC', 
+                names='NAME',
+                title='Distribuzione del Valore per Asset',
+                hole=0.3,  # Crea un donut chart (opzionale, rimuovi per torta piena)
+            )
+            
+            fig.update_traces(
+                textposition='inside',
+                textinfo='percent+label',
+                hovertemplate='<b>%{label}</b><br>Valore: €%{value:,.2f}<br>Percentuale: %{percent}<extra></extra>'
+            )
+            
+            fig.update_layout(
+                showlegend=True,
+                height=600,
+                legend=dict(
+                    orientation="v",
+                    yanchor="middle",
+                    y=0.5,
+                    xanchor="left",
+                    x=1.05
+                )
+            )
+            
+            st.plotly_chart(fig, use_container_width=True)
+
         
     except Exception as e:
         st.error(f"❌ Errore nel caricamento dei dati: {str(e)}")
