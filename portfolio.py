@@ -27,8 +27,7 @@ def portfolio_tracker_app():
             # Definisci manualmente i nomi delle colonne:
             forced_headers = [
                 "DEPOSIT", "VALUE €", "P&L %", "P&L TOT", "P&L % LIVE", 
-                "P&L LIVE", "TOT $", "EUR/USD", "TOT €"
-            ]
+                "P&L LIVE", "TOT $", "EUR/USD", "TOT €"]
             
             df_summary.columns = forced_headers
             
