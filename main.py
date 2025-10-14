@@ -1,7 +1,7 @@
 # main.py
 import streamlit as st
-from stock_screener_app.py import stock_screener_app
-from password_decryptor_app.py import password_decryptor_app
+from stock_screener_app import stock_screener_app
+from password_decryptor_app import password_decryptor_app
 
 st.set_page_config(page_title="Multi Utility App", layout="wide")
 
