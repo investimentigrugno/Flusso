@@ -19,27 +19,41 @@ def portfolio_tracker_app():
     show_metrics = st.sidebar.checkbox("Mostra metriche", value=True)
     
     try:
-        # Carica i dati
         with st.spinner("Caricamento dati dal Google Sheet..."):
             df = pd.read_csv(csv_url)
             
-            # Ridimensiona: fino alla colonna 13 e riga 17
+            # Tabella principale (prime 16 righe e 13 colonne)
             df_filtered = df.iloc[:16, :13]
-        
+            
+            # Tabella dati principali portafoglio (righe 19-20, colonne 4-12)
+            # Nota: pandas usa indice 0-based, quindi: righe 18-19, colonne 3-11
+            df_summary = df.iloc[18:20, 3:12]
+            
         st.success("✅ Dati caricati con successo!")
         
-        # Visualizza il dataframe
+        # Visualizza tabella principale
         st.subheader("Portfolio Completo")
         st.dataframe(df_filtered, use_container_width=True, height=600)
         
-        # Print nella console
+        # Visualizza tabella riepilogativa principale
+        st.markdown("---")
+        st.subheader("💼 Dati Principali del Portafoglio")
+        st.dataframe(df_summary, use_container_width=True)
+        
+        # Print tabella principale in console
         print("\n" + "="*100)
         print("TABELLA PORTFOLIO COMPLETA")
         print("="*100)
         print(df_filtered.to_string())
         print("\n" + "="*100)
-        print(f"Dimensioni: {df_filtered.shape[0]} righe × {df_filtered.shape[1]} colonne")
-        print("="*100 + "\n")
+        
+        # Print dati principali portafoglio in console
+        print("\n" + "="*100)
+        print("DATI PRINCIPALI PORTAFOGLIO")
+        print("="*100)
+        print(df_summary.to_string())
+        print("\n" + "="*100)
+
         
         # Metriche
         if show_metrics:
