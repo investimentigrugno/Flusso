@@ -87,13 +87,13 @@ def password_decryptor_app():
         ### Sicurezza:
         
         ✅ **Decriptazione locale**  
-        - I dati non vengono inviati a server esterni
+        I dati non vengono inviati a server esterni
         
         ✅ **Nessun salvataggio**  
-        - I file vengono elaborati solo in memoria
+        I file vengono elaborati solo in memoria
         
         ✅ **Compatibile**  
-        - Con Google Apps Script Password Manager
+        Con Google Apps Script Password Manager
         
         ### Formato supportato:
         
@@ -188,6 +188,16 @@ def password_decryptor_app():
                                 mime='text/csv'
                             )
                             
-                            st.warning("""
-                            ⚠️ **ATTENZIONE SICUREZZA:**
-                            - Il
+                            st.warning("⚠️ **ATTENZIONE SICUREZZA:** Il file scaricato conterrà le credenziali in chiaro. Conservalo in luogo sicuro.")
+                    else:
+                        st.warning("⚠️ Il file sembra essere vuoto")
+                else:
+                    st.error("❌ Nessun dato trovato")
+        
+        except Exception as e:
+            st.error(f"❌ **Errore durante la decriptazione:** {str(e)}")
+            st.info("**Possibili cause:** Chiave master errata o file corrotto")
+    
+    # Footer
+    st.markdown("---")
+    st.markdown("**CSV Password Decryptor** | Sicuro • Privato • Open Source")
