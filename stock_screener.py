@@ -1,4 +1,4 @@
-# stock_screener_app.py
+# stock_screener.py
 import streamlit as st
 import pandas as pd
 import time
@@ -18,7 +18,7 @@ import re
 FINNHUB_API_KEY = "d38fnb9r01qlbdj59nogd38fnb9r01qlbdj59np0"
 FINNHUB_BASE_URL = "https://finnhub.io/api/v1"
 
-# --- FUNZIONI PER LA TRADUZIONE CON DEEP-TRANSLATOR ---
+# --- FUNZIONI PER LA TRADUZIONE ---
 def detect_language_deep(text):
     """Rileva la lingua del testo usando deep-translator"""
     if not text:
@@ -39,7 +39,7 @@ def detect_language_deep(text):
         return "en"
 
 def translate_text_deep(text, source_lang, target_lang):
-    """Traduce il testo usando deep-translator (GoogleTranslator)"""
+    """Traduce il testo usando deep-translator"""
     if not text:
         return text
     try:
@@ -59,7 +59,6 @@ def test_deep_translate():
     except Exception:
         return False
 
-# --- FUNZIONI PER LE NOTIZIE FINNHUB CON TRADUZIONE ---
 def fetch_finnhub_market_news(count=8):
     """Recupera notizie reali da Finnhub API e le traduce in italiano"""
     try:
@@ -231,14 +230,7 @@ def format_percentage(value):
     return f"{value:.2f}%"
 
 def calculate_investment_score(df):
-    """
-    Calcola un punteggio di investimento per ogni azione basato su:
-    - Momentum tecnico (RSI, MACD)
-    - Trend (prezzo vs medie mobili)
-    - Volatilità controllata
-    - Raccomandazioni tecniche
-    - Volume relativo
-    """
+    """Calcola un punteggio di investimento per ogni azione"""
     scored_df = df.copy()
     scored_df['Investment_Score'] = 0.0
     
@@ -368,7 +360,7 @@ def get_tradingview_url(symbol):
     return f"https://www.tradingview.com/chart/?symbol={symbol}"
 
 def fetch_screener_data():
-    """Fetch data from TradingView screener with enhanced columns for scoring"""
+    """Fetch data from TradingView screener"""
     try:
         with st.spinner("🔍 Recupero dati dal mercato..."):
             query = (
@@ -423,7 +415,7 @@ def fetch_screener_data():
         return pd.DataFrame()
 
 def get_top_5_investment_picks(df):
-    """Seleziona le top 5 azioni con le migliori probabilità di guadagno"""
+    """Seleziona le top 5 azioni"""
     if df.empty:
         return pd.DataFrame()
     
@@ -463,7 +455,7 @@ def stock_screener_app():
     if 'market_news' not in st.session_state:
         st.session_state.market_news = []
     
-    # --- MAIN APP CON TAB SYSTEM ---
+    # Main UI
     st.title("📈 Financial Screener Dashboard")
     st.markdown("Analizza le migliori opportunità di investimento con criteri tecnici avanzati e **notizie tradotte automaticamente** in italiano")
     
@@ -483,17 +475,6 @@ def stock_screener_app():
                 st.success("✅ Traduzione attiva")
             else:
                 st.warning("⚠️ Traduzione non disponibile")
-        
-        col1, col2 = st.columns(2)
-        with col1:
-            st.markdown("**📡 Servizi**")
-            st.success("✅ TradingView Screener attivo")
-            st.success("✅ Sistema di scoring avanzato")
-        
-        with col2:
-            st.markdown("**🇮🇹 Traduzione**")
-            st.success("✅ Traduzione automatica EN→IT")
-            st.success("✅ Rilevamento lingua Google")
     
     st.markdown("---")
     
@@ -508,10 +489,7 @@ def stock_screener_app():
                 st.session_state.top_5_stocks = get_top_5_investment_picks(new_data)
                 st.session_state.market_news = fetch_mixed_finnhub_news(8)
                 st.session_state.last_update = datetime.now()
-                
-                news_count = len(st.session_state.market_news)
-                translated_count = sum(1 for news in st.session_state.market_news if news.get('translated', False))
-                st.success(f"✅ Aggiornati {len(new_data)} titoli | 📰 {news_count} notizie ({translated_count} tradotte)")
+                st.success(f"✅ Aggiornati {len(new_data)} titoli")
             else:
                 st.warning("⚠️ Nessun dato trovato")
     
@@ -528,15 +506,13 @@ def stock_screener_app():
     if st.session_state.last_update:
         st.info(f"🕐 Ultimo aggiornamento: {st.session_state.last_update.strftime('%d/%m/%Y %H:%M:%S')}")
     
-    # --- TAB SYSTEM ---
+    # TAB SYSTEM
     tab1, tab2, tab3, tab4 = st.tabs(["📊 Dashboard", "🎯 Top Picks", "📰 Notizie", "🔍 TradingView Search"])
     
     with tab1:
-        # Display data if available
         if not st.session_state.data.empty:
             df = st.session_state.data
             
-            # Summary metrics
             st.subheader("📊 Riepilogo")
             col1, col2, col3, col4, col5 = st.columns(5)
             
@@ -555,7 +531,6 @@ def stock_screener_app():
                 avg_score = df['Investment_Score'].mean()
                 st.metric("Score Medio", f"{avg_score:.1f}/100")
             
-            # Filters
             st.subheader("🔍 Filtri")
             col1, col2, col3, col4 = st.columns(4)
             
@@ -571,7 +546,6 @@ def stock_screener_app():
             with col4:
                 min_score = st.slider("Score Minimo", 0, 100, 50)
             
-            # Apply filters
             filtered_df = df.copy()
             if selected_country != 'Tutti':
                 filtered_df = filtered_df[filtered_df['Country'] == selected_country]
@@ -581,181 +555,30 @@ def stock_screener_app():
                 filtered_df = filtered_df[filtered_df['Rating'] == selected_rating]
             filtered_df = filtered_df[filtered_df['Investment_Score'] >= min_score]
             
-            # Performance Settori Settimanale
-            st.subheader("📈 Performance Settori - Ultima Settimana")
-            st.markdown("*Basata sui titoli selezionati dal tuo screener*")
-            
-            if not filtered_df.empty and 'Perf.W' in filtered_df.columns:
-                sector_weekly_perf = filtered_df.groupby('Sector')['Perf.W'].agg(['mean', 'count']).reset_index()
-                sector_weekly_perf = sector_weekly_perf[sector_weekly_perf['count'] >= 2]
-                sector_weekly_perf = sector_weekly_perf.sort_values('mean', ascending=True)
-                
-                if not sector_weekly_perf.empty:
-                    fig_sector_weekly = px.bar(
-                        sector_weekly_perf,
-                        y='Sector',
-                        x='mean',
-                        orientation='h',
-                        title="Performance Settoriale - Ultima Settimana (%)",
-                        labels={'mean': 'Performance Media (%)', 'Sector': 'Settore'},
-                        color='mean',
-                        color_continuous_scale=['red', 'yellow', 'green'],
-                        text='mean'
-                    )
-                    
-                    fig_sector_weekly.update_traces(
-                        texttemplate='%{text:.1f}%',
-                        textposition='outside',
-                        textfont_size=10
-                    )
-                    
-                    fig_sector_weekly.update_layout(
-                        height=max(400, len(sector_weekly_perf) * 35),
-                        showlegend=False,
-                        xaxis_title="Performance (%)",
-                        yaxis_title="Settore",
-                        font=dict(size=11)
-                    )
-                    
-                    fig_sector_weekly.add_vline(x=0, line_dash="dash", line_color="black", line_width=1)
-                    st.plotly_chart(fig_sector_weekly, use_container_width=True)
-                    
-                    col1, col2, col3 = st.columns(3)
-                    with col1:
-                        best_sector = sector_weekly_perf.iloc[-1]
-                        st.metric(
-                            "🥇 Miglior Settore",
-                            best_sector['Sector'],
-                            f"+{best_sector['mean']:.2f}%"
-                        )
-                    with col2:
-                        worst_sector = sector_weekly_perf.iloc[0]
-                        st.metric(
-                            "🥊 Peggior Settore",
-                            worst_sector['Sector'],
-                            f"{worst_sector['mean']:.2f}%"
-                        )
-                    with col3:
-                        avg_performance = sector_weekly_perf['mean'].mean()
-                        st.metric(
-                            "📊 Media Generale",
-                            f"{avg_performance:.2f}%"
-                        )
-                else:
-                    st.info("📈 Non ci sono abbastanza dati settoriali per mostrare la performance settimanale.")
-            else:
-                st.info("📈 Aggiorna i dati per vedere la performance settimanale dei settori.")
-            
-            # Data table
             st.subheader("📋 Dati Dettagliati")
             st.markdown(f"**Visualizzati {len(filtered_df)} di {len(df)} titoli**")
             
-            available_columns = ['Company', 'Symbol', 'Country', 'Sector', 'Currency', 'Price', 'Rating',
-                               'Investment_Score', 'Recommend.All', 'RSI', 'Volume', 'TradingView_URL']
+            available_columns = ['Company', 'Symbol', 'Country', 'Sector', 'Price', 'Rating', 'Investment_Score']
             display_columns = st.multiselect(
-                "Seleziona colonne da visualizzare:",
+                "Seleziona colonne:",
                 available_columns,
-                default=['Company', 'Symbol', 'Investment_Score', 'Price', 'Country']
+                default=['Company', 'Symbol', 'Investment_Score', 'Price']
             )
             
             if display_columns:
                 display_df = filtered_df[display_columns].copy()
-                
-                if 'Investment_Score' in display_df.columns:
-                    display_df['Investment_Score'] = display_df['Investment_Score'].round(1)
-                
-                column_names = {
-                    'Company': 'Azienda',
-                    'Symbol': 'Simbolo',
-                    'Country': 'Paese',
-                    'Sector': 'Settore',
-                    'Currency': 'Valuta',
-                    'Price': 'Prezzo',
-                    'Rating': 'Rating',
-                    'Investment_Score': 'Score',
-                    'Recommend.All': 'Rating Numerico',
-                    'RSI': 'RSI',
-                    'Volume': 'Volume',
-                    'TradingView_URL': 'Chart'
-                }
-                
-                display_df = display_df.rename(columns=column_names)
-                
-                def color_score(val):
-                    if isinstance(val, (int, float)):
-                        if val >= 80:
-                            return 'background-color: #90EE90'
-                        elif val >= 65:
-                            return 'background-color: #FFFF99'
-                        elif val < 50:
-                            return 'background-color: #FFB6C1'
-                    return ''
-                
-                def color_rating(val):
-                    if '🟢' in str(val):
-                        return 'background-color: #90EE90'
-                    elif '🟡' in str(val):
-                        return 'background-color: #FFFF99'
-                    elif '🔴' in str(val):
-                        return 'background-color: #FFB6C1'
-                    return ''
-                
-                styled_df = display_df.style
-                if 'Score' in display_df.columns:
-                    styled_df = styled_df.applymap(color_score, subset=['Score'])
-                if 'Rating' in display_df.columns:
-                    styled_df = styled_df.applymap(color_rating, subset=['Rating'])
-                
-                st.dataframe(
-                    styled_df,
-                    use_container_width=True,
-                    height=400
-                )
-                
-                csv = display_df.to_csv(index=False)
-                st.download_button(
-                    label="📥 Scarica Dati Filtrati (CSV)",
-                    data=csv,
-                    file_name=f"screener_data_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                    mime="text/csv",
-                    use_container_width=True
-                )
+                st.dataframe(display_df, use_container_width=True, height=400)
         else:
-            # Welcome message
-            st.markdown("""
-            ## 🚀 Benvenuto nel Financial Screener Professionale!
-            
-            Questa app utilizza un **algoritmo di scoring intelligente** e **notizie tradotte con Google Translate**.
-            
-            ### 🎯 Funzionalità Principali:
-            
-            - **🔥 TOP 5 PICKS**: Selezione automatica titoli con maggiori probabilità di guadagno
-            - **📈 Link TradingView**: Accesso diretto ai grafici professionali
-            - **🧮 Investment Score**: Punteggio 0-100 con analisi multi-fattoriale
-            - **📊 Performance Settoriale**: Dashboard completa per settori
-            - **📰 Notizie Tradotte**: Aggiornamenti reali da Finnhub API tradotti con Google Translate
-            - **🔍 Ricerca TradingView**: Cerca e visualizza grafici di qualsiasi titolo
-            
-            ### 🌐 Google Translate Integration:
-            
-            - **🇬🇧→🇮🇹 EN→IT**: Traduzione automatica delle notizie inglesi
-            - **🔍 Rilevamento lingua**: Identificazione automatica della lingua originale
-            - **⚡ Veloce e accurato**: Usa la stessa tecnologia di translate.google.com
-            
-            **👆 Clicca su 'Aggiorna Dati' per iniziare l'analisi!**
-            """)
+            st.info("👆 Clicca su 'Aggiorna Dati' per iniziare l'analisi!")
     
     with tab2:
-        # TOP 5 INVESTMENT PICKS
         if not st.session_state.top_5_stocks.empty:
-            st.subheader("🎯 TOP 5 PICKS - Maggiori Probabilità di Guadagno (2-4 settimane)")
-            st.markdown("*Selezionate dall'algoritmo di scoring intelligente*")
-            
+            st.subheader("🎯 TOP 5 PICKS")
             top_5 = st.session_state.top_5_stocks
             
             for idx, (_, stock) in enumerate(top_5.iterrows(), 1):
                 with st.container():
-                    col1, col2, col3, col4 = st.columns([1, 3, 2, 1])
+                    col1, col2, col3 = st.columns([1, 3, 1])
                     
                     with col1:
                         st.markdown(f"### #{idx}")
@@ -764,145 +587,46 @@ def stock_screener_app():
                     with col2:
                         st.markdown(f"**{stock['Company']}** ({stock['Symbol']})")
                         st.markdown(f"*{stock['Country']} | {stock['Sector']}*")
-                        st.markdown(f"💰 **${stock['Price']}** ({stock['Change %']})")
-                        st.caption(f"📊 {stock['Recommendation_Reason']}")
+                        st.markdown(f"💰 **${stock['Price']}**")
                     
                     with col3:
-                        st.markdown("**Metriche Chiave:**")
-                        st.markdown(f"RSI: {stock['RSI']} | Rating: {stock['Rating']}")
-                        st.markdown(f"Vol: {stock['Volatility %']} | MCap: {stock['Market Cap']}")
-                        st.markdown(f"Perf 1W: {stock['Perf Week %']} | 1M: {stock['Perf Month %']}")
-                    
-                    with col4:
                         tv_url = stock['TradingView_URL']
-                        st.link_button(
-                            f"📈 Grafico {stock['Symbol']}",
-                            tv_url,
-                            use_container_width=True
-                        )
+                        st.link_button(f"📈 Chart", tv_url, use_container_width=True)
                     
                     st.markdown("---")
         else:
-            st.info("📊 Aggiorna i dati per visualizzare i TOP 5 picks!")
+            st.info("📊 Aggiorna i dati per TOP 5 picks!")
     
     with tab3:
-        # SEZIONE NOTIZIE FINNHUB TRADOTTE
         if st.session_state.market_news:
-            st.subheader("📰 Notizie di Mercato Tradotte con Google Translate")
+            st.subheader("📰 Notizie di Mercato")
             
-            # Statistiche traduzioni
-            total_news = len(st.session_state.market_news)
-            translated_news = sum(1 for news in st.session_state.market_news if news.get('translated', False))
-            
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                st.metric("📰 Totale Notizie", total_news)
-            with col2:
-                st.metric("🌐 Tradotte", translated_news)
-            with col3:
-                st.metric("🇮🇹 Originali IT", total_news - translated_news)
-            
-            st.info(f"📡 {total_news} notizie da Finnhub | 🌐 {translated_news} tradotte con Google Translate")
-            
-            # Display news
-            col1, col2 = st.columns(2)
-            
-            for i, news in enumerate(st.session_state.market_news):
-                with col1 if i % 2 == 0 else col2:
-                    with st.container():
-                        translation_indicator = "🌐 " if news.get('translated', False) else ""
-                        st.markdown(f"**{translation_indicator}{news['title']}**")
-                        st.markdown(f"*{news['date']} - {news['source']}*")
-                        st.markdown(news['description'])
-                        st.markdown(f"**Impatto:** {news['impact']}")
-                        
-                        if news.get('url'):
-                            st.markdown(f"**[Leggi articolo originale]({news['url']})**")
-                        
-                        if news.get('category'):
-                            category_names = {
-                                "general": "📈 Mercati generali",
-                                "company_specific": "🏢 Notizie aziendali"
-                            }
-                            category_display = category_names.get(news['category'], news['category'])
-                            st.caption(f"🏷️ {category_display}")
-                        
-                        if news.get('translated', False):
-                            st.caption("🌐 Tradotto automaticamente con Google Translate")
-                        
-                        st.markdown("---")
-            
-            # Summary
-            current_date = datetime.now()
-            st.success(f"""
-            🎯 **Notizie di Mercato Aggiornate** - {current_date.strftime('%d/%m/%Y %H:%M')}
-            ✅ Fonte: Finnhub API | 🌐 Traduzione: Google Translate | 🇮🇹 Contenuti in italiano
-            """)
+            for news in st.session_state.market_news:
+                with st.container():
+                    st.markdown(f"**{news['title']}**")
+                    st.markdown(f"*{news['date']} - {news['source']}*")
+                    st.markdown(news['description'])
+                    if news.get('url'):
+                        st.markdown(f"[Leggi articolo]({news['url']})")
+                    st.markdown("---")
         else:
-            st.info("📰 Aggiorna i dati per visualizzare le notizie tradotte da Finnhub!")
-            st.markdown("""
-            ### 🌐 Notizie Tradotte con Google Translate
-            
-            Le notizie vengono recuperate dall'API Finnhub e tradotte automaticamente:
-            
-            - **📡 Fonte**: Finnhub API per notizie finanziarie reali
-            - **🔍 Rilevamento**: Identificazione automatica della lingua originale con Google
-            - **🌐 Traduzione**: Google Translate API (affidabile e veloce)
-            - **🇬🇧→🇮🇹**: Traduzione automatica da inglese a italiano
-            - **📈 Notizie generali**: Mercati globali e trend
-            - **🏢 Company News**: Notizie specifiche per i tuoi TOP picks
-            - **🔗 Link originali**: Accesso alle fonti complete in lingua originale
-            
-            *Clicca su 'Aggiorna Dati' per recuperare le ultime notizie tradotte!*
-            """)
+            st.info("📰 Aggiorna i dati per le notizie!")
     
     with tab4:
-        # TRADINGVIEW SEARCH
-        st.header("🔍 Ricerca Titolo TradingView")
-        
-        symbol = st.text_input("Inserisci simbolo o nome titolo", "")
+        st.header("🔍 Ricerca TradingView")
+        symbol = st.text_input("Inserisci simbolo:", "")
         
         if symbol:
             url = f"https://www.tradingview.com/chart/?symbol={symbol.upper()}"
-            st.markdown(f"[Apri grafico TradingView per {symbol}]({url})")
-            
-            if st.button("Apri grafico in nuova finestra"):
-                webbrowser.open_new_tab(url)
+            st.markdown(f"[Apri grafico per {symbol}]({url})")
     
-    # --- SIDEBAR ---
+    # Sidebar info
     st.sidebar.title("ℹ️ Informazioni")
     st.sidebar.markdown("""
     ### 🎯 Funzionalità:
     
-    - **🏆 TOP 5 PICKS**: Algoritmo di selezione AI
-    - **🧮 Investment Score**: Sistema a 6 fattori
-    - **📈 TradingView**: Integrazione diretta e ricerca
-    - **📊 Analisi Settoriale**: Performance settimanale
-    - **📰 Notizie Tradotte**: Finnhub + Google Translate
-    
-    ### 🌐 Google Translate:
-    
-    - **Fonte Notizie**: Finnhub API (dati reali)
-    - **Rilevamento Lingua**: Google Detect API
-    - **Traduzione**: Google Translate API (affidabile)
-    - **🇬🇧→🇮🇹**: Inglese → Italiano
-    - **Indicatori**: 🌐 = tradotto automaticamente
-    
-    ### 📊 Investment Score:
-    
-    L'algoritmo valuta ogni azione su 6 parametri:
-    
-    1. **RSI Score**: Momentum ottimale
-    2. **MACD Score**: Segnale di trend
-    3. **Trend Score**: Analisi medie mobili
-    4. **Technical Rating**: Raccomandazioni aggregate
-    5. **Volatility Score**: Movimento controllato
-    6. **Market Cap Score**: Dimensione ideale
-    
-    ### 📰 Notizie:
-    
-    - **🌐 Solo dati reali**: Nessun contenuto demo
-    - **🇮🇹 Google Translate**: Traduzione EN→IT
-    - **📊 Categorizzazione**: Automatica per settore
-    - **🔗 Fonti originali**: Link alle notizie complete
+    - **🏆 TOP 5 PICKS**: Algoritmo AI
+    - **🧮 Investment Score**: 6 fattori
+    - **📈 TradingView**: Integrazione diretta
+    - **📰 Notizie**: Tradotte con Google Translate
     """)
