@@ -22,7 +22,7 @@ def portfolio_tracker_app():
             df_filtered = df.iloc[:16, :13]
             
             # Tabella dati principali forzando manualmente intestazioni
-            df_summary = df.iloc[18:18, 3:12].copy()  # Prendo soltanto la riga dati (es. riga 20)
+            df_summary = df.iloc[18:19, 3:12].copy()  # Prendo soltanto la riga dati (es. riga 20)
             
             # Definisci manualmente i nomi delle colonne:
             forced_headers = [
