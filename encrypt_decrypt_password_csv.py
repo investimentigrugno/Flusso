@@ -1,11 +1,9 @@
-# encrypt_decrypt_password_csv.py
 import streamlit as st
 import hashlib
 import base64
-import uuid
 import pandas as pd
+import csv
 from io import StringIO
-import os
 
 def decrypt_data(encrypted_data, key):
     """Decripta i dati usando la chiave master"""
@@ -31,34 +29,6 @@ def xor_decrypt(encrypted, key):
         enc_char = ord(char)
         result.append(chr(enc_char ^ key_char))
     return ''.join(result)
-
-def parse_csv_row(row):
-    """Parse CSV row gestendo virgolette e virgole"""
-    cells = []
-    cell = ''
-    in_quotes = False
-    i = 0
-    
-    while i < len(row):
-        char = row[i]
-        next_char = row[i + 1] if i + 1 < len(row) else ''
-        
-        if char == '"':
-            if in_quotes and next_char == '"':
-                cell += '"'
-                i += 1
-            else:
-                in_quotes = not in_quotes
-        elif char == ',' and not in_quotes:
-            cells.append(cell)
-            cell = ''
-        else:
-            cell += char
-        
-        i += 1
-    
-    cells.append(cell)
-    return cells
 
 def password_decryptor_app():
     """Funzione principale dell'app"""
@@ -101,34 +71,48 @@ def password_decryptor_app():
         
         try:
             with st.spinner("🔄 Decriptazione in corso..."):
+                # Decripta i dati
                 decrypted_csv = decrypt_data(file_content, master_key)
-                rows = decrypted_csv.split('\n')
-                data = [parse_csv_row(row) for row in rows if row.strip()]
                 
-                if data and len(data) > 1:
-                    df = pd.DataFrame(data[1:], columns=data[0])
+                # USA IL MODULO CSV DI PYTHON PER PARSING CORRETTO
+                csv_reader = csv.reader(StringIO(decrypted_csv))
+                rows = list(csv_reader)
+                
+                if rows and len(rows) > 1:
+                    # Crea DataFrame con header e dati
+                    df = pd.DataFrame(rows[1:], columns=rows[0])
+                    
                     st.success(f"✅ **Decriptazione riuscita!** Trovate {len(df)} credenziali")
                     
                     tab1, tab2, tab3 = st.tabs(["📊 Tabella Interattiva", "📋 CSV Grezzo", "💾 Download"])
                     
                     with tab1:
                         st.subheader("🔎 Credenziali Decriptate - Tabella Interattiva")
-                        st.info("👇 Questa è una tabella interattiva Pandas - puoi ordinare, cercare e scorrere")
+                        st.info("👇 Tabella interattiva: clicca sugli header per ordinare, usa la ricerca in alto a destra")
                         
                         hide_passwords = st.checkbox("🙈 Nascondi password", value=True)
                         
                         display_df = df.copy()
                         if hide_passwords:
-                            password_cols = [col for col in display_df.columns if 'PASSWORD' in col.upper()]
+                            password_cols = [col for col in display_df.columns if 'PASSWORD' in col.upper() or 'PASS' in col.upper()]
                             for col in password_cols:
                                 display_df[col] = display_df[col].apply(
                                     lambda x: '********' if pd.notna(x) and str(x).strip() else ''
                                 )
                         
+                        # TABELLA INTERATTIVA CON CONFIGURAZIONE AVANZATA
                         st.dataframe(
                             display_df,
                             use_container_width=True,
-                            height=500
+                            height=500,
+                            hide_index=True,
+                            column_config={
+                                col: st.column_config.TextColumn(
+                                    col,
+                                    help=f"Colonna: {col}",
+                                    max_chars=200
+                                ) for col in display_df.columns
+                            }
                         )
                         
                         col1, col2, col3 = st.columns(3)
@@ -137,14 +121,14 @@ def password_decryptor_app():
                         with col2:
                             st.metric("📋 Colonne", len(df.columns))
                         with col3:
-                            password_col = [c for c in df.columns if 'PASSWORD' in c.upper()]
+                            password_col = [c for c in df.columns if 'PASSWORD' in c.upper() or 'PASS' in c.upper()]
                             if password_col:
-                                filled = len(df[df[password_col[0]].notna() & (df[password_col[0]] != '')])
+                                filled = len(df[df[password_col[0]].notna() & (df[password_col[0]].str.strip() != '')])
                                 st.metric("🔑 Password compilate", filled)
                     
                     with tab2:
                         st.subheader("📋 Dati CSV in formato testo")
-                        st.info("👇 Questo è il CSV grezzo in formato testuale (non interattivo)")
+                        st.info("👇 CSV grezzo in formato testuale")
                         st.text_area(
                             "Contenuto CSV completo:",
                             decrypted_csv,
@@ -175,3 +159,6 @@ def password_decryptor_app():
     
     st.markdown("---")
     st.markdown("**CSV Password Decryptor** | Sicuro • Privato • Open Source")
+
+if __name__ == "__main__":
+    password_decryptor_app()
