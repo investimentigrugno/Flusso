@@ -34,11 +34,11 @@ def portfolio_tracker_app():
         # Visualizza tabella riepilogativa principale
         st.markdown("---")
         st.subheader("💼 Dati Principali del Portafoglio")
-        st.dataframe(df_summary, use_container_width=True)
+        st.dataframe(df_summary, use_container_width=True, hide_index=True)
         
         # Visualizza tabella principale
         st.subheader("Portfolio Completo")
-        st.dataframe(df_filtered, use_container_width=True, height=600)
+        st.dataframe(df_filtered, use_container_width=True, height=600, hide_index=True)
         
         # Print tabella principale in console
         print("\n" + "="*100)
