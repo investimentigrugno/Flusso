@@ -19,7 +19,7 @@ except Exception as e:
     stock_ok = False
 
 try:
-    from encrypt_decrypt_password_csv import password_decryptor_app
+    from decrypt import password_decryptor_app
     password_ok = True
 except Exception as e:
     st.sidebar.error(f"Password Decryptor error: {e}")
