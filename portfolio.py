@@ -30,6 +30,7 @@ def portfolio_tracker_app():
             df_summary = df.iloc[18:19, 3:12]
             df_summary.colums = df_summary.iloc[0]
             df_summary = df_summary[1:]
+            df_summary = df_summary.reset_index(drop=True)
             
         st.success("✅ Dati caricati con successo!")
         
