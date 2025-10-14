@@ -1,0 +1,8 @@
+streamlit>=1.28.0
+pandas>=1.5.0
+tradingview-screener>=0.3.0
+plotly>=5.15.0
+numpy
+requests
+finnhub-python
+deep-translator>=1.11.4
