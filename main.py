@@ -1,9 +1,6 @@
-# main.py
+# main.py (alternativa con __import__)
 import streamlit as st
-from stock_screener import stock_screener_app
-from encrypt_decrypt_password_csv import password_decryptor_app
 
-# Configurazione pagina principale
 st.set_page_config(
     page_title="Multi Utility App",
     page_icon="🚀",
@@ -11,13 +8,18 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# Importa usando __import__ (supporta trattini)
+stock_screener_module = __import__("stock_screener")
+password_module = __import__("encrypt_decrypt_password_csv")
+
+# Estrai le funzioni
+stock_screener_app = stock_screener_module.stock_screener_app
+password_decryptor_app = password_module.password_decryptor_app
+
 # Menu di navigazione
 MENU = {
     "📈 Stock Screener": stock_screener_app,
     "🔐 Password Decryptor": password_decryptor_app,
-    # Aggiungi qui altre funzionalità future:
-    # "📊 Nuova Dashboard": nuova_dashboard_app,
-    # "💰 Crypto Tracker": crypto_tracker_app,
 }
 
 # Sidebar per il menu
@@ -25,7 +27,6 @@ st.sidebar.title("🚀 Multi Utility App")
 st.sidebar.markdown("---")
 st.sidebar.markdown("### 📍 Navigazione")
 
-# Radio button per selezionare la funzionalità
 scelta = st.sidebar.radio(
     "Seleziona funzionalità:",
     list(MENU.keys()),
@@ -45,5 +46,4 @@ st.sidebar.markdown("""
 **Sviluppato con:** Streamlit + Python
 """)
 
-# Esegui la funzionalità selezionata
 MENU[scelta]()
