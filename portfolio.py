@@ -31,14 +31,14 @@ def portfolio_tracker_app():
             
         st.success("✅ Dati caricati con successo!")
         
-        # Visualizza tabella principale
-        st.subheader("Portfolio Completo")
-        st.dataframe(df_filtered, use_container_width=True, height=600)
-        
         # Visualizza tabella riepilogativa principale
         st.markdown("---")
         st.subheader("💼 Dati Principali del Portafoglio")
         st.dataframe(df_summary, use_container_width=True)
+        
+        # Visualizza tabella principale
+        st.subheader("Portfolio Completo")
+        st.dataframe(df_filtered, use_container_width=True, height=600)
         
         # Print tabella principale in console
         print("\n" + "="*100)
