@@ -29,11 +29,10 @@ def portfolio_tracker_app():
             df_summary = df.iloc[18:20, 3:12]
             
             # Impostiamo la prima riga come intestazione (riga 19)
-            df_summary.columns = df_summary.iloc[0]
+            df_summary.columns = df_summary.iloc[0].str.strip()
             
             # Prendiamo solo la riga 20 con i dati effettivi escludendo l'intestazione
-            df_summary = df_summary[1:]
-            df_summary = df_summary.reset_index(drop=True)
+            df_summary = df_summary[1:].reset_index(drop=True)
             
         st.success("✅ Dati caricati con successo!")
         
