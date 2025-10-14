@@ -121,7 +121,7 @@ def password_decryptor_app():
         
         # File uploader
         uploaded_file = st.file_uploader(
-            "Seleziona il file CSV crittografato:",
+            "Carica CSV:",
             type=['csv'],
             help="Carica il file .csv generato dal Google Apps Script Password Manager"
         )
@@ -131,17 +131,13 @@ def password_decryptor_app():
             file_content = uploaded_file.read().decode('utf-8').strip()
             st.success(f"✅ File caricato: **{uploaded_file.name}**")
             st.info(f"📊 Dimensione: {len(file_content)} caratteri")
-            
-            # Mostra anteprima del contenuto crittografato (primi 100 caratteri)
-            with st.expander("👁️ Anteprima contenuto crittografato"):
-                st.code(file_content[:100] + "..." if len(file_content) > 100 else file_content)
     
     with col2:
         st.header("🔑 Chiave Master")
         
         # Input per la chiave master
         master_key = st.text_input(
-            "Inserisci la chiave master:",
+            "Chiave master:",
             type="password",
             help="La stessa chiave usata per crittografare i dati",
             placeholder="Minimum 8 caratteri..."
@@ -155,7 +151,6 @@ def password_decryptor_app():
     
     # Sezione decriptazione
     if uploaded_file is not None and master_key and len(master_key) >= 8:
-        st.header("🔓 Decriptazione")
         
         try:
             with st.spinner("🔄 Decriptazione in corso..."):
@@ -166,85 +161,106 @@ def password_decryptor_app():
                 rows = decrypted_csv.split('\n')
                 data = [parse_csv_row(row) for row in rows if row.strip()]
             
-            if 
+            if data and len(data) > 1:
                 st.success(f"✅ **Decriptazione riuscita!** Caricate {len(data)-1} credenziali")
                 
                 # Crea DataFrame per la visualizzazione
-                if len(data) > 1:  # Almeno intestazione + 1 riga di dati
-                    df = pd.DataFrame(data[1:], columns=data[0])
+                df = pd.DataFrame(data[1:], columns=data[0])
+                
+                # MOSTRA SUBITO LA TABELLA INTERATTIVA
+                st.markdown("---")
+                st.subheader("📊 Credenziali Decriptate")
+                
+                # Opzioni visualizzazione
+                col_opt1, col_opt2 = st.columns([1, 3])
+                
+                with col_opt1:
+                    hide_passwords = st.checkbox("🙈 Nascondi password", value=True)
+                
+                # Prepara DataFrame per visualizzazione
+                display_df = df.copy()
+                if hide_passwords and 'PASSWORD' in display_df.columns:
+                    display_df['PASSWORD'] = display_df['PASSWORD'].apply(
+                        lambda x: '••••••••' if pd.notna(x) and str(x).strip() else ''
+                    )
+                
+                # Mostra tabella interattiva con tutte le funzionalità
+                st.dataframe(
+                    display_df,
+                    use_container_width=True,
+                    height=min(400, 50 + len(df) * 35),  # Altezza dinamica
+                    hide_index=True
+                )
+                
+                # Statistiche
+                col_stat1, col_stat2, col_stat3 = st.columns(3)
+                with col_stat1:
+                    st.metric("📈 Totale credenziali", len(df))
+                with col_stat2:
+                    st.metric("📋 Colonne", len(df.columns))
+                with col_stat3:
+                    # Conta credenziali con password
+                    has_pwd = df['PASSWORD'].notna().sum() if 'PASSWORD' in df.columns else 0
+                    st.metric("🔑 Con password", has_pwd)
+                
+                # Tabs per opzioni aggiuntive
+                st.markdown("---")
+                tab1, tab2 = st.tabs(["💾 Download", "📋 Dati Grezzi"])
+                
+                with tab1:
+                    st.subheader("Scarica File Decriptato")
                     
-                    # Tabs per diverse visualizzazioni
-                    tab1, tab2, tab3 = st.tabs(["📊 Tabella", "📋 Dati Grezzi", "💾 Download"])
+                    # Genera timestamp per il nome del file
+                    timestamp = pd.Timestamp.now().strftime("%Y%m%d_%H%M%S")
+                    download_filename = f"credenziali_decriptate_{timestamp}.csv"
                     
-                    with tab1:
-                        st.subheader("Credenziali Decriptate")
-                        
-                        # Opzione per nascondere le password
-                        hide_passwords = st.checkbox("🙈 Nascondi password", value=True)
-                        
-                        display_df = df.copy()
-                        if hide_passwords and 'PASSWORD' in display_df.columns:
-                            display_df['PASSWORD'] = display_df['PASSWORD'].apply(
-                                lambda x: '*' * min(len(str(x)), 12) if pd.notna(x) and str(x).strip() else ''
-                            )
-                        
-                        st.dataframe(
-                            display_df,
-                            use_container_width=True,
-                            height=400
-                        )
-                        
-                        st.info(f"📈 **Statistiche:** {len(df)} credenziali | {len(df.columns)} colonne")
+                    col_down1, col_down2 = st.columns([1, 2])
                     
-                    with tab2:
-                        st.subheader("Dati CSV Grezzi")
-                        
-                        st.text_area(
-                            "Contenuto CSV completo:",
-                            decrypted_csv,
-                            height=300,
-                            help="Dati CSV in formato testuale"
-                        )
-                    
-                    with tab3:
-                        st.subheader("Scarica File Decriptato")
-                        
-                        # Genera timestamp per il nome del file
-                        timestamp = pd.Timestamp.now().strftime("%Y%m%d_%H%M%S")
-                        download_filename = f"credenziali_decriptate_{timestamp}.csv"
-                        
+                    with col_down1:
                         st.download_button(
-                            label="📥 Scarica CSV Decriptato",
+                            label="📥 Scarica CSV",
                             data=decrypted_csv,
                             file_name=download_filename,
                             mime='text/csv',
-                            help="Scarica il file CSV con i dati in chiaro"
+                            help="Scarica il file CSV con i dati in chiaro",
+                            use_container_width=True
                         )
-                        
+                    
+                    with col_down2:
                         st.warning("""
-                        ⚠️ **ATTENZIONE SICUREZZA:**
-                        - Il file scaricato conterrà le credenziali in chiaro
-                        - Conservalo in luogo sicuro
-                        - Considera di eliminarlo dopo l'uso
-                        - Non condividerlo tramite canali non sicuri
+                        ⚠️ Il file conterrà le credenziali in chiaro. 
+                        Conservalo in luogo sicuro!
                         """)
-                else:
-                    st.warning("⚠️ Il file sembra essere vuoto o contiene solo l'intestazione")
+                
+                with tab2:
+                    st.subheader("Contenuto CSV Grezzo")
+                    
+                    st.text_area(
+                        "Contenuto:",
+                        decrypted_csv,
+                        height=250,
+                        help="Dati CSV in formato testuale"
+                    )
+            
+            elif data and len(data) == 1:
+                st.warning("⚠️ Il file contiene solo l'intestazione, nessuna credenziale trovata")
             else:
                 st.error("❌ Nessun dato trovato nel file decriptato")
                 
         except Exception as e:
-            st.error(f"❌ **Errore durante la decriptazione:**\n{str(e)}")
+            st.error(f"❌ **Errore durante la decriptazione:**")
+            st.code(str(e))
+            
             st.info("""
             **Possibili cause:**
-            - Chiave master errata
-            - File corrotto o non valido
-            - Formato file non supportato
+            - ❌ Chiave master errata
+            - ❌ File corrotto o non valido
+            - ❌ Formato file non supportato
             
             **Soluzioni:**
-            - Verifica la chiave master
-            - Assicurati che il file sia stato generato correttamente
-            - Controlla che il file non sia stato modificato
+            - ✅ Verifica la chiave master
+            - ✅ Controlla che il file non sia stato modificato
+            - ✅ Assicurati che il file sia stato generato correttamente
             """)
     
     # Footer
