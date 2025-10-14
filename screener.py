@@ -26,13 +26,6 @@ if 'top_5_stocks' not in st.session_state:
 if 'market_news' not in st.session_state:
     st.session_state.market_news = []
 
-# --- PAGE CONFIG ---
-st.set_page_config(
-    page_title="Financial Screener",
-    page_icon="📈",
-    layout="wide"
-)
-
 # --- API CONFIGURATION ---
 FINNHUB_API_KEY = "d38fnb9r01qlbdj59nogd38fnb9r01qlbdj59np0"
 FINNHUB_BASE_URL = "https://finnhub.io/api/v1"
@@ -495,6 +488,84 @@ def get_top_5_investment_picks(df):
     top_5['Recommendation_Reason'] = top_5.apply(generate_recommendation_reason, axis=1)
     
     return top_5
+
+# ============================================================================
+# FUNZIONE PRINCIPALE PER IL MAIN
+# ============================================================================
+
+def stock_screener_app():
+    """App principale per lo stock screener"""
+    
+    # Tutto il codice che segue dopo st.set_page_config va qui dentro
+    # (da st.title fino alla fine dell'app)
+    
+    st.title("📈 Financial Screener Dashboard")
+    st.markdown("Analizza le migliori opportunità di investimento con criteri tecnici avanzati e **notizie tradotte automaticamente** in italiano")
+    
+    # Status system
+    with st.expander("🔑 Stato Sistema", expanded=False):
+        col1, col2 = st.columns(2)
+        with col1:
+            st.markdown("**🌐 API Finnhub**")
+            if test_finnhub_connection():
+                st.success("✅ Connessione attiva")
+            else:
+                st.warning("⚠️ API non disponibile")
+        
+        with col2:
+            st.markdown("**🌐 Google Translate**")
+            if test_deep_translate():
+                st.success("✅ Traduzione attiva")
+            else:
+                st.warning("⚠️ Traduzione non disponibile")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            st.markdown("**📡 Servizi**")
+            st.success("✅ TradingView Screener attivo")
+            st.success("✅ Sistema di scoring avanzato")
+        
+        with col2:
+            st.markdown("**🇮🇹 Traduzione**")
+            st.success("✅ Traduzione automatica EN→IT")
+            st.success("✅ Rilevamento lingua Google")
+    
+    st.markdown("---")
+    
+    # Main controls
+    col1, col2, col3 = st.columns([2, 1, 1])
+    
+    with col1:
+        if st.button("🔄 Aggiorna Dati", type="primary", use_container_width=True):
+            new_data = fetch_screener_data()
+            if not new_data.empty:
+                st.session_state.data = new_data
+                st.session_state.top_5_stocks = get_top_5_investment_picks(new_data)
+                st.session_state.market_news = fetch_mixed_finnhub_news(8)
+                st.session_state.last_update = datetime.now()
+                news_count = len(st.session_state.market_news)
+                translated_count = sum(1 for news in st.session_state.market_news if news.get('translated', False))
+                st.success(f"✅ Aggiornati {len(new_data)} titoli | 📰 {news_count} notizie ({translated_count} tradotte)")
+            else:
+                st.warning("⚠️ Nessun dato trovato")
+    
+    with col2:
+        if st.button("🧹 Pulisci Cache", use_container_width=True):
+            st.success("✅ Cache pulita!")
+    
+    with col3:
+        auto_refresh = st.checkbox("🔄 Auto-refresh (30s)")
+        if auto_refresh:
+            time.sleep(30)
+            st.rerun()
+    
+    if st.session_state.last_update:
+        st.info(f"🕐 Ultimo aggiornamento: {st.session_state.last_update.strftime('%d/%m/%Y %H:%M:%S')}")
+    
+    # --- TAB SYSTEM ---
+    tab1, tab2, tab3, tab4 = st.tabs(["📊 Dashboard", "🎯 Top Picks", "📰 Notizie", "🔍 TradingView Search"])
+
+
 
 # --- MAIN APP CON TAB SYSTEM ---
 st.title("📈 Financial Screener Dashboard")
