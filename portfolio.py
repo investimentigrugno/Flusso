@@ -117,8 +117,7 @@ def portfolio_tracker_app():
             )
             
             fig.update_traces(
-                textposition='inside',
-                textinfo='percent+label',
+                textposition='none',
                 hovertemplate='<b>%{label}</b><br>Valore: €%{value:,.2f}<br>Percentuale: %{percent}<extra></extra>'
             )
             
