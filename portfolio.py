@@ -63,3 +63,39 @@ def portfolio_tracker_app():
             col1, col2, col3, col4 = st.columns(4)
             
             with col1:
+                st.metric(label="Totale Asset", value=len(df_filtered))
+            
+            with col2:
+                asset_types = df_filtered['ASSET'].value_counts()
+                st.metric(label="Categorie Asset", value=len(asset_types))
+            
+            with col3:
+                st.metric(label="Righe", value=df_filtered.shape[0])
+            
+            with col4:
+                st.metric(label="Colonne", value=df_filtered.shape[1])
+            
+            st.markdown("---")
+            st.subheader("📈 Distribuzione Asset")
+            
+            col_a, col_b = st.columns(2)
+            
+            with col_a:
+                st.write("**Asset per categoria:**")
+                asset_counts = df_filtered['ASSET'].value_counts()
+                for asset_type, count in asset_counts.items():
+                    st.write(f"• {asset_type}: {count}")
+            
+            with col_b:
+                st.write("**Posizioni (Lungo/Breve):**")
+                position_counts = df_filtered['LUNGO/BREVE'].value_counts()
+                for position, count in position_counts.items():
+                    if position:
+                        st.write(f"• {position}: {count}")
+        
+    except Exception as e:
+        st.error(f"❌ Errore nel caricamento dei dati: {str(e)}")
+        st.info("💡 Verifica che il foglio Google Sheets sia pubblicamente accessibile.")
+        
+        with st.expander("🔍 Dettagli errore"):
+            st.code(str(e))
