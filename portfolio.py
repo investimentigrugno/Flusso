@@ -26,7 +26,7 @@ def portfolio_tracker_app():
             # Tabella dati principali portafoglio (righe 19-20, colonne 4-12)
             # Nota: pandas usa indice 0-based, quindi: righe 18-20 (esclusa la riga 20 perché python esclude l'ultimo index con slicing)
             # Per includere riga 19 e 20 usiamo 18:20
-            df_summary = df.iloc[18:20, 3:12]
+            df_summary = df.iloc[17:19, 3:12]
             
             # Impostiamo la prima riga come intestazione (riga 19)
             df_summary.columns = df_summary.iloc[0].str.strip()
