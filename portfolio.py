@@ -24,7 +24,7 @@ def portfolio_tracker_app():
             df_filtered = df.iloc[:16, :13]
             
            # Prendi righe 19-21 (inclusi) saltando la vuota (riga 18 vuota)
-            df_summary = df.iloc[20, 3:12].copy()  # righe 20 e 21 nel foglio, quindi indici 19 e 20 in python
+            df_summary = df.iloc[18, 3:12].copy()  # righe 20 e 21 nel foglio, quindi indici 19 e 20 in python
             
             header_names = ["DEPOSIT", "VALUE €", "P&L %", "P&L TOT", "P&L %", "P&L LIVE", "TOT $", "EUR/USD", "TOT €"]
             df_summary.columns = header_names
