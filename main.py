@@ -1,4 +1,5 @@
 # main.py
+
 import streamlit as st
 
 # Configurazione pagina DEVE essere la prima chiamata Streamlit
@@ -18,17 +19,20 @@ except Exception as e:
     stock_ok = False
 
 try:
-    from encrypt_decrypt_password_csv import password_decryptor_app
+    from encrypt_decrypt_password_csv import password_decryptor_app, password_encryptor_app
     password_ok = True
 except Exception as e:
-    st.sidebar.error(f"Password Decryptor error: {e}")
+    st.sidebar.error(f"Password tools error: {e}")
     password_ok = False
 
 # Menu di navigazione
 MENU = {}
+
 if stock_ok:
     MENU["📈 Stock Screener"] = stock_screener_app
+
 if password_ok:
+    MENU["🔒 Password Encryptor"] = password_encryptor_app
     MENU["🔐 Password Decryptor"] = password_decryptor_app
 
 if not MENU:
@@ -45,7 +49,28 @@ scelta = st.sidebar.radio(
 )
 
 st.sidebar.markdown("---")
-st.sidebar.info(f"Moduli attivi: {len(MENU)}/2")
+st.sidebar.info(f"Moduli attivi: {len(MENU)}/3")
 
-# Esegui funzionalità
+# Info aggiuntive
+with st.sidebar.expander("ℹ️ Info App"):
+    st.markdown("""
+    ### Funzionalità disponibili:
+    
+    **📈 Stock Screener**
+    - Analisi titoli azionari
+    
+    **🔒 Password Encryptor**
+    - Cripta file CSV con credenziali
+    
+    **🔐 Password Decryptor**
+    - Decripta file CSV crittografati
+    
+    ---
+    
+    **Versione:** 2.0
+    
+    **Sicurezza:** Tutti i dati vengono elaborati localmente
+    """)
+
+# Esegui funzionalità selezionata
 MENU[scelta]()
