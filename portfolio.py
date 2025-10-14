@@ -30,10 +30,7 @@ def portfolio_tracker_app():
                 "P&L LIVE", "TOT $", "EUR/USD", "TOT €"]
             
             df_summary.columns = summary_headers
-            
-            # Reset indice per pulizia tabella
-            df_summary = df_summary.reset_index(drop=True)
-        
+                    
         st.success("✅ Dati caricati con successo!")
         
         st.markdown("---")
