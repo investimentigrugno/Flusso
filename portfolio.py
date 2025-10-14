@@ -17,7 +17,6 @@ def portfolio_tracker_app():
     # Opzioni nella sidebar
     st.sidebar.markdown("### ⚙️ Opzioni Portfolio")
     show_metrics = st.sidebar.checkbox("Mostra metriche", value=True)
-    show_download = st.sidebar.checkbox("Abilita download", value=True)
     
     try:
         # Carica i dati
