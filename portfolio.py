@@ -23,16 +23,15 @@ def portfolio_tracker_app():
             # Tabella principale (prime 16 righe e 13 colonne)
             df_filtered = df.iloc[:16, :13]
             
-            # Tabella dati principali portafoglio (righe 19-20, colonne 4-12)
-            # Nota: pandas usa indice 0-based, quindi: righe 18-20 (esclusa la riga 20 perché python esclude l'ultimo index con slicing)
-            # Per includere riga 19 e 20 usiamo 18:20
-            df_summary = df.iloc[17:19, 3:12]
+           # Prendi righe 19-21 (inclusi) saltando la vuota (riga 18 vuota)
+            df_summary = df.iloc[19:21, 3:12].copy()  # righe 20 e 21 nel foglio, quindi indici 19 e 20 in python
             
-            # Impostiamo la prima riga come intestazione (riga 19)
+            # Imposta la riga 20 (indice 19 nel dataframe) come intestazione
             df_summary.columns = df_summary.iloc[0].str.strip()
             
-            # Prendiamo solo la riga 20 con i dati effettivi escludendo l'intestazione
-            df_summary = df_summary[1:].reset_index(drop=True)
+            # Rimuovi la riga intestazione per mostrare solo i dati effettivi (riga 21)
+            df_summary = df_summary.iloc[1:].reset_index(drop=True)
+
             
         st.success("✅ Dati caricati con successo!")
         
