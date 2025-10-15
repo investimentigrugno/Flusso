@@ -2,63 +2,74 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-import gspread
-from google.oauth2.service_account import Credentials
+import time
 
-@st.cache_resource
-def get_gsheet_connection():
-    """Connessione a Google Sheets per fogli pubblici"""
-    # Per fogli pubblici non serve autenticazione complessa
-    scopes = ['https://www.googleapis.com/auth/spreadsheets.readonly']
+@st.cache_data(ttl=120)
+def load_sheet_csv(spreadsheet_id, gid):
+    """Carica foglio pubblico via CSV export"""
+    url = f"https://docs.google.com/spreadsheets/d/{spreadsheet_id}/export?format=csv&gid={gid}"
     
-    # Usa gspread anonimo per fogli pubblici
-    gc = gspread.oauth(scopes=scopes)
-    return gc
-
-def load_public_sheet(sheet_url, worksheet_name):
-    """Carica dati da un foglio pubblico"""
-    try:
-        gc = get_gsheet_connection()
-        sh = gc.open_by_url(sheet_url)
-        worksheet = sh.worksheet(worksheet_name)
-        data = worksheet.get_all_records()
-        return pd.DataFrame(data)
-    except Exception as e:
-        st.error(f"Errore caricamento foglio '{worksheet_name}': {str(e)}")
-        return None
+    # Retry con backoff
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            df = pd.read_csv(url)
+            if not df.empty:
+                return df
+            time.sleep(1)
+        except Exception as e:
+            if attempt == max_retries - 1:
+                raise e
+            time.sleep(2)
+    
+    return None
 
 def portfolio_tracker_app():
+    """Applicazione Portfolio Tracker"""
+    
     st.title("📊 Portfolio Tracker")
     st.markdown("---")
     
-    sheet_url = "https://docs.google.com/spreadsheets/d/1mD9jxDJv26aZwCdIbvQVjlJGBhRwKWwQnPpPPq0ON5Y"
+    # ID del foglio Google Sheets
+    spreadsheet_id = "1mD9jxDJv26aZwCdIbvQVjlJGBhRwKWwQnPpPPq0ON5Y"
     
+    # Trova il GID del foglio "Portfolio" nell'URL quando lo apri
+    # Esempio: https://docs.google.com/spreadsheets/d/XXXX/edit#gid=0
+    # Se non c'è #gid= nell'URL, il gid è 0 (primo foglio)
+    gid_portfolio = 0  # Modifica se necessario
+    gid_dati = 1009022145
+    
+    # Opzioni nella sidebar
     st.sidebar.markdown("### ⚙️ Opzioni Portfolio")
     show_metrics = st.sidebar.checkbox("Mostra metriche", value=False)
     
+    # Bottone refresh
     if st.sidebar.button("🔄 Aggiorna Dati", type="primary"):
-        st.cache_resource.clear()
+        st.cache_data.clear()
         st.rerun()
+    
+    st.sidebar.markdown("---")
+    st.sidebar.caption("💡 I dati vengono aggiornati automaticamente ogni 2 minuti")
     
     try:
         with st.spinner("Caricamento dati dal Google Sheet..."):
-            df = load_public_sheet(sheet_url, "Portfolio")
-            df_dati = load_public_sheet(sheet_url, "dati")
+            # Carica foglio Portfolio
+            df = load_sheet_csv(spreadsheet_id, gid_portfolio)
+            
+            # Carica foglio dati
+            df_dati = load_sheet_csv(spreadsheet_id, gid_dati)
         
         if df is None or df.empty:
             st.error("❌ Impossibile caricare il foglio 'Portfolio'")
+            st.info("💡 Verifica che il foglio sia pubblico: Condividi → Chiunque con il link → Visualizzatore")
             st.stop()
-
-        if df_dati is None or df_dati.empty:
-            st.warning("⚠️ Il foglio 'dati' è vuoto o non è stato caricato correttamente. I grafici temporali non saranno disponibili.")
         
         # Tabella principale (prime 16 righe e 13 colonne)
         df_filtered = df.iloc[:16, :13]
         
-        # Tabella dati principali forzando manualmente intestazioni
+        # Tabella dati principali
         df_summary = df.iloc[18:19, 3:12].copy()
         
-        # Definisci manualmente i nomi delle colonne
         summary_headers = [
             "DEPOSIT", "VALUE €", "P&L %", "P&L TOT", "P&L % LIVE", 
             "P&L LIVE", "TOT $", "EUR/USD", "TOT €"
@@ -75,7 +86,7 @@ def portfolio_tracker_app():
         st.subheader("Portfolio Completo")
         st.dataframe(df_filtered, use_container_width=True, height=600, hide_index=True)
         
-        # Print in console per debug
+        # Print console
         print("\n" + "="*100)
         print("TABELLA PORTFOLIO COMPLETA")
         print("="*100)
@@ -88,7 +99,7 @@ def portfolio_tracker_app():
         print(df_summary.to_string())
         print("\n" + "="*100)
         
-        # ==================== GRAFICO 1: DISTRIBUZIONE VALORE PORTFOLIO ====================
+        # ==================== GRAFICO 1: DISTRIBUZIONE VALORE ====================
         st.markdown("---")
         st.subheader("Distribuzione Valore Portfolio")
         
@@ -126,7 +137,7 @@ def portfolio_tracker_app():
         
         st.plotly_chart(fig, use_container_width=True)
         
-        # ==================== GRAFICO 2: DISTRIBUZIONE PER TIPO DI ASSET ====================
+        # ==================== GRAFICO 2: TIPO ASSET ====================
         st.markdown("---")
         st.subheader("💰 Distribuzione Valore per Tipo di Asset")
         
@@ -170,7 +181,7 @@ def portfolio_tracker_app():
         
         st.plotly_chart(fig_asset_type, use_container_width=True)
         
-        # ==================== GRAFICO 3: DISTRIBUZIONE POSIZIONI L/B/P ====================
+        # ==================== GRAFICO 3: POSIZIONI L/B/P ====================
         st.markdown("---")
         st.subheader("Distribuzione Valore per Tipo di Posizione")
         
@@ -184,11 +195,7 @@ def portfolio_tracker_app():
         pos_value_agg = df_pos_value.groupby('LUNGO/BREVE')['VALUE_NUMERIC'].sum().reset_index()
         pos_value_agg.columns = ['Posizione', 'Valore']
         
-        position_map = {
-            'L': 'Lungo',
-            'B': 'Breve', 
-            'P': 'Passività'
-        }
+        position_map = {'L': 'Lungo', 'B': 'Breve', 'P': 'Passività'}
         pos_value_agg['Posizione'] = pos_value_agg['Posizione'].map(position_map)
         
         fig_pos_value = px.pie(
@@ -219,24 +226,19 @@ def portfolio_tracker_app():
         
         st.plotly_chart(fig_pos_value, use_container_width=True)
         
-        # ==================== GRAFICO 4: ANDAMENTO P&L NEL TEMPO ====================
+        # ==================== GRAFICO 4: P&L TEMPORALE ====================
         if df_dati is not None and not df_dati.empty:
             st.markdown("---")
             st.subheader("📈 Andamento P&L nel Tempo")
             
             try:
-                # Estrai colonne: col 10=DATA, col 3=P&L%, col 12=SMA9%, col 13=SMA20%
                 df_chart_data = df_dati.iloc[:, [9, 2, 11, 12]].copy()
                 df_chart_data.columns = ['Data', 'P&L%', 'SMA9%', 'SMA20%']
                 
-                # Converti Data
                 df_chart_data['Data'] = pd.to_datetime(df_chart_data['Data'], errors='coerce')
                 df_chart_data = df_chart_data.dropna(subset=['Data'])
-                
-                # Filtra solo dati dal 2025
                 df_chart_data = df_chart_data[df_chart_data['Data'] >= '2025-01-01']
                 
-                # Funzione per pulire percentuali
                 def clean_percentage(col):
                     if col.dtype == 'object':
                         col = col.str.replace('%', '').str.replace(',', '.').str.strip()
@@ -249,12 +251,9 @@ def portfolio_tracker_app():
                 df_chart_data = df_chart_data.dropna()
                 df_chart_data = df_chart_data.sort_values('Data')
                 
-                if len(df_chart_data) == 0:
-                    st.warning("⚠️ Nessun dato disponibile per il 2025.")
-                else:
+                if len(df_chart_data) > 0:
                     fig_combined = go.Figure()
                     
-                    # Barre P&L%
                     fig_combined.add_trace(go.Bar(
                         x=df_chart_data['Data'],
                         y=df_chart_data['P&L%'],
@@ -263,7 +262,6 @@ def portfolio_tracker_app():
                         hovertemplate='<b>Data:</b> %{x|%d/%m/%Y}<br><b>P&L:</b> %{y:.2f}%<extra></extra>'
                     ))
                     
-                    # Linea SMA9%
                     fig_combined.add_trace(go.Scatter(
                         x=df_chart_data['Data'],
                         y=df_chart_data['SMA9%'],
@@ -274,7 +272,6 @@ def portfolio_tracker_app():
                         hovertemplate='<b>Data:</b> %{x|%d/%m/%Y}<br><b>SMA9:</b> %{y:.2f}%<extra></extra>'
                     ))
                     
-                    # Linea SMA20%
                     fig_combined.add_trace(go.Scatter(
                         x=df_chart_data['Data'],
                         y=df_chart_data['SMA20%'],
@@ -285,44 +282,14 @@ def portfolio_tracker_app():
                         hovertemplate='<b>Data:</b> %{x|%d/%m/%Y}<br><b>SMA20:</b> %{y:.2f}%<extra></extra>'
                     ))
                     
-                    # Linea 0%
-                    fig_combined.add_hline(
-                        y=0, 
-                        line_dash="dash", 
-                        line_color="gray", 
-                        opacity=0.5,
-                        annotation_text="0%",
-                        annotation_position="right"
-                    )
+                    fig_combined.add_hline(y=0, line_dash="dash", line_color="gray", opacity=0.5)
                     
                     fig_combined.update_layout(
-                        title=dict(
-                            text='Andamento P&L % e Medie Mobili (SMA) - Anno 2025',
-                            font=dict(color='white')
-                        ),
-                        xaxis=dict(
-                            title=dict(text='Data', font=dict(color='white')),
-                            showgrid=True,
-                            gridcolor='#333333',
-                            color='white'
-                        ),
-                        yaxis=dict(
-                            title=dict(text='Percentuale (%)', font=dict(color='white')),
-                            showgrid=True,
-                            gridcolor='#333333',
-                            ticksuffix='%',
-                            color='white'
-                        ),
+                        title=dict(text='Andamento P&L % e Medie Mobili (SMA) - Anno 2025', font=dict(color='white')),
+                        xaxis=dict(title=dict(text='Data', font=dict(color='white')), showgrid=True, gridcolor='#333333', color='white'),
+                        yaxis=dict(title=dict(text='Percentuale (%)', font=dict(color='white')), showgrid=True, gridcolor='#333333', ticksuffix='%', color='white'),
                         hovermode='x unified',
-                        legend=dict(
-                            orientation="h",
-                            yanchor="bottom",
-                            y=1.02,
-                            xanchor="right",
-                            x=1,
-                            font=dict(color='white'),
-                            bgcolor='rgba(0,0,0,0.5)'
-                        ),
+                        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, font=dict(color='white'), bgcolor='rgba(0,0,0,0.5)'),
                         height=600,
                         plot_bgcolor='#0e1117',
                         paper_bgcolor='#0e1117',
@@ -332,9 +299,7 @@ def portfolio_tracker_app():
                     
                     st.plotly_chart(fig_combined, use_container_width=True)
                     
-                    # Statistiche P&L
                     col_stat1, col_stat2, col_stat3, col_stat4 = st.columns(4)
-                    
                     with col_stat1:
                         st.metric("Ultimo P&L %", f"{df_chart_data['P&L%'].iloc[-1]:.2f}%")
                     with col_stat2:
@@ -343,11 +308,11 @@ def portfolio_tracker_app():
                         st.metric("Max P&L %", f"{df_chart_data['P&L%'].max():.2f}%")
                     with col_stat4:
                         st.metric("Min P&L %", f"{df_chart_data['P&L%'].min():.2f}%")
-                
+                else:
+                    st.warning("⚠️ Nessun dato disponibile per il 2025")
+                    
             except Exception as e:
-                st.warning(f"⚠️ Impossibile creare il grafico P&L: {str(e)}")
-                with st.expander("🔍 Dettagli errore"):
-                    st.code(str(e))
+                st.warning(f"⚠️ Impossibile creare grafico P&L: {str(e)}")
         
         # ==================== GRAFICO 5: VOLATILITÀ ====================
         if df_dati is not None and not df_dati.empty:
@@ -355,7 +320,6 @@ def portfolio_tracker_app():
             st.subheader("📉 Volatilità del Portfolio")
             
             try:
-                # Estrai colonne: col 3=DATA, col 14=Vol Breve, col 15=Vol Lungo
                 df_vol_data = df_dati.iloc[:, [2, 13, 14]].copy()
                 df_vol_data.columns = ['Data', 'Volatilità Breve', 'Volatilità Lungo']
                 
@@ -374,12 +338,9 @@ def portfolio_tracker_app():
                 df_vol_data = df_vol_data.dropna()
                 df_vol_data = df_vol_data.sort_values('Data')
                 
-                if len(df_vol_data) == 0:
-                    st.warning("⚠️ Nessun dato di volatilità disponibile per il 2025.")
-                else:
+                if len(df_vol_data) > 0:
                     fig_volatility = go.Figure()
                     
-                    # Volatilità Breve
                     fig_volatility.add_trace(go.Scatter(
                         x=df_vol_data['Data'],
                         y=df_vol_data['Volatilità Breve'],
@@ -391,7 +352,6 @@ def portfolio_tracker_app():
                         hovertemplate='<b>Data:</b> %{x|%d/%m/%Y}<br><b>Vol. Breve:</b> %{y:.2f}%<extra></extra>'
                     ))
                     
-                    # Volatilità Lungo
                     fig_volatility.add_trace(go.Scatter(
                         x=df_vol_data['Data'],
                         y=df_vol_data['Volatilità Lungo'],
@@ -404,33 +364,11 @@ def portfolio_tracker_app():
                     ))
                     
                     fig_volatility.update_layout(
-                        title=dict(
-                            text='Volatilità a Breve e Lungo Termine - Anno 2025',
-                            font=dict(color='white')
-                        ),
-                        xaxis=dict(
-                            title=dict(text='Data', font=dict(color='white')),
-                            showgrid=True,
-                            gridcolor='#333333',
-                            color='white'
-                        ),
-                        yaxis=dict(
-                            title=dict(text='Volatilità (%)', font=dict(color='white')),
-                            showgrid=True,
-                            gridcolor='#333333',
-                            ticksuffix='%',
-                            color='white'
-                        ),
+                        title=dict(text='Volatilità a Breve e Lungo Termine - Anno 2025', font=dict(color='white')),
+                        xaxis=dict(title=dict(text='Data', font=dict(color='white')), showgrid=True, gridcolor='#333333', color='white'),
+                        yaxis=dict(title=dict(text='Volatilità (%)', font=dict(color='white')), showgrid=True, gridcolor='#333333', ticksuffix='%', color='white'),
                         hovermode='x unified',
-                        legend=dict(
-                            orientation="h",
-                            yanchor="bottom",
-                            y=1.02,
-                            xanchor="right",
-                            x=1,
-                            font=dict(color='white'),
-                            bgcolor='rgba(0,0,0,0.5)'
-                        ),
+                        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, font=dict(color='white'), bgcolor='rgba(0,0,0,0.5)'),
                         height=600,
                         plot_bgcolor='#0e1117',
                         paper_bgcolor='#0e1117',
@@ -439,9 +377,7 @@ def portfolio_tracker_app():
                     
                     st.plotly_chart(fig_volatility, use_container_width=True)
                     
-                    # Statistiche Volatilità
                     col_vol1, col_vol2, col_vol3, col_vol4 = st.columns(4)
-                    
                     with col_vol1:
                         st.metric("Ultima Vol. Breve", f"{df_vol_data['Volatilità Breve'].iloc[-1]:.2f}%")
                     with col_vol2:
@@ -450,13 +386,13 @@ def portfolio_tracker_app():
                         st.metric("Media Vol. Breve", f"{df_vol_data['Volatilità Breve'].mean():.2f}%")
                     with col_vol4:
                         st.metric("Media Vol. Lungo", f"{df_vol_data['Volatilità Lungo'].mean():.2f}%")
-                
+                else:
+                    st.warning("⚠️ Nessun dato volatilità per il 2025")
+                    
             except Exception as e:
-                st.warning(f"⚠️ Impossibile creare il grafico di volatilità: {str(e)}")
-                with st.expander("🔍 Dettagli errore"):
-                    st.code(str(e))
+                st.warning(f"⚠️ Impossibile creare grafico volatilità: {str(e)}")
         
-        # ==================== METRICHE OPZIONALI ====================
+        # ==================== METRICHE ====================
         if show_metrics:
             st.markdown("---")
             st.subheader("📊 Statistiche Portfolio")
@@ -465,14 +401,10 @@ def portfolio_tracker_app():
             
             with col1:
                 st.metric("Totale Asset", len(df_filtered))
-            
             with col2:
-                asset_types = df_filtered['ASSET'].value_counts()
-                st.metric("Categorie Asset", len(asset_types))
-            
+                st.metric("Categorie Asset", len(df_filtered['ASSET'].value_counts()))
             with col3:
                 st.metric("Righe", df_filtered.shape[0])
-            
             with col4:
                 st.metric("Colonne", df_filtered.shape[1])
             
@@ -483,20 +415,17 @@ def portfolio_tracker_app():
             
             with col_a:
                 st.write("**Asset per categoria:**")
-                asset_counts = df_filtered['ASSET'].value_counts()
-                for asset_type, count in asset_counts.items():
+                for asset_type, count in df_filtered['ASSET'].value_counts().items():
                     st.write(f"• {asset_type}: {count}")
             
             with col_b:
                 st.write("**Posizioni (Lungo/Breve):**")
-                position_counts = df_filtered['LUNGO/BREVE'].value_counts()
-                for position, count in position_counts.items():
+                for position, count in df_filtered['LUNGO/BREVE'].value_counts().items():
                     if position:
                         st.write(f"• {position}: {count}")
     
     except Exception as e:
-        st.error(f"❌ Errore nel caricamento dei dati: {str(e)}")
-        st.info("💡 Verifica che il foglio Google Sheets sia pubblicamente accessibile e che i fogli 'Portfolio' e 'dati' esistano.")
-        
+        st.error(f"❌ Errore: {str(e)}")
+        st.info("💡 Verifica che il foglio sia pubblico")
         with st.expander("🔍 Dettagli errore"):
             st.code(str(e))
