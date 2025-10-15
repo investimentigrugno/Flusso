@@ -195,24 +195,24 @@ def portfolio_tracker_app():
                     delta=None
                 )
             
-            st.markdown("---")
-            st.subheader("📈 Distribuzione Asset")
+                st.markdown("---")
+                st.subheader("📈 Distribuzione Asset")
+                    
+                col_a, col_b = st.columns(2)
+                    
+                with col_a:
+                    st.write("**Asset per categoria:**")
+                    asset_counts = df_filtered['ASSET'].value_counts()
+                    for asset_type, count in asset_counts.items():
+                        st.write(f"• {asset_type}: {count}")
+                    
+                with col_b:
+                    st.write("**Posizioni (Lungo/Breve):**")
+                    position_counts = df_filtered['LUNGO/BREVE'].value_counts()
+                    for position, count in position_counts.items():
+                        if position:
+                            st.write(f"• {position}: {count}")           # Grafico a torta Portfolio
                 
-            col_a, col_b = st.columns(2)
-                
-            with col_a:
-                st.write("**Asset per categoria:**")
-                asset_counts = df_filtered['ASSET'].value_counts()
-                for asset_type, count in asset_counts.items():
-                    st.write(f"• {asset_type}: {count}")
-                
-            with col_b:
-                st.write("**Posizioni (Lungo/Breve):**")
-                position_counts = df_filtered['LUNGO/BREVE'].value_counts()
-                for position, count in position_counts.items():
-                    if position:
-                        st.write(f"• {position}: {count}")           # Grafico a torta Portfolio
-            
                 
     except Exception as e:
         st.error(f"❌ Errore nel caricamento dei dati: {str(e)}")
