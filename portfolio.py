@@ -49,6 +49,43 @@ def portfolio_tracker_app():
         print(df_summary.to_string())
         print("\n" + "="*100)
             
+            # Metriche
+        if show_metrics:
+            st.markdown("---")
+            st.subheader("📊 Statistiche Portfolio")
+            
+            col1, col2, col3, col4 = st.columns(4)
+            
+            with col1:
+                st.metric(
+                    label="Totale Asset",
+                    value=len(df_filtered),
+                    delta=None
+                )
+            
+            with col2:
+                # Conta asset per tipo
+                asset_types = df_filtered['ASSET'].value_counts()
+                st.metric(
+                    label="Categorie Asset",
+                    value=len(asset_types),
+                    delta=None
+                )
+            
+            with col3:
+                st.metric(
+                    label="Righe",
+                    value=df_filtered.shape[0],
+                    delta=None
+                )
+            
+            with col4:
+                st.metric(
+                    label="Colonne",
+                    value=df_filtered.shape[1],
+                    delta=None
+                )
+                
             st.markdown("---")
             st.subheader("📈 Distribuzione Asset")
             
