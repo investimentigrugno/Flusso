@@ -102,6 +102,58 @@ def portfolio_tracker_app():
         
         st.plotly_chart(fig, use_container_width=True)
 
+        # Grafico a torta Distribuzione per Tipo di Asset
+        st.markdown("---")
+        st.subheader("💰 Distribuzione Valore per Tipo di Asset")
+        
+        # Prepara dati per tipo di asset
+        df_asset_type = df_filtered[['ASSET', 'VALUE']].copy()
+        df_asset_type = df_asset_type[df_asset_type['ASSET'].notna() & (df_asset_type['ASSET'] != '')]
+        
+        # Pulisci valori
+        df_asset_type['VALUE_CLEAN'] = df_asset_type['VALUE'].str.replace('€', '').str.replace('.', '').str.replace(',', '.').str.strip()
+        df_asset_type['VALUE_NUMERIC'] = pd.to_numeric(df_asset_type['VALUE_CLEAN'], errors='coerce')
+        df_asset_type = df_asset_type[df_asset_type['VALUE_NUMERIC'] > 0].dropna()
+        
+        # Aggrega per tipo di asset
+        asset_type_agg = df_asset_type.groupby('ASSET')['VALUE_NUMERIC'].sum().reset_index()
+        asset_type_agg.columns = ['Tipo Asset', 'Valore']
+        
+        # Ordina per valore decrescente
+        asset_type_agg = asset_type_agg.sort_values('Valore', ascending=False)
+        
+        import plotly.express as px
+        
+        fig_asset_type = px.pie(
+            asset_type_agg,
+            values='Valore',
+            names='Tipo Asset',
+            title='Valore Totale per Categoria di Asset',
+            hole=0.3,
+            color_discrete_sequence=px.colors.qualitative.Set3
+        )
+        
+        fig_asset_type.update_traces(
+            textposition='none',
+            hovertemplate='<b>%{label}</b><br>Valore: €%{value:,.2f}<br>Percentuale: %{percent}<extra></extra>'
+        )
+        
+        fig_asset_type.update_layout(
+            showlegend=True,
+            height=700,
+            legend=dict(
+                orientation="v",
+                yanchor="middle",
+                y=0.5,
+                xanchor="left",
+                x=1.02,
+                font=dict(size=11)
+            )
+        )
+        
+        st.plotly_chart(fig_asset_type, use_container_width=True)
+
+
                     # Grafico a torta Distribuzione Posizioni (L/B/P)
         st.markdown("---")
         st.subheader("Distribuzione Valore per Tipo di Posizione")
@@ -156,7 +208,6 @@ def portfolio_tracker_app():
         )
         
         st.plotly_chart(fig_pos_value, use_container_width=True)
-    
         
             # Metriche
         if show_metrics:
