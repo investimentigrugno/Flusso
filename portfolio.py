@@ -2,53 +2,53 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-from st_gsheets_connection import GSheetsConnection
+import gspread
+from google.oauth2.service_account import Credentials
+
+@st.cache_resource
+def get_gsheet_connection():
+    """Connessione a Google Sheets per fogli pubblici"""
+    # Per fogli pubblici non serve autenticazione complessa
+    scopes = ['https://www.googleapis.com/auth/spreadsheets.readonly']
+    
+    # Usa gspread anonimo per fogli pubblici
+    gc = gspread.oauth(scopes=scopes)
+    return gc
+
+def load_public_sheet(sheet_url, worksheet_name):
+    """Carica dati da un foglio pubblico"""
+    try:
+        gc = get_gsheet_connection()
+        sh = gc.open_by_url(sheet_url)
+        worksheet = sh.worksheet(worksheet_name)
+        data = worksheet.get_all_records()
+        return pd.DataFrame(data)
+    except Exception as e:
+        st.error(f"Errore caricamento foglio '{worksheet_name}': {str(e)}")
+        return None
 
 def portfolio_tracker_app():
-    """Applicazione Portfolio Tracker"""
-    
     st.title("📊 Portfolio Tracker")
     st.markdown("---")
     
-    # URL del foglio Google Sheets
     sheet_url = "https://docs.google.com/spreadsheets/d/1mD9jxDJv26aZwCdIbvQVjlJGBhRwKWwQnPpPPq0ON5Y"
     
-    # Opzioni nella sidebar
     st.sidebar.markdown("### ⚙️ Opzioni Portfolio")
     show_metrics = st.sidebar.checkbox("Mostra metriche", value=False)
     
-    # Bottone per aggiornare i dati manualmente
     if st.sidebar.button("🔄 Aggiorna Dati", type="primary"):
-        st.cache_data.clear()
+        st.cache_resource.clear()
         st.rerun()
     
-    st.sidebar.markdown("---")
-    st.sidebar.caption("💡 Clicca 'Aggiorna Dati' per ricaricare i dati dal foglio Google")
-    
     try:
-        # Inizializza connessione a Google Sheets
-        conn = st.connection("gsheets", type=GSheetsConnection)
-        
         with st.spinner("Caricamento dati dal Google Sheet..."):
-            # Carica foglio "Portfolio" (tabella principale con asset)
-            df = conn.read(
-                spreadsheet=sheet_url,
-                worksheet="Portfolio",
-                ttl=60  # Cache per 60 secondi
-            )
-            
-            # Carica foglio "dati" (per i grafici temporali)
-            df_dati = conn.read(
-                spreadsheet=sheet_url,
-                worksheet="dati",
-                ttl=60
-            )
+            df = load_public_sheet(sheet_url, "Portfolio")
+            df_dati = load_public_sheet(sheet_url, "dati")
         
-        # Verifica che i dati siano stati caricati correttamente
         if df is None or df.empty:
-            st.error("❌ Il foglio 'Portfolio' è vuoto o non è stato caricato correttamente.")
+            st.error("❌ Impossibile caricare il foglio 'Portfolio'")
             st.stop()
-        
+
         if df_dati is None or df_dati.empty:
             st.warning("⚠️ Il foglio 'dati' è vuoto o non è stato caricato correttamente. I grafici temporali non saranno disponibili.")
         
