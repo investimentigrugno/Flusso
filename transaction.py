@@ -139,40 +139,9 @@ def transaction_tracker_app():
                 (df_filtered_trans['Data'].dt.date <= end_date)
             ]
         
-        # ==================== METRICHE RIEPILOGATIVE ====================
-        st.markdown("---")
-        st.subheader("📊 Riepilogo")
-        
-        col_t1, col_t2, col_t3, col_t4 = st.columns(4)
-        
-        with col_t1:
-            st.metric("Totale Transazioni", len(df_filtered_trans))
-        
-        with col_t2:
-            # Somma commissioni
-            df_filtered_trans['Commissioni_num'] = pd.to_numeric(
-                df_filtered_trans['Commissioni'].astype(str).str.replace('€', '').str.replace('.', '').str.replace(',', '.').str.strip(), 
-                errors='coerce'
-            )
-            totale_commissioni = df_filtered_trans['Commissioni_num'].sum()
-            st.metric("Totale Commissioni", f"€{totale_commissioni:,.2f}")
-        
-        with col_t3:
-            # Controvalore totale
-            df_filtered_trans['Controvalore_num'] = pd.to_numeric(
-                df_filtered_trans['Controvalore €'].astype(str).str.replace('€', '').str.replace('.', '').str.replace(',', '.').str.strip(), 
-                errors='coerce'
-            )
-            controvalore_totale = df_filtered_trans['Controvalore_num'].sum()
-            st.metric("Controvalore Totale", f"€{controvalore_totale:,.2f}")
-        
-        with col_t4:
-            strumenti_unici_filtered = df_filtered_trans['Strumento'].nunique()
-            st.metric("Strumenti Diversi", strumenti_unici_filtered)
-        
         # ==================== TABELLA TRANSAZIONI ====================
         st.markdown("---")
-        st.subheader("📋 Dettaglio Transazioni")
+        st.subheader("📋 DETTAGLIO TRANSAZIONI")
         
         # Formatta la data per visualizzazione
         df_display = df_filtered_trans.copy()
