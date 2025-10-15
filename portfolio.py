@@ -123,9 +123,9 @@ def portfolio_tracker_app():
             
             fig.update_layout(
                 showlegend=True,
+                height=600,
                 legend=dict(
                     orientation="h",
-                    height=600,
                     yanchor="bottom",
                     y=1.02,
                     xanchor="right",
