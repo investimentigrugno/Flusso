@@ -6,4 +6,4 @@ numpy
 requests
 finnhub-python
 deep-translator>=1.11.4
-streamlit-gsheets
+streamlit-gsheets>=0.0.3
