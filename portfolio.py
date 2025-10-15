@@ -11,6 +11,11 @@ def portfolio_tracker_app():
     sheet_url = "https://docs.google.com/spreadsheets/d/1mD9jxDJv26aZwCdIbvQVjlJGBhRwKWwQnPpPPq0ON5Y/edit"
     csv_url = sheet_url.replace('/edit', '/export?format=csv&gid=0')
     
+    # Opzioni nella sidebar
+    st.sidebar.markdown("### ⚙️ Opzioni Portfolio")
+    show_metrics = st.sidebar.checkbox("Mostra metriche", value=True)
+    
+    
     try:
         with st.spinner("Caricamento dati dal Google Sheet..."):
             df = pd.read_csv(csv_url)
