@@ -13,7 +13,7 @@ def portfolio_tracker_app():
     
     # Opzioni nella sidebar
     st.sidebar.markdown("### ⚙️ Opzioni Portfolio")
-    show_metrics = st.sidebar.checkbox("Mostra metriche", value=True)
+    show_metrics = st.sidebar.checkbox("Mostra metriche", value=False)
     
     
     try:
