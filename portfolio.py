@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-from streamlit_gsheets import GSheetsConnection
+from st_gsheets_connection import GSheetsConnection
 
 def portfolio_tracker_app():
     """Applicazione Portfolio Tracker"""
