@@ -6,3 +6,4 @@ numpy
 requests
 finnhub-python
 deep-translator>=1.11.4
+requests
