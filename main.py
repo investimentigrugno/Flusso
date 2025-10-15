@@ -68,7 +68,7 @@ scelta = st.sidebar.radio(
 )
 
 st.sidebar.markdown("---")
-st.sidebar.info(f"Moduli attivi: {len(MENU)}/3")
+st.sidebar.info(f"Moduli attivi: {len(MENU)}/4")
 
 # Info aggiuntive
 with st.sidebar.expander("ℹ️ Info App"):
