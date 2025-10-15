@@ -382,6 +382,158 @@ def portfolio_tracker_app():
             with st.expander("🔍 Dettagli errore"):
                 st.code(str(e))
 
+        # Grafico Volatilità a Breve e Lungo Termine
+        st.markdown("---")
+        st.subheader("📉 Volatilità del Portfolio")
+        
+        # Usa lo stesso foglio "dati" già caricato
+        csv_url_volatilita = sheet_url.replace('/edit', '/export?format=csv&gid=1009022145')
+        
+        try:
+            df_volatilita = pd.read_csv(csv_url_volatilita)
+            
+            # Estrai le colonne necessarie (colonna 3=DATA, 14=Volatilità breve, 15=Volatilità lungo)
+            # Python usa indice 0-based: col 3=indice 2, col 14=indice 13, col 15=indice 14
+            df_vol_data = df_volatilita.iloc[:, [2, 13, 14]].copy()
+            
+            # Rinomina le colonne
+            df_vol_data.columns = ['Data', 'Volatilità Breve', 'Volatilità Lungo']
+            
+            # Converti la colonna Data in formato datetime
+            df_vol_data['Data'] = pd.to_datetime(df_vol_data['Data'], errors='coerce')
+            
+            # Rimuovi righe con date invalide
+            df_vol_data = df_vol_data.dropna(subset=['Data'])
+            
+            # Filtra solo dati dal 2025 in poi
+            df_vol_data = df_vol_data[df_vol_data['Data'] >= '2025-01-01']
+            
+            # Funzione per pulire e convertire percentuali
+            def clean_percentage(col):
+                if col.dtype == 'object':
+                    # Rimuovi simbolo % e converti virgola in punto
+                    col = col.str.replace('%', '').str.replace(',', '.').str.strip()
+                return pd.to_numeric(col, errors='coerce')
+            
+            # Pulisci e converti le colonne percentuali
+            df_vol_data['Volatilità Breve'] = clean_percentage(df_vol_data['Volatilità Breve'])
+            df_vol_data['Volatilità Lungo'] = clean_percentage(df_vol_data['Volatilità Lungo'])
+            
+            # Rimuovi righe con valori NaN
+            df_vol_data = df_vol_data.dropna()
+            
+            # Ordina per data
+            df_vol_data = df_vol_data.sort_values('Data')
+            
+            # Verifica che ci siano dati disponibili
+            if len(df_vol_data) == 0:
+                st.warning("⚠️ Nessun dato di volatilità disponibile per il 2025.")
+            else:
+                # Crea il grafico con Plotly
+                import plotly.graph_objects as go
+                
+                fig_volatility = go.Figure()
+                
+                # Aggiungi linea Volatilità Breve
+                fig_volatility.add_trace(go.Scatter(
+                    x=df_vol_data['Data'],
+                    y=df_vol_data['Volatilità Breve'],
+                    name='Volatilità Breve Termine',
+                    mode='lines',
+                    line=dict(color='#e74c3c', width=2.5),
+                    fill='tozeroy',
+                    fillcolor='rgba(231, 76, 60, 0.2)',
+                    hovertemplate='<b>Data:</b> %{x|%d/%m/%Y}<br><b>Vol. Breve:</b> %{y:.2f}%<extra></extra>'
+                ))
+                
+                # Aggiungi linea Volatilità Lungo
+                fig_volatility.add_trace(go.Scatter(
+                    x=df_vol_data['Data'],
+                    y=df_vol_data['Volatilità Lungo'],
+                    name='Volatilità Lungo Termine',
+                    mode='lines',
+                    line=dict(color='#3498db', width=2.5),
+                    fill='tozeroy',
+                    fillcolor='rgba(52, 152, 219, 0.2)',
+                    hovertemplate='<b>Data:</b> %{x|%d/%m/%Y}<br><b>Vol. Lungo:</b> %{y:.2f}%<extra></extra>'
+                ))
+                
+                # Layout del grafico
+                fig_volatility.update_layout(
+                    title=dict(
+                        text='Volatilità a Breve e Lungo Termine - Anno 2025',
+                        font=dict(color='white')
+                    ),
+                    xaxis=dict(
+                        title=dict(text='Data', font=dict(color='white')),
+                        showgrid=True,
+                        gridcolor='#333333',
+                        color='white'
+                    ),
+                    yaxis=dict(
+                        title=dict(text='Volatilità (%)', font=dict(color='white')),
+                        showgrid=True,
+                        gridcolor='#333333',
+                        ticksuffix='%',
+                        color='white'
+                    ),
+                    hovermode='x unified',
+                    legend=dict(
+                        orientation="h",
+                        yanchor="bottom",
+                        y=1.02,
+                        xanchor="right",
+                        x=1,
+                        font=dict(color='white'),
+                        bgcolor='rgba(0,0,0,0.5)'
+                    ),
+                    height=600,
+                    plot_bgcolor='#0e1117',
+                    paper_bgcolor='#0e1117',
+                    font=dict(color='white')
+                )
+                
+                st.plotly_chart(fig_volatility, use_container_width=True)
+                
+                # Statistiche volatilità sotto il grafico
+                col_vol1, col_vol2, col_vol3, col_vol4 = st.columns(4)
+                
+                with col_vol1:
+                    ultima_vol_breve = df_vol_data['Volatilità Breve'].iloc[-1]
+                    st.metric(
+                        label="Ultima Vol. Breve",
+                        value=f"{ultima_vol_breve:.2f}%"
+                    )
+                
+                with col_vol2:
+                    ultima_vol_lungo = df_vol_data['Volatilità Lungo'].iloc[-1]
+                    st.metric(
+                        label="Ultima Vol. Lungo",
+                        value=f"{ultima_vol_lungo:.2f}%"
+                    )
+                
+                with col_vol3:
+                    media_vol_breve = df_vol_data['Volatilità Breve'].mean()
+                    st.metric(
+                        label="Media Vol. Breve",
+                        value=f"{media_vol_breve:.2f}%"
+                    )
+                
+                with col_vol4:
+                    media_vol_lungo = df_vol_data['Volatilità Lungo'].mean()
+                    st.metric(
+                        label="Media Vol. Lungo",
+                        value=f"{media_vol_lungo:.2f}%"
+                    )
+            
+        except Exception as e:
+            st.warning(f"⚠️ Impossibile caricare i dati di volatilità: {str(e)}")
+            st.info("💡 Verifica che le colonne di volatilità esistano nel foglio 'dati'.")
+            with st.expander("🔍 Dettagli errore"):
+                st.code(str(e))
+
+
+
             # Metriche
         if show_metrics:
             st.markdown("---")
