@@ -306,19 +306,26 @@ def portfolio_tracker_app():
                     annotation_position="right"
                 )
                 
-                # Layout del grafico
+                                # Layout del grafico
                 fig_combined.update_layout(
-                    title='Andamento P&L % e Medie Mobili (SMA) - Anno 2025',
+                    title=dict(
+                        text='Andamento P&L % e Medie Mobili (SMA) - Anno 2025',
+                        font=dict(color='white')
+                    ),
                     xaxis=dict(
                         title='Data',
                         showgrid=True,
-                        gridcolor='lightgray'
+                        gridcolor='#333333',
+                        color='white',
+                        titlefont=dict(color='white')
                     ),
                     yaxis=dict(
                         title='Percentuale (%)',
                         showgrid=True,
-                        gridcolor='lightgray',
-                        ticksuffix='%'
+                        gridcolor='#333333',
+                        ticksuffix='%',
+                        color='white',
+                        titlefont=dict(color='white')
                     ),
                     hovermode='x unified',
                     legend=dict(
@@ -326,12 +333,17 @@ def portfolio_tracker_app():
                         yanchor="bottom",
                         y=1.02,
                         xanchor="right",
-                        x=1
+                        x=1,
+                        font=dict(color='white'),
+                        bgcolor='rgba(0,0,0,0.5)'
                     ),
                     height=600,
-                    plot_bgcolor='white',
-                    barmode='relative'
+                    plot_bgcolor='#0e1117',
+                    paper_bgcolor='#0e1117',
+                    barmode='relative',
+                    font=dict(color='white')
                 )
+
                 
                 st.plotly_chart(fig_combined, use_container_width=True)
                 
