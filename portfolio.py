@@ -135,6 +135,105 @@ def portfolio_tracker_app():
             
             st.plotly_chart(fig, use_container_width=True)
 
+                        # Grafico a torta Distribuzione Posizioni (L/B/P)
+            st.markdown("---")
+            st.subheader("📊 Distribuzione per Tipo di Posizione")
+            
+            col_pie1, col_pie2 = st.columns(2)
+            
+            with col_pie1:
+                # Grafico per conteggio posizioni
+                df_positions = df_filtered[['LUNGO/BREVE', 'NAME']].copy()
+                df_positions = df_positions[df_positions['LUNGO/BREVE'].notna() & (df_positions['LUNGO/BREVE'] != '')]
+                
+                position_counts = df_positions['LUNGO/BREVE'].value_counts().reset_index()
+                position_counts.columns = ['Posizione', 'Conteggio']
+                
+                # Mappa nomi completi
+                position_map = {
+                    'L': 'Lungo',
+                    'B': 'Breve', 
+                    'P': 'Passività'
+                }
+                position_counts['Posizione'] = position_counts['Posizione'].map(position_map)
+                
+                import plotly.express as px
+                
+                fig_pos_count = px.pie(
+                    position_counts,
+                    values='Conteggio',
+                    names='Posizione',
+                    title='Numero di Asset per Posizione',
+                    hole=0.3,
+                    color_discrete_sequence=['#2ecc71', '#e74c3c', '#f39c12']
+                )
+                
+                fig_pos_count.update_traces(
+                    textposition='none',
+                    hovertemplate='<b>%{label}</b><br>Asset: %{value}<br>Percentuale: %{percent}<extra></extra>'
+                )
+                
+                fig_pos_count.update_layout(
+                    showlegend=True,
+                    height=400,
+                    legend=dict(
+                        orientation="h",
+                        yanchor="bottom",
+                        y=-0.2,
+                        xanchor="center",
+                        x=0.5,
+                        font=dict(size=12)
+                    )
+                )
+                
+                st.plotly_chart(fig_pos_count, use_container_width=True)
+            
+            with col_pie2:
+                # Grafico per valore posizioni
+                df_pos_value = df_filtered[['LUNGO/BREVE', 'VALUE']].copy()
+                df_pos_value = df_pos_value[df_pos_value['LUNGO/BREVE'].notna() & (df_pos_value['LUNGO/BREVE'] != '')]
+                
+                # Pulisci valori
+                df_pos_value['VALUE_CLEAN'] = df_pos_value['VALUE'].str.replace('€', '').str.replace('.', '').str.replace(',', '.').str.strip()
+                df_pos_value['VALUE_NUMERIC'] = pd.to_numeric(df_pos_value['VALUE_CLEAN'], errors='coerce')
+                df_pos_value = df_pos_value[df_pos_value['VALUE_NUMERIC'] > 0].dropna()
+                
+                # Aggrega per posizione
+                pos_value_agg = df_pos_value.groupby('LUNGO/BREVE')['VALUE_NUMERIC'].sum().reset_index()
+                pos_value_agg.columns = ['Posizione', 'Valore']
+                
+                # Mappa nomi completi
+                pos_value_agg['Posizione'] = pos_value_agg['Posizione'].map(position_map)
+                
+                fig_pos_value = px.pie(
+                    pos_value_agg,
+                    values='Valore',
+                    names='Posizione',
+                    title='Valore Totale per Posizione',
+                    hole=0.3,
+                    color_discrete_sequence=['#2ecc71', '#e74c3c', '#f39c12']
+                )
+                
+                fig_pos_value.update_traces(
+                    textposition='none',
+                    hovertemplate='<b>%{label}</b><br>Valore: €%{value:,.2f}<br>Percentuale: %{percent}<extra></extra>'
+                )
+                
+                fig_pos_value.update_layout(
+                    showlegend=True,
+                    height=400,
+                    legend=dict(
+                        orientation="h",
+                        yanchor="bottom",
+                        y=-0.2,
+                        xanchor="center",
+                        x=0.5,
+                        font=dict(size=12)
+                    )
+                )
+                
+                st.plotly_chart(fig_pos_value, use_container_width=True)
+
         
     except Exception as e:
         st.error(f"❌ Errore nel caricamento dei dati: {str(e)}")
