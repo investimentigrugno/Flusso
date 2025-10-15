@@ -90,7 +90,7 @@ def portfolio_tracker_app():
                         st.write(f"• {position}: {count}")           # Grafico a torta Portfolio
             
             st.markdown("---")
-            st.subheader("🥧 Distribuzione Valore Portfolio")
+            st.subheader("Distribuzione Valore Portfolio")
             
             # Prepara i dati per il grafico a torta
             # Rimuovi il simbolo € e converti in float
@@ -138,7 +138,7 @@ def portfolio_tracker_app():
                         # Grafico a torta Distribuzione Posizioni (L/B/P)
                         # Grafico a torta Distribuzione Posizioni per Valore
             st.markdown("---")
-            st.subheader("📊 Distribuzione Valore per Tipo di Posizione")
+            st.subheader("Distribuzione Valore per Tipo di Posizione")
             
             # Grafico per valore posizioni
             df_pos_value = df_filtered[['LUNGO/BREVE', 'VALUE']].copy()
