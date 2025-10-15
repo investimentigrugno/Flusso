@@ -123,20 +123,22 @@ def portfolio_tracker_app():
             
             fig.update_layout(
                 showlegend=True,
+                height=800,
                 legend=dict(
                     orientation="h",
-                    yanchor="bottom",
-                    y=-1,
-                    xanchor="left",
-                    x=0,
-                    maxheight=10
-                )
+                    yanchor="top",
+                    y=-0.1,
+                    xanchor="center",
+                    x=0.5,
+                    font=dict(size=10)
+                ),
+                margin=dict(l=20, r=20, t=80, b=150)
+            )
             )
             
             st.plotly_chart(fig, use_container_width=True)
 
                         # Grafico a torta Distribuzione Posizioni (L/B/P)
-                        # Grafico a torta Distribuzione Posizioni per Valore
             st.markdown("---")
             st.subheader("Distribuzione Valore per Tipo di Posizione")
             
