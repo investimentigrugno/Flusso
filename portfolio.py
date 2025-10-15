@@ -374,10 +374,6 @@ def portfolio_tracker_app():
                     ))
                     
                     fig_volatility.update_layout(
-                        title=dict(
-                            text='Volatilità a Breve e Lungo Termine - Anno 2025',
-                            font=dict(color='white')
-                        ),
                         xaxis=dict(
                             title=dict(text='Data', font=dict(color='white')),
                             showgrid=True,

@@ -19,6 +19,13 @@ except Exception as e:
     portfolio_ok = False
 
 try:
+    from transaction import transaction_tracker_app
+    transaction_ok = True
+except Exception as e:
+    st.sidebar.error(f"Transaction tracker error: {e}")
+    transaction_ok = False
+
+try:
     from screener import stock_screener_app
     stock_ok = True
 except Exception as e:
@@ -37,6 +44,9 @@ MENU = {}
 
 if portfolio_ok:
     MENU["📊 Portfolio Tracker"] = portfolio_tracker_app
+
+if transaction_ok:
+    MENU["💳 Transaction Tracker"] = transaction_tracker_app
 
 if stock_ok:
     MENU["📈 Stock Screener"] = stock_screener_app
@@ -70,6 +80,14 @@ with st.sidebar.expander("ℹ️ Info App"):
     - Connessione Google Sheets
     - Statistiche e metriche            
 
+    **💳 Transaction Tracker**
+    - Caricamento dati autonomo con funzione load_sheet_csv_transactions()
+    - Filtri multipli: Operazione, Strumento, Valuta, Date
+    - 4 Metriche: Totale transazioni, Commissioni, Controvalore, Strumenti
+    - 5 Grafici: Tipo operazione, Top strumenti, Commissioni mensili, Distribuzione valuta
+    - Tabella completa con tutte le transazioni filtrate
+    - Export CSV con timestamp
+                
     **📈 Stock Screener**
     - Analisi titoli azionari
     - TOP 5 Picks con AI
@@ -83,7 +101,7 @@ with st.sidebar.expander("ℹ️ Info App"):
     
     ---
     
-    **Versione:** 2.1
+    **Versione:** 2.2
     
     **Sicurezza:** Tutti i dati vengono elaborati localmente
     """)
