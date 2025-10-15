@@ -80,10 +80,10 @@ def portfolio_tracker_app():
         
         # ==================== SEZIONE TABELLE ====================
         st.markdown("---")
-        st.subheader("💼 Dati Principali del Portafoglio")
+        st.subheader("Portfolio status")
         st.dataframe(df_summary, use_container_width=True, hide_index=True)
         
-        st.subheader("Portfolio Completo")
+        st.subheader("Portfolio")
         st.dataframe(df_filtered, use_container_width=True, height=600, hide_index=True)
         
         # Print console
@@ -101,7 +101,7 @@ def portfolio_tracker_app():
         
         # ==================== GRAFICO 1: DISTRIBUZIONE VALORE ====================
         st.markdown("---")
-        st.subheader("Distribuzione Valore Portfolio")
+        st.subheader("Portfolio")
         
         df_chart = df_filtered[['NAME', 'VALUE']].copy()
         df_chart['VALUE_CLEAN'] = df_chart['VALUE'].str.replace('€', '').str.replace('.', '').str.replace(',', '.').str.strip()
@@ -112,8 +112,7 @@ def portfolio_tracker_app():
             df_chart, 
             values='VALUE_NUMERIC', 
             names='NAME',
-            title='Distribuzione del Valore per Asset',
-            hole=0.3
+            hole=0.5
         )
         
         fig.update_traces(
@@ -139,7 +138,7 @@ def portfolio_tracker_app():
         
         # ==================== GRAFICO 2: TIPO ASSET ====================
         st.markdown("---")
-        st.subheader("💰 Distribuzione Valore per Tipo di Asset")
+        st.subheader("Tipo di Asset")
         
         df_asset_type = df_filtered[['ASSET', 'VALUE']].copy()
         df_asset_type = df_asset_type[df_asset_type['ASSET'].notna() & (df_asset_type['ASSET'] != '')]
@@ -156,7 +155,6 @@ def portfolio_tracker_app():
             asset_type_agg,
             values='Valore',
             names='Tipo Asset',
-            title='Valore Totale per Categoria di Asset',
             hole=0.3,
             color_discrete_sequence=px.colors.qualitative.Set3
         )
@@ -183,7 +181,7 @@ def portfolio_tracker_app():
         
         # ==================== GRAFICO 3: POSIZIONI L/B/P ====================
         st.markdown("---")
-        st.subheader("Distribuzione Valore per Tipo di Posizione")
+        st.subheader("Tipo di posizione")
         
         df_pos_value = df_filtered[['LUNGO/BREVE', 'VALUE']].copy()
         df_pos_value = df_pos_value[df_pos_value['LUNGO/BREVE'].notna() & (df_pos_value['LUNGO/BREVE'] != '')]
@@ -202,7 +200,6 @@ def portfolio_tracker_app():
             pos_value_agg,
             values='Valore',
             names='Posizione',
-            title='Valore Totale per Posizione (L/B/P)',
             hole=0.3,
             color_discrete_sequence=['#2ecc71', '#e74c3c', '#f39c12']
         )
@@ -218,7 +215,7 @@ def portfolio_tracker_app():
                 orientation="v",
                 yanchor="middle",
                 y=0.5,
-                xanchor="left",
+                xanchor="right",
                 x=1.02,
                 font=dict(size=11)
             )
@@ -320,13 +317,19 @@ def portfolio_tracker_app():
             st.subheader("📉 Volatilità del Portfolio")
             
             try:
-                df_vol_data = df_dati.iloc[:, [2, 13, 14]].copy()
+                # CORREZIONE: usa colonna 10 (DATE, indice 9) invece di colonna 3
+                # Colonne: DATE (indice 9), VOLATILITY_S (indice 13), VOLATILITY_L (indice 14)
+                df_vol_data = df_dati.iloc[:, [9, 13, 14]].copy()
                 df_vol_data.columns = ['Data', 'Volatilità Breve', 'Volatilità Lungo']
                 
+                # Converti Data
                 df_vol_data['Data'] = pd.to_datetime(df_vol_data['Data'], errors='coerce')
                 df_vol_data = df_vol_data.dropna(subset=['Data'])
+                
+                # Filtra solo 2025
                 df_vol_data = df_vol_data[df_vol_data['Data'] >= '2025-01-01']
                 
+                # Pulisci percentuali
                 def clean_percentage(col):
                     if col.dtype == 'object':
                         col = col.str.replace('%', '').str.replace(',', '.').str.strip()
@@ -338,7 +341,10 @@ def portfolio_tracker_app():
                 df_vol_data = df_vol_data.dropna()
                 df_vol_data = df_vol_data.sort_values('Data')
                 
-                if len(df_vol_data) > 0:
+                if len(df_vol_data) == 0:
+                    st.warning("⚠️ Nessun dato di volatilità disponibile per il 2025")
+                else:
+                    # Crea grafico
                     fig_volatility = go.Figure()
                     
                     fig_volatility.add_trace(go.Scatter(
@@ -364,11 +370,33 @@ def portfolio_tracker_app():
                     ))
                     
                     fig_volatility.update_layout(
-                        title=dict(text='Volatilità a Breve e Lungo Termine - Anno 2025', font=dict(color='white')),
-                        xaxis=dict(title=dict(text='Data', font=dict(color='white')), showgrid=True, gridcolor='#333333', color='white'),
-                        yaxis=dict(title=dict(text='Volatilità (%)', font=dict(color='white')), showgrid=True, gridcolor='#333333', ticksuffix='%', color='white'),
+                        title=dict(
+                            text='Volatilità a Breve e Lungo Termine - Anno 2025',
+                            font=dict(color='white')
+                        ),
+                        xaxis=dict(
+                            title=dict(text='Data', font=dict(color='white')),
+                            showgrid=True,
+                            gridcolor='#333333',
+                            color='white'
+                        ),
+                        yaxis=dict(
+                            title=dict(text='Volatilità (%)', font=dict(color='white')),
+                            showgrid=True,
+                            gridcolor='#333333',
+                            ticksuffix='%',
+                            color='white'
+                        ),
                         hovermode='x unified',
-                        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, font=dict(color='white'), bgcolor='rgba(0,0,0,0.5)'),
+                        legend=dict(
+                            orientation="h",
+                            yanchor="bottom",
+                            y=1.02,
+                            xanchor="right",
+                            x=1,
+                            font=dict(color='white'),
+                            bgcolor='rgba(0,0,0,0.5)'
+                        ),
                         height=600,
                         plot_bgcolor='#0e1117',
                         paper_bgcolor='#0e1117',
@@ -377,7 +405,9 @@ def portfolio_tracker_app():
                     
                     st.plotly_chart(fig_volatility, use_container_width=True)
                     
+                    # Metriche
                     col_vol1, col_vol2, col_vol3, col_vol4 = st.columns(4)
+                    
                     with col_vol1:
                         st.metric("Ultima Vol. Breve", f"{df_vol_data['Volatilità Breve'].iloc[-1]:.2f}%")
                     with col_vol2:
@@ -386,11 +416,12 @@ def portfolio_tracker_app():
                         st.metric("Media Vol. Breve", f"{df_vol_data['Volatilità Breve'].mean():.2f}%")
                     with col_vol4:
                         st.metric("Media Vol. Lungo", f"{df_vol_data['Volatilità Lungo'].mean():.2f}%")
-                else:
-                    st.warning("⚠️ Nessun dato volatilità per il 2025")
-                    
+            
             except Exception as e:
-                st.warning(f"⚠️ Impossibile creare grafico volatilità: {str(e)}")
+                st.warning(f"⚠️ Errore grafico volatilità: {str(e)}")
+                with st.expander("🔍 Dettagli errore"):
+                    st.code(str(e))
+
         
         # ==================== METRICHE ====================
         if show_metrics:
