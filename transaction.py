@@ -90,7 +90,7 @@ def transaction_tracker_app():
     
     # ==================== CONFIGURAZIONE WEBHOOK ====================
     # IMPORTANTE: Sostituisci questo URL con quello del tuo Google Apps Script
-    WEBHOOK_URL = st.secrets.get("webhook_url", "https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec")
+    WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbwBzXbal3FNV4uxTpXIM8FlRcFBaW1_dO_A08xS9CRHIfj44D7wpWJ3HR69ADsC7gO3oQ/exec"
     
     # Se non usi secrets, puoi inserire direttamente l'URL:
     # WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbxxxxxxxxxxxxx/exec"
@@ -497,7 +497,7 @@ def transaction_tracker_app():
         
         st.info(f"**URL attuale configurato:**\n``````")
         
-        if WEBHOOK_URL == "https://script.google.com/macros/s/AKfycbwBzXbal3FNV4uxTpXIM8FlRcFBaW1_dO_A08xS9CRHIfj44D7wpWJ3HR69ADsC7gO3oQ/exec":
+        if WEBHOOK_URL == "https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec":
             st.warning("⚠️ URL del webhook non ancora configurato!")
         
         st.markdown("""
