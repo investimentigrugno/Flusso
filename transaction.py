@@ -266,8 +266,8 @@ def transaction_tracker_app():
             existing_valute = []
         
         # Valori di default comuni
-        default_operazioni = ["Acquisto", "Vendita", "Dividendo", "Interesse", "Prelievo", "Deposito"]
-        default_valute = ["EUR", "USD", "GBP", "CHF"]
+        default_operazioni = ["Buy", "Sell", "Bonifico", "Prelievo"]
+        default_valute = ["EUR", "USD", "GBP", "CHF","JPY","CNH","AUD","CAD","NZD","SEK"]
         
         # Combina valori esistenti con defaults
         operazioni_options = list(set(existing_operazioni + default_operazioni))
@@ -296,8 +296,8 @@ def transaction_tracker_app():
                 # 3. Strumento
                 strumento_input = st.text_input(
                     "Strumento *",
-                    placeholder="Es: AAPL, BTC-USD, TSLA",
-                    help="Nome dello strumento finanziario"
+                    placeholder="Es: BIT:LDO, NASDAQ:AAPL, BTCEUR",
+                    help="Inserire il ticker corretto presente su Google Finance"
                 )
                 
                 # 4. PMC (Prezzo Medio di Carico)
@@ -460,8 +460,8 @@ def transaction_tracker_app():
         with st.expander("💡 Suggerimenti per compilare il form"):
             st.markdown("""
             - **Data**: Seleziona la data effettiva della transazione
-            - **Operazione**: Scegli tra Acquisto, Vendita, Dividendo, etc.
-            - **Strumento**: Inserisci il ticker o nome dell'asset (es: AAPL, BTC-USD)
+            - **Operazione**: Scegli Buy, Sell, Bonifico O Prelievo
+            - **Strumento**: Inserisci il ticker corretto presente su Google Finance
             - **PMC**: Prezzo unitario al quale hai comprato/venduto
             - **Quantità**: Numero di unità/azioni/quote
             - **Valuta**: Valuta originale della transazione
