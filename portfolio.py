@@ -133,8 +133,6 @@ def portfolio_tracker_app():
                     font=dict(size=10)
                 ),
                 margin=dict(l=20, r=20, t=80, b=150)
-            )
-            )
             
             st.plotly_chart(fig, use_container_width=True)
 
