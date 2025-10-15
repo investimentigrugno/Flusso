@@ -236,8 +236,8 @@ def portfolio_tracker_app():
             
             # Converti P&L e le altre colonne in numerico
             df_chart_data['P&L'] = pd.to_numeric(df_chart_data['P&L'], errors='coerce')
-            df_chart_data['SMA9'] = pd.to_numeric(df_chart_data['Linea_1'], errors='coerce')
-            df_chart_data['SMA20'] = pd.to_numeric(df_chart_data['Linea_2'], errors='coerce')
+            df_chart_data['SMA9'] = pd.to_numeric(df_chart_data['SMA9'], errors='coerce')
+            df_chart_data['SMA20'] = pd.to_numeric(df_chart_data['SMA20'], errors='coerce')
             
             # Ordina per data
             df_chart_data = df_chart_data.sort_values('Data')
