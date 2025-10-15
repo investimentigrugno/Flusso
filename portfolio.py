@@ -53,45 +53,8 @@ def portfolio_tracker_app():
         print("="*100)
         print(df_summary.to_string())
         print("\n" + "="*100)
-            
-            # Metriche
-        if show_metrics:
-            st.markdown("---")
-            st.subheader("📊 Statistiche Portfolio")
-            
-            col1, col2, col3, col4 = st.columns(4)
-            
-            with col1:
-                st.metric(
-                    label="Totale Asset",
-                    value=len(df_filtered),
-                    delta=None
-                )
-            
-            with col2:
-                # Conta asset per tipo
-                asset_types = df_filtered['ASSET'].value_counts()
-                st.metric(
-                    label="Categorie Asset",
-                    value=len(asset_types),
-                    delta=None
-                )
-            
-            with col3:
-                st.metric(
-                    label="Righe",
-                    value=df_filtered.shape[0],
-                    delta=None
-                )
-            
-            with col4:
-                st.metric(
-                    label="Colonne",
-                    value=df_filtered.shape[1],
-                    delta=None
-                )
-                
-            st.markdown("---")
+        
+        st.markdown("---")
             st.subheader("📈 Distribuzione Asset")
             
             col_a, col_b = st.columns(2)
@@ -212,6 +175,44 @@ def portfolio_tracker_app():
             
             st.plotly_chart(fig_pos_value, use_container_width=True)
         
+        
+            # Metriche
+        if show_metrics:
+            st.markdown("---")
+            st.subheader("📊 Statistiche Portfolio")
+            
+            col1, col2, col3, col4 = st.columns(4)
+            
+            with col1:
+                st.metric(
+                    label="Totale Asset",
+                    value=len(df_filtered),
+                    delta=None
+                )
+            
+            with col2:
+                # Conta asset per tipo
+                asset_types = df_filtered['ASSET'].value_counts()
+                st.metric(
+                    label="Categorie Asset",
+                    value=len(asset_types),
+                    delta=None
+                )
+            
+            with col3:
+                st.metric(
+                    label="Righe",
+                    value=df_filtered.shape[0],
+                    delta=None
+                )
+            
+            with col4:
+                st.metric(
+                    label="Colonne",
+                    value=df_filtered.shape[1],
+                    delta=None
+                )
+                
     except Exception as e:
         st.error(f"❌ Errore nel caricamento dei dati: {str(e)}")
         st.info("💡 Verifica che il foglio Google Sheets sia pubblicamente accessibile.")
