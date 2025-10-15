@@ -41,18 +41,29 @@ def append_transaction_via_webhook(transaction_data, webhook_url):
         tuple: (success: bool, message: str)
     """
     try:
-        # Prepara i dati per il webhook
+        # Funzione per convertire numeri con virgola
+        def format_decimal(value):
+            """Converte numero in stringa con virgola come separatore decimale"""
+            if isinstance(value, str):
+                # Già stringa, sostituisci punto con virgola
+                return value.replace('.', ',')
+            elif isinstance(value, (int, float)):
+                # Converti numero in stringa con virgola
+                return str(value).replace('.', ',')
+            return value
+        
+        # Prepara i dati per il webhook con virgole come separatore
         payload = {
             "data": transaction_data['Data'],
             "operazione": transaction_data['Operazione'],
             "strumento": transaction_data['Strumento'],
-            "pmc": transaction_data['PMC'],
-            "quantita": transaction_data['Quantità'],
-            "totale": transaction_data['Totale'],
+            "pmc": format_decimal(transaction_data['PMC']),
+            "quantita": format_decimal(transaction_data['Quantità']),
+            "totale": format_decimal(transaction_data['Totale']),
             "valuta": transaction_data['Valuta'],
-            "tasso_cambio": transaction_data['Tasso di cambio'],
-            "commissioni": transaction_data['Commissioni'],
-            "controvalore": transaction_data['Controvalore €']
+            "tasso_cambio": format_decimal(transaction_data['Tasso di cambio']),
+            "commissioni": format_decimal(transaction_data['Commissioni']),
+            "controvalore": format_decimal(transaction_data['Controvalore €'])
         }
         
         # Invia richiesta POST al webhook
