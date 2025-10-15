@@ -216,7 +216,7 @@ def portfolio_tracker_app():
         # Carica il foglio "dati" (gid diverso dal foglio principale)
         # Devi trovare il gid del foglio "dati" nell'URL di Google Sheets
         # Per ora proviamo con gid=1, se non funziona dovrai verificare il gid corretto
-        csv_url_dati = sheet_url.replace('/edit', '/export?format=csv&gid=1')
+        csv_url_dati = sheet_url.replace('/edit', '/export?format=csv&gid=1009022145')
         
         try:
             df_dati = pd.read_csv(csv_url_dati)
@@ -226,7 +226,7 @@ def portfolio_tracker_app():
             df_chart_data = df_dati.iloc[:, [9, 2, 11, 12]].copy()
             
             # Rinomina le colonne per chiarezza
-            df_chart_data.columns = ['Data', 'P&L', 'Linea_1', 'Linea_2']
+            df_chart_data.columns = ['Data', 'P&L', 'SMA9', 'SMA20']
             
             # Converti la colonna Data in formato datetime
             df_chart_data['Data'] = pd.to_datetime(df_chart_data['Data'], errors='coerce')
@@ -236,8 +236,8 @@ def portfolio_tracker_app():
             
             # Converti P&L e le altre colonne in numerico
             df_chart_data['P&L'] = pd.to_numeric(df_chart_data['P&L'], errors='coerce')
-            df_chart_data['Linea_1'] = pd.to_numeric(df_chart_data['Linea_1'], errors='coerce')
-            df_chart_data['Linea_2'] = pd.to_numeric(df_chart_data['Linea_2'], errors='coerce')
+            df_chart_data['SMA9'] = pd.to_numeric(df_chart_data['Linea_1'], errors='coerce')
+            df_chart_data['SMA20'] = pd.to_numeric(df_chart_data['Linea_2'], errors='coerce')
             
             # Ordina per data
             df_chart_data = df_chart_data.sort_values('Data')
@@ -260,8 +260,8 @@ def portfolio_tracker_app():
             # Aggiungi la prima linea (colonna 12)
             fig_combined.add_trace(go.Scatter(
                 x=df_chart_data['Data'],
-                y=df_chart_data['Linea_1'],
-                name='Linea 1',
+                y=df_chart_data['SMA9'],
+                name='SMA9',
                 mode='lines+markers',
                 line=dict(color='#e74c3c', width=2),
                 marker=dict(size=6),
@@ -272,8 +272,8 @@ def portfolio_tracker_app():
             # Aggiungi la seconda linea (colonna 13)
             fig_combined.add_trace(go.Scatter(
                 x=df_chart_data['Data'],
-                y=df_chart_data['Linea_2'],
-                name='Linea 2',
+                y=df_chart_data['SMA20'],
+                name='SMA20',
                 mode='lines+markers',
                 line=dict(color='#2ecc71', width=2),
                 marker=dict(size=6),
