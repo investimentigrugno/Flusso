@@ -11,9 +11,6 @@ def portfolio_tracker_app():
     sheet_url = "https://docs.google.com/spreadsheets/d/1mD9jxDJv26aZwCdIbvQVjlJGBhRwKWwQnPpPPq0ON5Y/edit"
     csv_url = sheet_url.replace('/edit', '/export?format=csv&gid=0')
     
-    st.sidebar.markdown("### ⚙️ Opzioni Portfolio")
-    show_metrics = st.sidebar.checkbox("Mostra metriche", value=True)
-    
     try:
         with st.spinner("Caricamento dati dal Google Sheet..."):
             df = pd.read_csv(csv_url)
@@ -51,25 +48,6 @@ def portfolio_tracker_app():
         print("="*100)
         print(df_summary.to_string())
         print("\n" + "="*100)
-        
-        if show_metrics:
-            st.markdown("---")
-            st.subheader("📊 Statistiche Portfolio")
-            
-            col1, col2, col3, col4 = st.columns(4)
-            
-            with col1:
-                st.metric(label="Totale Asset", value=len(df_filtered))
-            
-            with col2:
-                asset_types = df_filtered['ASSET'].value_counts()
-                st.metric(label="Categorie Asset", value=len(asset_types))
-            
-            with col3:
-                st.metric(label="Righe", value=df_filtered.shape[0])
-            
-            with col4:
-                st.metric(label="Colonne", value=df_filtered.shape[1])
             
             st.markdown("---")
             st.subheader("📈 Distribuzione Asset")
