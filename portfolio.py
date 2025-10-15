@@ -128,7 +128,7 @@ def portfolio_tracker_app():
                     yanchor="bottom",
                     y=-1,
                     xanchor="left",
-                    x=0.5
+                    x=0
                 )
             )
             
