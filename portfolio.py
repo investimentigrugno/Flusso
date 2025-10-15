@@ -179,7 +179,6 @@ def portfolio_tracker_app():
             
             fig_pos_value.update_layout(
                 showlegend=True,
-                height=500,
                 legend=dict(
                     orientation="v",
                     yanchor="middle",
