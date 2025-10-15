@@ -6,8 +6,3 @@ numpy
 requests
 finnhub-python
 deep-translator>=1.11.4
-openpyxl
-google-auth
-google-auth-oauthlib
-google-auth-httplib2
-gspread
