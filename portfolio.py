@@ -126,10 +126,10 @@ def portfolio_tracker_app():
                 height=600,
                 legend=dict(
                     orientation="h",
-                    yanchor="middle",
-                    y=0.5,
-                    xanchor="left",
-                    x=1.05
+                    yanchor="bottom",
+                    y=1.02,
+                    xanchor="right",
+                    x=1
                 )
             )
             
