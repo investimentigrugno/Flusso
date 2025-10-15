@@ -305,27 +305,24 @@ def portfolio_tracker_app():
                     annotation_text="0%",
                     annotation_position="right"
                 )
-                
-                                # Layout del grafico
+                            
                 fig_combined.update_layout(
                     title=dict(
                         text='Andamento P&L % e Medie Mobili (SMA) - Anno 2025',
                         font=dict(color='white')
                     ),
                     xaxis=dict(
-                        title='Data',
+                        title=dict(text='Data', font=dict(color='white')),
                         showgrid=True,
                         gridcolor='#333333',
-                        color='white',
-                        titlefont=dict(color='white')
+                        color='white'
                     ),
                     yaxis=dict(
-                        title='Percentuale (%)',
+                        title=dict(text='Percentuale (%)', font=dict(color='white')),
                         showgrid=True,
                         gridcolor='#333333',
                         ticksuffix='%',
-                        color='white',
-                        titlefont=dict(color='white')
+                        color='white'
                     ),
                     hovermode='x unified',
                     legend=dict(
@@ -343,6 +340,7 @@ def portfolio_tracker_app():
                     barmode='relative',
                     font=dict(color='white')
                 )
+
 
                 
                 st.plotly_chart(fig_combined, use_container_width=True)
