@@ -927,9 +927,6 @@ Le notizie vengono recuperate dall'API Finnhub e tradotte automaticamente:
         if symbol:
             url = f"https://www.tradingview.com/chart/?symbol={symbol.upper()}"
             st.markdown(f"[Apri grafico TradingView per {symbol}]({url})")
-            
-            if st.button("Apri grafico in nuova finestra"):
-                webbrowser.open_new_tab(url)
     
     # --- SIDEBAR ---
     st.sidebar.title("ℹ️ Informazioni")

@@ -80,10 +80,10 @@ def portfolio_tracker_app():
         
         # ==================== SEZIONE TABELLE ====================
         st.markdown("---")
-        st.subheader("Portfolio status")
+        st.subheader("PORTFOLIO STATUS")
         st.dataframe(df_summary, use_container_width=True, hide_index=True)
         
-        st.subheader("Portfolio")
+        st.subheader("PORTFOLIO")
         st.dataframe(df_filtered, use_container_width=True, height=600, hide_index=True)
         
         # Print console
@@ -100,8 +100,6 @@ def portfolio_tracker_app():
         print("\n" + "="*100)
         
         # ==================== GRAFICO 1: DISTRIBUZIONE VALORE ====================
-        st.markdown("---")
-        st.subheader("Portfolio")
         
         df_chart = df_filtered[['NAME', 'VALUE']].copy()
         df_chart['VALUE_CLEAN'] = df_chart['VALUE'].str.replace('€', '').str.replace('.', '').str.replace(',', '.').str.strip()
@@ -124,113 +122,120 @@ def portfolio_tracker_app():
             showlegend=True,
             height=800,
             legend=dict(
-                orientation="h",
-                yanchor="top",
-                y=-0.1,
-                xanchor="center",
-                x=0.5,
-                font=dict(size=10)
+                orientation="v",
+                yanchor="middle",
+                y=0.5,
+                xanchor="left",
+                x=1.02,
+                font=dict(size=14)
             ),
             margin=dict(l=20, r=20, t=80, b=150)
         )
         
         st.plotly_chart(fig, use_container_width=True)
         
-        # ==================== GRAFICO 2: TIPO ASSET ====================
+        # ===================GRAFICO 2 E GRAFICO 3 VISUALIZZAZIONE DUE COLONNE ===============
         st.markdown("---")
-        st.subheader("Tipo di Asset")
-        
-        df_asset_type = df_filtered[['ASSET', 'VALUE']].copy()
-        df_asset_type = df_asset_type[df_asset_type['ASSET'].notna() & (df_asset_type['ASSET'] != '')]
-        
-        df_asset_type['VALUE_CLEAN'] = df_asset_type['VALUE'].str.replace('€', '').str.replace('.', '').str.replace(',', '.').str.strip()
-        df_asset_type['VALUE_NUMERIC'] = pd.to_numeric(df_asset_type['VALUE_CLEAN'], errors='coerce')
-        df_asset_type = df_asset_type[df_asset_type['VALUE_NUMERIC'] > 0].dropna()
-        
-        asset_type_agg = df_asset_type.groupby('ASSET')['VALUE_NUMERIC'].sum().reset_index()
-        asset_type_agg.columns = ['Tipo Asset', 'Valore']
-        asset_type_agg = asset_type_agg.sort_values('Valore', ascending=False)
-        
-        fig_asset_type = px.pie(
-            asset_type_agg,
-            values='Valore',
-            names='Tipo Asset',
-            hole=0.3,
-            color_discrete_sequence=px.colors.qualitative.Set3
-        )
-        
-        fig_asset_type.update_traces(
-            textposition='none',
-            hovertemplate='<b>%{label}</b><br>Valore: €%{value:,.2f}<br>Percentuale: %{percent}<extra></extra>'
-        )
-        
-        fig_asset_type.update_layout(
-            showlegend=True,
-            height=700,
-            legend=dict(
-                orientation="v",
-                yanchor="middle",
-                y=0.5,
-                xanchor="left",
-                x=1.02,
-                font=dict(size=11)
+
+        # Crea due colonne per affiancare i grafici
+        col_left, col_right = st.columns(2)
+
+        with col_left:
+            # ==================== GRAFICO 2: TIPO ASSET ====================
+            st.subheader("ASSET TYPES")
+            
+            df_asset_type = df_filtered[['ASSET', 'VALUE']].copy()
+            df_asset_type = df_asset_type[df_asset_type['ASSET'].notna() & (df_asset_type['ASSET'] != '')]
+            
+            df_asset_type['VALUE_CLEAN'] = df_asset_type['VALUE'].str.replace('€', '').str.replace('.', '').str.replace(',', '.').str.strip()
+            df_asset_type['VALUE_NUMERIC'] = pd.to_numeric(df_asset_type['VALUE_CLEAN'], errors='coerce')
+            df_asset_type = df_asset_type[df_asset_type['VALUE_NUMERIC'] > 0].dropna()
+            
+            asset_type_agg = df_asset_type.groupby('ASSET')['VALUE_NUMERIC'].sum().reset_index()
+            asset_type_agg.columns = ['Tipo Asset', 'Valore']
+            asset_type_agg = asset_type_agg.sort_values('Valore', ascending=False)
+            
+            fig_asset_type = px.pie(
+                asset_type_agg,
+                values='Valore',
+                names='Tipo Asset',
+                hole=0.3,
+                color_discrete_sequence=px.colors.qualitative.Set3
             )
-        )
-        
-        st.plotly_chart(fig_asset_type, use_container_width=True)
-        
-        # ==================== GRAFICO 3: POSIZIONI L/B/P ====================
-        st.markdown("---")
-        st.subheader("Tipo di posizione")
-        
-        df_pos_value = df_filtered[['LUNGO/BREVE', 'VALUE']].copy()
-        df_pos_value = df_pos_value[df_pos_value['LUNGO/BREVE'].notna() & (df_pos_value['LUNGO/BREVE'] != '')]
-        
-        df_pos_value['VALUE_CLEAN'] = df_pos_value['VALUE'].str.replace('€', '').str.replace('.', '').str.replace(',', '.').str.strip()
-        df_pos_value['VALUE_NUMERIC'] = pd.to_numeric(df_pos_value['VALUE_CLEAN'], errors='coerce')
-        df_pos_value = df_pos_value[df_pos_value['VALUE_NUMERIC'] > 0].dropna()
-        
-        pos_value_agg = df_pos_value.groupby('LUNGO/BREVE')['VALUE_NUMERIC'].sum().reset_index()
-        pos_value_agg.columns = ['Posizione', 'Valore']
-        
-        position_map = {'L': 'Lungo', 'B': 'Breve', 'P': 'Passività'}
-        pos_value_agg['Posizione'] = pos_value_agg['Posizione'].map(position_map)
-        
-        fig_pos_value = px.pie(
-            pos_value_agg,
-            values='Valore',
-            names='Posizione',
-            hole=0.3,
-            color_discrete_sequence=['#2ecc71', '#e74c3c', '#f39c12']
-        )
-        
-        fig_pos_value.update_traces(
-            textposition='none',
-            hovertemplate='<b>%{label}</b><br>Valore: €%{value:,.2f}<br>Percentuale: %{percent}<extra></extra>'
-        )
-        
-        fig_pos_value.update_layout(
-            showlegend=True,
-            legend=dict(
-                orientation="v",
-                yanchor="middle",
-                y=0.5,
-                xanchor="right",
-                x=1.02,
-                font=dict(size=11)
+            
+            fig_asset_type.update_traces(
+                textposition='none',
+                hovertemplate='<b>%{label}</b><br>Valore: €%{value:,.2f}<br>Percentuale: %{percent}<extra></extra>'
             )
-        )
+            
+            fig_asset_type.update_layout(
+                showlegend=True,
+                height=600,
+                legend=dict(
+                    orientation="v",
+                    yanchor="middle",
+                    y=0.5,
+                    xanchor="left",
+                    x=1.01,
+                    font=dict(size=14)
+                )
+            )
+            
+            st.plotly_chart(fig_asset_type, use_container_width=True)
         
-        st.plotly_chart(fig_pos_value, use_container_width=True)
+        with col_right:
+            # ==================== GRAFICO 3: POSIZIONI L/B/P ====================
+            st.subheader("HORIZON OF POSITION")
+            
+            df_pos_value = df_filtered[['LUNGO/BREVE', 'VALUE']].copy()
+            df_pos_value = df_pos_value[df_pos_value['LUNGO/BREVE'].notna() & (df_pos_value['LUNGO/BREVE'] != '')]
+            
+            df_pos_value['VALUE_CLEAN'] = df_pos_value['VALUE'].str.replace('€', '').str.replace('.', '').str.replace(',', '.').str.strip()
+            df_pos_value['VALUE_NUMERIC'] = pd.to_numeric(df_pos_value['VALUE_CLEAN'], errors='coerce')
+            df_pos_value = df_pos_value[df_pos_value['VALUE_NUMERIC'] > 0].dropna()
+            
+            pos_value_agg = df_pos_value.groupby('LUNGO/BREVE')['VALUE_NUMERIC'].sum().reset_index()
+            pos_value_agg.columns = ['Posizione', 'Valore']
+            
+            position_map = {'L': 'LUNGO', 'B': 'BREVE', 'P': 'PASSIVITA'}
+            pos_value_agg['Posizione'] = pos_value_agg['Posizione'].map(position_map)
+            
+            fig_pos_value = px.pie(
+                pos_value_agg,
+                values='Valore',
+                names='Posizione',
+                hole=0.3,
+                color_discrete_sequence=['#2ecc71', '#e74c3c', '#f39c12']
+            )
+            
+            fig_pos_value.update_traces(
+                textposition='none',
+                hovertemplate='<b>%{label}</b><br>Valore: €%{value:,.2f}<br>Percentuale: %{percent}<extra></extra>'
+            )
+            
+            fig_pos_value.update_layout(
+                showlegend=True,
+                height = 600,
+                legend=dict(
+                    orientation="v",
+                    yanchor="middle",
+                    y=0.5,
+                    xanchor="right",
+                    x=1.08,
+                    font=dict(size=14),
+                )
+            )
+            
+            st.plotly_chart(fig_pos_value, use_container_width=True)
         
         # ==================== GRAFICO 4: P&L TEMPORALE ====================
         if df_dati is not None and not df_dati.empty:
             st.markdown("---")
-            st.subheader("📈 Andamento P&L nel Tempo")
+            st.subheader("📈 P&L - HISTORICAL DATA")
             
             try:
                 df_chart_data = df_dati.iloc[:, [9, 2, 11, 12]].copy()
-                df_chart_data.columns = ['Data', 'P&L%', 'SMA9%', 'SMA20%']
+                df_chart_data.columns = ['Data', 'P&L%', 'SMA9', 'SMA20']
                 
                 df_chart_data['Data'] = pd.to_datetime(df_chart_data['Data'], errors='coerce')
                 df_chart_data = df_chart_data.dropna(subset=['Data'])
@@ -242,8 +247,8 @@ def portfolio_tracker_app():
                     return pd.to_numeric(col, errors='coerce')
                 
                 df_chart_data['P&L%'] = clean_percentage(df_chart_data['P&L%'])
-                df_chart_data['SMA9%'] = clean_percentage(df_chart_data['SMA9%'])
-                df_chart_data['SMA20%'] = clean_percentage(df_chart_data['SMA20%'])
+                df_chart_data['SMA9'] = clean_percentage(df_chart_data['SMA9'])
+                df_chart_data['SMA20'] = clean_percentage(df_chart_data['SMA20'])
                 
                 df_chart_data = df_chart_data.dropna()
                 df_chart_data = df_chart_data.sort_values('Data')
@@ -261,8 +266,8 @@ def portfolio_tracker_app():
                     
                     fig_combined.add_trace(go.Scatter(
                         x=df_chart_data['Data'],
-                        y=df_chart_data['SMA9%'],
-                        name='SMA9 %',
+                        y=df_chart_data['SMA9'],
+                        name='SMA9',
                         mode='lines+markers',
                         line=dict(color='#e74c3c', width=2),
                         marker=dict(size=4),
@@ -271,8 +276,8 @@ def portfolio_tracker_app():
                     
                     fig_combined.add_trace(go.Scatter(
                         x=df_chart_data['Data'],
-                        y=df_chart_data['SMA20%'],
-                        name='SMA20 %',
+                        y=df_chart_data['SMA20'],
+                        name='SMA20',
                         mode='lines+markers',
                         line=dict(color='#2ecc71', width=2),
                         marker=dict(size=4),
@@ -282,7 +287,6 @@ def portfolio_tracker_app():
                     fig_combined.add_hline(y=0, line_dash="dash", line_color="gray", opacity=0.5)
                     
                     fig_combined.update_layout(
-                        title=dict(text='Andamento P&L % e Medie Mobili (SMA) - Anno 2025', font=dict(color='white')),
                         xaxis=dict(title=dict(text='Data', font=dict(color='white')), showgrid=True, gridcolor='#333333', color='white'),
                         yaxis=dict(title=dict(text='Percentuale (%)', font=dict(color='white')), showgrid=True, gridcolor='#333333', ticksuffix='%', color='white'),
                         hovermode='x unified',
@@ -314,7 +318,7 @@ def portfolio_tracker_app():
         # ==================== GRAFICO 5: VOLATILITÀ ====================
         if df_dati is not None and not df_dati.empty:
             st.markdown("---")
-            st.subheader("📉 Volatilità del Portfolio")
+            st.subheader("📉 PORTFOLIO VOLATILITY")
             
             try:
                 # CORREZIONE: usa colonna 10 (DATE, indice 9) invece di colonna 3
