@@ -154,7 +154,7 @@ def portfolio_tracker_app():
         st.plotly_chart(fig_asset_type, use_container_width=True)
 
 
-                    # Grafico a torta Distribuzione Posizioni (L/B/P)
+        # Grafico a torta Distribuzione Posizioni (L/B/P)
         st.markdown("---")
         st.subheader("Distribuzione Valore per Tipo di Posizione")
         
@@ -209,24 +209,22 @@ def portfolio_tracker_app():
         
         st.plotly_chart(fig_pos_value, use_container_width=True)
         
-                # Grafico combinato P&L nel tempo con dati dal foglio "dati"
+        # Grafico combinato P&L nel tempo con dati dal foglio "dati"
         st.markdown("---")
         st.subheader("📈 Andamento P&L nel Tempo")
         
-        # Carica il foglio "dati" (gid diverso dal foglio principale)
-        # Devi trovare il gid del foglio "dati" nell'URL di Google Sheets
-        # Per ora proviamo con gid=1, se non funziona dovrai verificare il gid corretto
+        # Carica il foglio "dati"
         csv_url_dati = sheet_url.replace('/edit', '/export?format=csv&gid=1009022145')
         
         try:
             df_dati = pd.read_csv(csv_url_dati)
             
-            # Estrai le colonne necessarie (colonna 10=DATA, 3=P&L, 12 e 13)
-            # Nota: Python usa indice 0-based, quindi col 10=indice 9, col 3=indice 2, col 12=indice 11, col 13=indice 12
+            # Estrai le colonne necessarie (colonna 10=DATA, 3=P&L%, 12=SMA9%, 13=SMA20%)
+            # Python usa indice 0-based: col 10=indice 9, col 3=indice 2, col 12=indice 11, col 13=indice 12
             df_chart_data = df_dati.iloc[:, [9, 2, 11, 12]].copy()
             
-            # Rinomina le colonne per chiarezza
-            df_chart_data.columns = ['Data', 'P&L', 'SMA9', 'SMA20']
+            # Rinomina le colonne
+            df_chart_data.columns = ['Data', 'P&L%', 'SMA9%', 'SMA20%']
             
             # Converti la colonna Data in formato datetime
             df_chart_data['Data'] = pd.to_datetime(df_chart_data['Data'], errors='coerce')
@@ -234,10 +232,20 @@ def portfolio_tracker_app():
             # Rimuovi righe con date invalide
             df_chart_data = df_chart_data.dropna(subset=['Data'])
             
-            # Converti P&L e le altre colonne in numerico
-            df_chart_data['P&L'] = pd.to_numeric(df_chart_data['P&L'], errors='coerce')
-            df_chart_data['SMA9'] = pd.to_numeric(df_chart_data['SMA9'], errors='coerce')
-            df_chart_data['SMA20'] = pd.to_numeric(df_chart_data['SMA20'], errors='coerce')
+            # Funzione per pulire e convertire percentuali
+            def clean_percentage(col):
+                if col.dtype == 'object':
+                    # Rimuovi simbolo % e converti virgola in punto
+                    col = col.str.replace('%', '').str.replace(',', '.').str.strip()
+                return pd.to_numeric(col, errors='coerce')
+            
+            # Pulisci e converti le colonne percentuali
+            df_chart_data['P&L%'] = clean_percentage(df_chart_data['P&L%'])
+            df_chart_data['SMA9%'] = clean_percentage(df_chart_data['SMA9%'])
+            df_chart_data['SMA20%'] = clean_percentage(df_chart_data['SMA20%'])
+            
+            # Rimuovi righe con valori NaN
+            df_chart_data = df_chart_data.dropna()
             
             # Ordina per data
             df_chart_data = df_chart_data.sort_values('Data')
@@ -247,52 +255,63 @@ def portfolio_tracker_app():
             
             fig_combined = go.Figure()
             
-            # Aggiungi le barre per P&L
+            # Aggiungi le barre per P&L%
             fig_combined.add_trace(go.Bar(
                 x=df_chart_data['Data'],
-                y=df_chart_data['P&L'],
-                name='P&L',
+                y=df_chart_data['P&L%'],
+                name='P&L %',
                 marker_color='#3498db',
                 yaxis='y',
-                hovertemplate='<b>Data:</b> %{x|%d/%m/%Y}<br><b>P&L:</b> €%{y:,.2f}<extra></extra>'
+                hovertemplate='<b>Data:</b> %{x|%d/%m/%Y}<br><b>P&L:</b> %{y:.2f}%<extra></extra>'
             ))
             
-            # Aggiungi la prima linea (colonna 12)
+            # Aggiungi la prima linea (SMA9%)
             fig_combined.add_trace(go.Scatter(
                 x=df_chart_data['Data'],
-                y=df_chart_data['SMA9'],
-                name='SMA9',
+                y=df_chart_data['SMA9%'],
+                name='SMA9 %',
                 mode='lines+markers',
                 line=dict(color='#e74c3c', width=2),
-                marker=dict(size=6),
+                marker=dict(size=4),
                 yaxis='y',
-                hovertemplate='<b>Data:</b> %{x|%d/%m/%Y}<br><b>Valore:</b> %{y:,.2f}<extra></extra>'
+                hovertemplate='<b>Data:</b> %{x|%d/%m/%Y}<br><b>SMA9:</b> %{y:.2f}%<extra></extra>'
             ))
             
-            # Aggiungi la seconda linea (colonna 13)
+            # Aggiungi la seconda linea (SMA20%)
             fig_combined.add_trace(go.Scatter(
                 x=df_chart_data['Data'],
-                y=df_chart_data['SMA20'],
-                name='SMA20',
+                y=df_chart_data['SMA20%'],
+                name='SMA20 %',
                 mode='lines+markers',
                 line=dict(color='#2ecc71', width=2),
-                marker=dict(size=6),
+                marker=dict(size=4),
                 yaxis='y',
-                hovertemplate='<b>Data:</b> %{x|%d/%m/%Y}<br><b>Valore:</b> %{y:,.2f}<extra></extra>'
+                hovertemplate='<b>Data:</b> %{x|%d/%m/%Y}<br><b>SMA20:</b> %{y:.2f}%<extra></extra>'
             ))
+            
+            # Aggiungi una linea orizzontale allo 0% per riferimento
+            fig_combined.add_hline(
+                y=0, 
+                line_dash="dash", 
+                line_color="gray", 
+                opacity=0.5,
+                annotation_text="0%",
+                annotation_position="right"
+            )
             
             # Layout del grafico
             fig_combined.update_layout(
-                title='Andamento P&L e Metriche nel Tempo',
+                title='Andamento P&L % e Medie Mobili (SMA)',
                 xaxis=dict(
                     title='Data',
                     showgrid=True,
                     gridcolor='lightgray'
                 ),
                 yaxis=dict(
-                    title='Valore (€)',
+                    title='Percentuale (%)',
                     showgrid=True,
-                    gridcolor='lightgray'
+                    gridcolor='lightgray',
+                    ticksuffix='%'
                 ),
                 hovermode='x unified',
                 legend=dict(
@@ -303,11 +322,45 @@ def portfolio_tracker_app():
                     x=1
                 ),
                 height=600,
-                plot_bgcolor='white'
+                plot_bgcolor='white',
+                barmode='relative'
             )
             
             st.plotly_chart(fig_combined, use_container_width=True)
             
+            # Statistiche rapide sotto il grafico
+            col_stat1, col_stat2, col_stat3 = st.columns(3)
+            
+            with col_stat1:
+                ultimo_pl = df_chart_data['P&L%'].iloc[-1]
+                st.metric(
+                    label="Ultimo P&L %",
+                    value=f"{ultimo_pl:.2f}%",
+                    delta=None
+                )
+            
+            with col_stat2:
+                media_pl = df_chart_data['P&L%'].mean()
+                st.metric(
+                    label="Media P&L %",
+                    value=f"{media_pl:.2f}%",
+                    delta=None
+                )
+            
+            with col_stat3:
+                max_pl = df_chart_data['P&L%'].max()
+                st.metric(
+                    label="Max P&L %",
+                    value=f"{max_pl:.2f}%",
+                    delta=None
+                )
+            
+        except Exception as e:
+            st.warning(f"⚠️ Impossibile caricare i dati dal foglio 'dati': {str(e)}")
+            st.info("💡 Verifica che il foglio 'dati' esista e che il gid sia corretto nell'URL.")
+            with st.expander("🔍 Dettagli errore"):
+                st.code(str(e))
+
         except Exception as e:
             st.warning(f"⚠️ Impossibile caricare i dati dal foglio 'dati': {str(e)}")
             st.info("💡 Verifica che il foglio 'dati' esista e che il gid sia corretto nell'URL.")
