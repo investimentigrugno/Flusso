@@ -232,6 +232,9 @@ def portfolio_tracker_app():
             # Rimuovi righe con date invalide
             df_chart_data = df_chart_data.dropna(subset=['Data'])
             
+            # Filtra solo dati dal 2025 in poi
+            df_chart_data = df_chart_data[df_chart_data['Data'] >= '2025-01-01']
+            
             # Funzione per pulire e convertire percentuali
             def clean_percentage(col):
                 if col.dtype == 'object':
@@ -250,110 +253,118 @@ def portfolio_tracker_app():
             # Ordina per data
             df_chart_data = df_chart_data.sort_values('Data')
             
-            # Crea il grafico combinato con Plotly
-            import plotly.graph_objects as go
-            
-            fig_combined = go.Figure()
-            
-            # Aggiungi le barre per P&L%
-            fig_combined.add_trace(go.Bar(
-                x=df_chart_data['Data'],
-                y=df_chart_data['P&L%'],
-                name='P&L %',
-                marker_color='#3498db',
-                yaxis='y',
-                hovertemplate='<b>Data:</b> %{x|%d/%m/%Y}<br><b>P&L:</b> %{y:.2f}%<extra></extra>'
-            ))
-            
-            # Aggiungi la prima linea (SMA9%)
-            fig_combined.add_trace(go.Scatter(
-                x=df_chart_data['Data'],
-                y=df_chart_data['SMA9%'],
-                name='SMA9 %',
-                mode='lines+markers',
-                line=dict(color='#e74c3c', width=2),
-                marker=dict(size=4),
-                yaxis='y',
-                hovertemplate='<b>Data:</b> %{x|%d/%m/%Y}<br><b>SMA9:</b> %{y:.2f}%<extra></extra>'
-            ))
-            
-            # Aggiungi la seconda linea (SMA20%)
-            fig_combined.add_trace(go.Scatter(
-                x=df_chart_data['Data'],
-                y=df_chart_data['SMA20%'],
-                name='SMA20 %',
-                mode='lines+markers',
-                line=dict(color='#2ecc71', width=2),
-                marker=dict(size=4),
-                yaxis='y',
-                hovertemplate='<b>Data:</b> %{x|%d/%m/%Y}<br><b>SMA20:</b> %{y:.2f}%<extra></extra>'
-            ))
-            
-            # Aggiungi una linea orizzontale allo 0% per riferimento
-            fig_combined.add_hline(
-                y=0, 
-                line_dash="dash", 
-                line_color="gray", 
-                opacity=0.5,
-                annotation_text="0%",
-                annotation_position="right"
-            )
-            
-            # Layout del grafico
-            fig_combined.update_layout(
-                title='Andamento P&L % e Medie Mobili (SMA)',
-                xaxis=dict(
-                    title='Data',
-                    showgrid=True,
-                    gridcolor='lightgray'
-                ),
-                yaxis=dict(
-                    title='Percentuale (%)',
-                    showgrid=True,
-                    gridcolor='lightgray',
-                    ticksuffix='%'
-                ),
-                hovermode='x unified',
-                legend=dict(
-                    orientation="h",
-                    yanchor="bottom",
-                    y=1.02,
-                    xanchor="right",
-                    x=1
-                ),
-                height=600,
-                plot_bgcolor='white',
-                barmode='relative'
-            )
-            
-            st.plotly_chart(fig_combined, use_container_width=True)
-            
-            # Statistiche rapide sotto il grafico
-            col_stat1, col_stat2, col_stat3 = st.columns(3)
-            
-            with col_stat1:
-                ultimo_pl = df_chart_data['P&L%'].iloc[-1]
-                st.metric(
-                    label="Ultimo P&L %",
-                    value=f"{ultimo_pl:.2f}%",
-                    delta=None
+            # Verifica che ci siano dati disponibili
+            if len(df_chart_data) == 0:
+                st.warning("⚠️ Nessun dato disponibile per il 2025.")
+            else:
+                # Crea il grafico combinato con Plotly
+                import plotly.graph_objects as go
+                
+                fig_combined = go.Figure()
+                
+                # Aggiungi le barre per P&L%
+                fig_combined.add_trace(go.Bar(
+                    x=df_chart_data['Data'],
+                    y=df_chart_data['P&L%'],
+                    name='P&L %',
+                    marker_color='#3498db',
+                    yaxis='y',
+                    hovertemplate='<b>Data:</b> %{x|%d/%m/%Y}<br><b>P&L:</b> %{y:.2f}%<extra></extra>'
+                ))
+                
+                # Aggiungi la prima linea (SMA9%)
+                fig_combined.add_trace(go.Scatter(
+                    x=df_chart_data['Data'],
+                    y=df_chart_data['SMA9%'],
+                    name='SMA9 %',
+                    mode='lines+markers',
+                    line=dict(color='#e74c3c', width=2),
+                    marker=dict(size=4),
+                    yaxis='y',
+                    hovertemplate='<b>Data:</b> %{x|%d/%m/%Y}<br><b>SMA9:</b> %{y:.2f}%<extra></extra>'
+                ))
+                
+                # Aggiungi la seconda linea (SMA20%)
+                fig_combined.add_trace(go.Scatter(
+                    x=df_chart_data['Data'],
+                    y=df_chart_data['SMA20%'],
+                    name='SMA20 %',
+                    mode='lines+markers',
+                    line=dict(color='#2ecc71', width=2),
+                    marker=dict(size=4),
+                    yaxis='y',
+                    hovertemplate='<b>Data:</b> %{x|%d/%m/%Y}<br><b>SMA20:</b> %{y:.2f}%<extra></extra>'
+                ))
+                
+                # Aggiungi una linea orizzontale allo 0% per riferimento
+                fig_combined.add_hline(
+                    y=0, 
+                    line_dash="dash", 
+                    line_color="gray", 
+                    opacity=0.5,
+                    annotation_text="0%",
+                    annotation_position="right"
                 )
-            
-            with col_stat2:
-                media_pl = df_chart_data['P&L%'].mean()
-                st.metric(
-                    label="Media P&L %",
-                    value=f"{media_pl:.2f}%",
-                    delta=None
+                
+                # Layout del grafico
+                fig_combined.update_layout(
+                    title='Andamento P&L % e Medie Mobili (SMA) - Anno 2025',
+                    xaxis=dict(
+                        title='Data',
+                        showgrid=True,
+                        gridcolor='lightgray'
+                    ),
+                    yaxis=dict(
+                        title='Percentuale (%)',
+                        showgrid=True,
+                        gridcolor='lightgray',
+                        ticksuffix='%'
+                    ),
+                    hovermode='x unified',
+                    legend=dict(
+                        orientation="h",
+                        yanchor="bottom",
+                        y=1.02,
+                        xanchor="right",
+                        x=1
+                    ),
+                    height=600,
+                    plot_bgcolor='white',
+                    barmode='relative'
                 )
-            
-            with col_stat3:
-                max_pl = df_chart_data['P&L%'].max()
-                st.metric(
-                    label="Max P&L %",
-                    value=f"{max_pl:.2f}%",
-                    delta=None
-                )
+                
+                st.plotly_chart(fig_combined, use_container_width=True)
+                
+                # Statistiche rapide sotto il grafico
+                col_stat1, col_stat2, col_stat3, col_stat4 = st.columns(4)
+                
+                with col_stat1:
+                    ultimo_pl = df_chart_data['P&L%'].iloc[-1]
+                    st.metric(
+                        label="Ultimo P&L %",
+                        value=f"{ultimo_pl:.2f}%"
+                    )
+                
+                with col_stat2:
+                    media_pl = df_chart_data['P&L%'].mean()
+                    st.metric(
+                        label="Media P&L %",
+                        value=f"{media_pl:.2f}%"
+                    )
+                
+                with col_stat3:
+                    max_pl = df_chart_data['P&L%'].max()
+                    st.metric(
+                        label="Max P&L %",
+                        value=f"{max_pl:.2f}%"
+                    )
+                
+                with col_stat4:
+                    min_pl = df_chart_data['P&L%'].min()
+                    st.metric(
+                        label="Min P&L %",
+                        value=f"{min_pl:.2f}%"
+                    )
             
         except Exception as e:
             st.warning(f"⚠️ Impossibile caricare i dati dal foglio 'dati': {str(e)}")
@@ -361,11 +372,6 @@ def portfolio_tracker_app():
             with st.expander("🔍 Dettagli errore"):
                 st.code(str(e))
 
-        except Exception as e:
-            st.warning(f"⚠️ Impossibile caricare i dati dal foglio 'dati': {str(e)}")
-            st.info("💡 Verifica che il foglio 'dati' esista e che il gid sia corretto nell'URL.")
-
-        
             # Metriche
         if show_metrics:
             st.markdown("---")
