@@ -55,7 +55,7 @@ def portfolio_tracker_app():
         print("\n" + "="*100)
         
         st.markdown("---")
-            st.subheader("📈 Distribuzione Asset")
+        st.subheader("📈 Distribuzione Asset")
             
             col_a, col_b = st.columns(2)
             
@@ -72,8 +72,8 @@ def portfolio_tracker_app():
                     if position:
                         st.write(f"• {position}: {count}")           # Grafico a torta Portfolio
             
-            st.markdown("---")
-            st.subheader("Distribuzione Valore Portfolio")
+        st.markdown("---")
+        st.subheader("Distribuzione Valore Portfolio")
             
             # Prepara i dati per il grafico a torta
             # Rimuovi il simbolo € e converti in float
