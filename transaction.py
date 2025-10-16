@@ -214,6 +214,8 @@ def transaction_tracker_app():
                     (df_filtered_trans['Data'].dt.date <= end_date)
                 ]
             
+            df_filtered_trans = df_filtered_trans.sort_values('Data', ascending=False).reset_index(drop=True)
+            
             # ==================== TABELLA TRANSAZIONI ====================
             st.markdown("---")
             st.subheader("📋 DETTAGLIO TRANSAZIONI")
