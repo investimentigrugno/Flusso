@@ -79,20 +79,51 @@ def proposte_app():
             'GIACA'
         ]
         
-        # Assegna le colonne (usa le prime 20 colonne)
+                # Assegna le colonne (usa le prime 20 colonne)
         if len(df_proposte.columns) >= 20:
             df_proposte.columns = expected_columns
         else:
             st.warning(f"⚠️ Il foglio ha {len(df_proposte.columns)} colonne, ne servono 20")
         
-        # Converti le date con formato italiano
-        df_proposte['Informazioni cronologiche'] = pd.to_datetime(
-            df_proposte['Informazioni cronologiche'], 
-            format='%d/%m/%Y %H:%M:%S',
-            errors='coerce',
-            dayfirst=True
-        )
+        # DEBUG TEMPORANEO - Rimuovi dopo aver verificato
+        with st.expander("🔍 DEBUG - Verifica formato date"):
+            st.write("**Prime 3 righe colonna 'Informazioni cronologiche':**")
+            st.write(df_proposte['Informazioni cronologiche'].head(3))
+            st.write("**Tipo dato originale:**", df_proposte['Informazioni cronologiche'].dtype)
         
+        # Converti le date con parsing robusto
+        def parse_data_cronologica(data_str):
+            """Parse data cronologica con formati multipli"""
+            if pd.isna(data_str):
+                return pd.NaT
+            
+            data_str = str(data_str).strip()
+            
+            # Prova formati con orario
+            formati = [
+                '%d/%m/%Y %H:%M:%S',
+                '%d/%m/%Y %H:%M',
+                '%d-%m-%Y %H:%M:%S',
+                '%Y-%m-%d %H:%M:%S',
+                '%d/%m/%Y',  # Senza orario
+            ]
+            
+            for formato in formati:
+                try:
+                    return pd.to_datetime(data_str, format=formato)
+                except:
+                    continue
+            
+            # Fallback
+            try:
+                return pd.to_datetime(data_str, dayfirst=True)
+            except:
+                return pd.NaT
+        
+        # Applica parsing
+        df_proposte['Informazioni cronologiche'] = df_proposte['Informazioni cronologiche'].apply(parse_data_cronologica)
+        
+        # Converti Orizzonte temporale
         df_proposte['Orizzonte temporale investimento'] = pd.to_datetime(
             df_proposte['Orizzonte temporale investimento'],
             format='%d/%m/%Y',
@@ -108,7 +139,7 @@ def proposte_app():
         
         # Ordina per data decrescente (più recenti prima)
         df_proposte = df_proposte.sort_values('Informazioni cronologiche', ascending=False).reset_index(drop=True)
-        
+
         st.success(f"✅ {len(df_proposte)} proposte caricate con successo!")
         
         # ==================== FILTRI SIDEBAR ====================
