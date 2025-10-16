@@ -144,15 +144,15 @@ def transaction_tracker_app():
             else:
                 st.error(f"❌ Il foglio ha solo {len(df_transactions.columns)} colonne, ne servono almeno 10")
                 st.stop()
-            
-            # Converti la colonna Data
-            df_transactions['Data'] = pd.to_datetime(df_transactions['Data'], errors='coerce')
-            
+        
+            # Converti la colonna Data con formato italiano dd/mm/yyyy
+            df_transactions['Data'] = pd.to_datetime(df_transactions['Data'], format='%d/%m/%Y', errors='coerce')
+
             # Rimuovi righe senza data valida
             df_transactions = df_transactions.dropna(subset=['Data'])
             
             # Ordina per data decrescente (più recenti prima)
-            df_transactions = df_transactions.sort_values('Data', ascending=False)
+            df_transactions = df_transactions.sort_values('Data', ascending=False).reset_index(drop=True)
             
             st.success(f"✅ {len(df_transactions)} transazioni caricate con successo!")
             
@@ -213,6 +213,8 @@ def transaction_tracker_app():
                     (df_filtered_trans['Data'].dt.date >= start_date) & 
                     (df_filtered_trans['Data'].dt.date <= end_date)
                 ]
+            
+            df_filtered_trans = df_filtered_trans.sort_values('Data', ascending=False).reset_index(drop=True)
             
             # ==================== TABELLA TRANSAZIONI ====================
             st.markdown("---")
