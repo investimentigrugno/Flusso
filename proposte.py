@@ -251,10 +251,12 @@ def proposte_app():
         if len(df_filtered) > 0:
             # Selettore proposta
             strumenti_list = df_filtered['Quale strumento ?'].tolist()
-            date_list = df_filtered['Informazioni cronologiche'].dt.strftime('%d/%m/%Y %H:%M').tolist()
+            # Formatta le date per il selettore
+            date_list = df_filtered['Informazioni cronologiche'].apply(
+                lambda x: x.strftime('%d/%m/%Y') if pd.notna(x) else 'Data non disponibile').tolist()
             
             options = [f"{strumento} - {data}" for strumento, data in zip(strumenti_list, date_list)]
-            
+
             selected_idx = st.selectbox(
                 "Seleziona una proposta",
                 range(len(options)),
