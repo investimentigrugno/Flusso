@@ -84,13 +84,7 @@ def proposte_app():
             df_proposte.columns = expected_columns
         else:
             st.warning(f"⚠️ Il foglio ha {len(df_proposte.columns)} colonne, ne servono 20")
-        
-        # DEBUG TEMPORANEO - Rimuovi dopo aver verificato
-        with st.expander("🔍 DEBUG - Verifica formato date"):
-            st.write("**Prime 3 righe colonna 'Informazioni cronologiche':**")
-            st.write(df_proposte['Informazioni cronologiche'].head(3))
-            st.write("**Tipo dato originale:**", df_proposte['Informazioni cronologiche'].dtype)
-        
+         
         # Converti le date con parsing robusto
         def parse_data_cronologica(data_str):
             """Parse data cronologica con formati multipli"""
@@ -207,15 +201,15 @@ def proposte_app():
         # Riordina dopo i filtri
         df_filtered = df_filtered.sort_values('Informazioni cronologiche', ascending=False).reset_index(drop=True)
         
-        # ==================== TABELLA PROPOSTE CON FORMATTAZIONE ====================
+                # ==================== TABELLA PROPOSTE CON FORMATTAZIONE ====================
         st.markdown("---")
         st.subheader("📋 DETTAGLIO PROPOSTE")
         st.caption("🔽 Ordinate dalla più recente")
         
-                # Prepara dataframe per visualizzazione
+        # Prepara dataframe per visualizzazione
         df_display = df_filtered.copy()
         
-        # Formatta solo la data (senza orario)
+        # Formatta le date (solo data, senza orario)
         df_display['Informazioni cronologiche'] = df_display['Informazioni cronologiche'].apply(
             lambda x: x.strftime('%d/%m/%Y') if pd.notna(x) else ''
         )
@@ -243,17 +237,19 @@ def proposte_app():
             hide_index=True
         )
 
+
         
         # ==================== DETTAGLIO SINGOLA PROPOSTA ====================
         st.markdown("---")
         st.subheader("🔍 Dettaglio Proposta")
         
-        if len(df_filtered) > 0:
+                if len(df_filtered) > 0:
             # Selettore proposta
             strumenti_list = df_filtered['Quale strumento ?'].tolist()
             # Formatta le date per il selettore
             date_list = df_filtered['Informazioni cronologiche'].apply(
-                lambda x: x.strftime('%d/%m/%Y') if pd.notna(x) else 'Data non disponibile').tolist()
+                lambda x: x.strftime('%d/%m/%Y') if pd.notna(x) else 'Data non disponibile'
+            ).tolist()
             
             options = [f"{strumento} - {data}" for strumento, data in zip(strumenti_list, date_list)]
 
