@@ -298,11 +298,18 @@ def proposte_app():
             else:
                 return 'background-color: #e74c3c; color: white; font-weight: bold'
         
-        # Rimuovi la colonna ROW_NUMBER dalla visualizzazione
-        cols_to_display = [col for col in df_display.columns if col != 'ROW_NUMBER']
+        # ⭐ NASCONDI COLONNE SPECIFICHE ⭐
+        colonne_nascoste = [
+            'ROW_NUMBER', 'ALLEGATO', 'MOTIVAZIONE', 'LINK', 'IMMAGINE',
+            'GALLOZ', 'STE', 'GARGIU', 'ALE', 'GIACA']
+        
+        # Seleziona solo le colonne da mostrare
+        cols_to_display = [col for col in df_display.columns if col not in colonne_nascoste]
+        
         styled_df = df_display[cols_to_display].style.map(color_esito, subset=['ESITO'])
         
         st.dataframe(styled_df, use_container_width=True, height=600, hide_index=True)
+
         
         # DETTAGLIO SINGOLA PROPOSTA
         st.markdown("---")
