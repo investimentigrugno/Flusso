@@ -177,13 +177,13 @@ def proposte_app():
         if buysell_filter:
             df_filtered = df_filtered[df_filtered['Buy / Sell'].isin(buysell_filter)]
         
-        if valuta_filter:
-            df_filtered = df_filtered[df_filtered['In che valuta è lo strumento ?'].isin(valuta_filter)]
+        #if valuta_filter:
+            #df_filtered = df_filtered[df_filtered['In che valuta è lo strumento ?'].isin(valuta_filter)]
         
         # ⭐ FILTRO ESITO: INCLUDI ANCHE PROPOSTE NON VOTATE (NaN) ⭐
-        df_filtered = df_filtered[
-            (df_filtered['ESITO'] >= esito_filter) | (df_filtered['ESITO'].isna())
-        ]
+        #df_filtered = df_filtered[
+            #(df_filtered['ESITO'] >= esito_filter) | (df_filtered['ESITO'].isna())
+        #]
         
         # Riordina dopo i filtri
         df_filtered = df_filtered.sort_values('Informazioni cronologiche', ascending=False).reset_index(drop=True)
