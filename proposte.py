@@ -33,7 +33,7 @@ def proposte_app():
     
     # ID del foglio Google Sheets
     spreadsheet_id = "1WEt_YQCASRr5EWFk77DbBI6DcOIw2ifRIMlzAaG58uY"
-    gid_proposte = 0  # ⚠️ SOSTITUISCI CON IL GID CORRETTO DEL FOGLIO "Proposte"
+    gid_proposte = "836776830"  # ⚠️ SOSTITUISCI CON IL GID CORRETTO DEL FOGLIO "Proposte"
     
     # Opzioni sidebar
     st.sidebar.markdown("### ⚙️ Opzioni Proposte")
