@@ -101,10 +101,7 @@ def transaction_tracker_app():
     
     # ==================== CONFIGURAZIONE WEBHOOK ====================
     # IMPORTANTE: Sostituisci questo URL con quello del tuo Google Apps Script
-    WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbwBzXbal3FNV4uxTpXIM8FlRcFBaW1_dO_A08xS9CRHIfj44D7wpWJ3HR69ADsC7gO3oQ/exec"
-    
-    # Se non usi secrets, puoi inserire direttamente l'URL:
-    # WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbxxxxxxxxxxxxx/exec"
+    WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbwTQ85a1BifxwZ9Hzihn01Kt_QOwAeUQNaeoSfgEs2YvoBHRLiHcG6KyRvjR0_KpqsQ6w/exec"
     
     # Opzioni sidebar
     st.sidebar.markdown("### ⚙️ Opzioni Transazioni")
