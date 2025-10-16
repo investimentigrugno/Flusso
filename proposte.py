@@ -170,7 +170,7 @@ def proposte_app():
             )
             
             # Converti ESITO in numerico
-            df_proposte['ESITO'] = pd.to_numeric(df_proposte['ESITO'], errors='coerce')
+            df_proposte['ESITO'] = pd.to_numeric(df_proposte['ESITO'], errors='coerce', downcast='integer')
             
             # Rimuovi righe vuote
             colonne_chiave = ['Quale strumento ?', 'Buy / Sell', 'Responsabile proposta']
