@@ -150,10 +150,9 @@ def portfolio_tracker_app():
             height=800,
             legend=dict(
                 orientation="h",
-                yanchor="middle",
-                y=0.5,
-                xanchor="left",
-                x=1.02,
+                yanchor="bottom",
+                y=1.05,
+                xanchor="auto",
                 font=dict(size=14)
             ),
             margin=dict(l=20, r=20, t=80, b=150)
