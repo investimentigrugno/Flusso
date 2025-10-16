@@ -71,8 +71,8 @@ def portfolio_tracker_app():
         
         # ⭐ CARICA DATI PRINCIPALI DAL NUOVO FOGLIO Portfolio_Status ⭐
         # Riga 1 = intestazioni (indice 0), Riga 2 = dati (indice 1)
-        df_summary = df_status.iloc[1:2, :].copy()  # Prendi la riga 2 (indice 1)
-        df_summary.columns = df_status.iloc[0, :]  # Usa riga 1 come intestazioni
+        df_summary = df_status.iloc[0:1, :].copy()  # Prendi la riga 2 (indice 1)
+        df_summary = df_summary.reset_index(drop=True)
         
         # ⭐ CARICA RIGHE PORTFOLIO FINO ALLA PRIMA COMPLETAMENTE VUOTA ⭐
         df_filtered = df.iloc[:, :13].copy()
@@ -146,10 +146,10 @@ def portfolio_tracker_app():
         )
         
         fig.update_layout(
-            showlegend=False,
+            showlegend=True,
             height=800,
             legend=dict(
-                orientation="v",
+                orientation="h",
                 yanchor="middle",
                 y=0.5,
                 xanchor="left",
