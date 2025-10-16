@@ -212,10 +212,10 @@ def proposte_app():
         st.subheader("📋 DETTAGLIO PROPOSTE")
         st.caption("🔽 Ordinate dalla più recente")
         
-        # Prepara dataframe per visualizzazione
+                # Prepara dataframe per visualizzazione
         df_display = df_filtered.copy()
         
-        # Formatta le date (solo data, senza orario)
+        # Formatta solo la data (senza orario)
         df_display['Informazioni cronologiche'] = df_display['Informazioni cronologiche'].apply(
             lambda x: x.strftime('%d/%m/%Y') if pd.notna(x) else ''
         )
