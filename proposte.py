@@ -164,7 +164,7 @@ def proposte_app():
             help="Filtra proposte con ESITO >= valore selezionato"
         )
         
-        # Applica filtri
+                # Applica filtri
         df_filtered = df_proposte.copy()
         
         if responsabile_filter:
@@ -180,11 +180,14 @@ def proposte_app():
         if valuta_filter:
             df_filtered = df_filtered[df_filtered['In che valuta è lo strumento ?'].isin(valuta_filter)]
         
-        df_filtered = df_filtered[df_filtered['ESITO'] >= esito_filter]
+        # ⭐ FILTRO ESITO: INCLUDI ANCHE PROPOSTE NON VOTATE (NaN) ⭐
+        df_filtered = df_filtered[
+            (df_filtered['ESITO'] >= esito_filter) | (df_filtered['ESITO'].isna())
+        ]
         
         # Riordina dopo i filtri
         df_filtered = df_filtered.sort_values('Informazioni cronologiche', ascending=False).reset_index(drop=True)
-        
+
                 # ==================== TABELLA PROPOSTE CON FORMATTAZIONE ====================
         st.markdown("---")
         st.subheader("📋 DETTAGLIO PROPOSTE")
