@@ -169,8 +169,8 @@ def proposte_app():
                 dayfirst=True
             )
             
-            # Converti ESITO in numerico
-            df_proposte['ESITO'] = pd.to_numeric(df_proposte['ESITO'], errors='coerce', downcast='integer')
+                        # Converti ESITO in numerico INTERO
+            df_proposte['ESITO'] = pd.to_numeric(df_proposte['ESITO'], errors='coerce').astype('Int64')
             
             # Rimuovi righe vuote
             colonne_chiave = ['Quale strumento ?', 'Buy / Sell', 'Responsabile proposta']
@@ -211,11 +211,12 @@ def proposte_app():
                 default=buysell_options
             )
             
-            # ⭐ NUOVO: Filtro ESITO ⭐
+            # ⭐ Filtro ESITO (intero 0-5) ⭐
             esito_options = st.sidebar.radio(
                 "Stato Votazione",
                 options=["Tutte", "Approvate (≥3)", "Respinte (<3)", "Non votate"],
-                index=0
+                index=0,
+                help="ESITO = somma voti (x=1, o=0). Range: 0-5"
             )
             
             # Applica filtri
@@ -231,7 +232,7 @@ def proposte_app():
             if buysell_filter:
                 df_filtered = df_filtered[df_filtered['Buy / Sell'].isin(buysell_filter)]
             
-            # ⭐ Applica filtro ESITO ⭐
+            # ⭐ Applica filtro ESITO (confronto con interi) ⭐
             if esito_options == "Approvate (≥3)":
                 df_filtered = df_filtered[df_filtered['ESITO'] >= 3]
             elif esito_options == "Respinte (<3)":
@@ -242,7 +243,7 @@ def proposte_app():
             
             # Riordina dopo i filtri
             df_filtered = df_filtered.sort_values('Informazioni cronologiche', ascending=False).reset_index(drop=True)
-            
+
                         # ==================== GRAFICO A BARRE ====================
             st.markdown("---")
             st.subheader("📊 Proposte per Responsabile")
