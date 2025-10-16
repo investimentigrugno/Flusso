@@ -79,54 +79,28 @@ def proposte_app():
             'GIACA'
         ]
         
-                # Assegna le colonne (usa le prime 20 colonne)
         if len(df_proposte.columns) >= 20:
             df_proposte.columns = expected_columns
         else:
             st.warning(f"⚠️ Il foglio ha {len(df_proposte.columns)} colonne, ne servono 20")
-         
-                # Converti le date con parsing robusto
-        def parse_data_cronologica(data_str):
-            """Parse data cronologica con formati multipli"""
-            if pd.isna(data_str):
-                return pd.NaT
-            
-            data_str = str(data_str).strip()
-            
-            # ⭐ SOSTITUISCI I PUNTI CON I DUE PUNTI NELL'ORARIO
-            # Da 15.19.26 a 15:19:26
-            if '.' in data_str and '/' in data_str:
-                parts = data_str.split(' ')
-                if len(parts) == 2:
-                    data_part = parts[0]
-                    time_part = parts[1].replace('.', ':')
-                    data_str = f"{data_part} {time_part}"
-            
-            # Prova formati con orario
-            formati = [
-                '%d/%m/%Y %H:%M:%S',  # 16/09/2025 15:19:26
-                '%d/%m/%Y %H:%M',     # 16/09/2025 15:19
-                '%d-%m-%Y %H:%M:%S',
-                '%Y-%m-%d %H:%M:%S',
-                '%d/%m/%Y',           # Solo data
-            ]
-            
-            for formato in formati:
-                try:
-                    return pd.to_datetime(data_str, format=formato)
-                except:
-                    continue
-            
-            # Fallback
-            try:
-                return pd.to_datetime(data_str, dayfirst=True)
-            except:
-                return pd.NaT
         
-        # Applica parsing
-        df_proposte['Informazioni cronologiche'] = df_proposte['Informazioni cronologiche'].apply(parse_data_cronologica)
-
-        # Converti Orizzonte temporale
+        # ⭐ CONVERTI DATE CON GESTIONE PUNTI NELL'ORARIO ⭐
+        # Sostituisci punti nell'orario (15.19.26 → 15:19:26)
+        df_proposte['Informazioni cronologiche'] = df_proposte['Informazioni cronologiche'].astype(str).str.replace(
+            r'(\d{2})\.(\d{2})\.(\d{2})', 
+            r'\1:\2:\3', 
+            regex=True
+        )
+        
+        # Converti in datetime con formato italiano
+        df_proposte['Informazioni cronologiche'] = pd.to_datetime(
+            df_proposte['Informazioni cronologiche'],
+            format='%d/%m/%Y %H:%M:%S',
+            errors='coerce',
+            dayfirst=True
+        )
+        
+        # Converti Orizzonte temporale investimento
         df_proposte['Orizzonte temporale investimento'] = pd.to_datetime(
             df_proposte['Orizzonte temporale investimento'],
             format='%d/%m/%Y',
@@ -142,8 +116,9 @@ def proposte_app():
         
         # Ordina per data decrescente (più recenti prima)
         df_proposte = df_proposte.sort_values('Informazioni cronologiche', ascending=False).reset_index(drop=True)
-
+        
         st.success(f"✅ {len(df_proposte)} proposte caricate con successo!")
+
         
         # ==================== FILTRI SIDEBAR ====================
         st.sidebar.markdown("---")
