@@ -111,13 +111,23 @@ def proposte_app():
         # Converti ESITO in numerico
         df_proposte['ESITO'] = pd.to_numeric(df_proposte['ESITO'], errors='coerce')
         
-        # Rimuovi righe completamente vuote
-        df_proposte = df_proposte.dropna(how='all')
+        # ⭐ RIMUOVI SOLO RIGHE COMPLETAMENTE VUOTE NELLE COLONNE CHIAVE ⭐
+        # Non rimuovere righe solo perché mancano date o ESITO
+        colonne_chiave = ['Quale strumento ?', 'Buy / Sell', 'Responsabile proposta']
         
-        # Ordina per data decrescente (più recenti prima)
-        df_proposte = df_proposte.sort_values('Informazioni cronologiche', ascending=False).reset_index(drop=True)
+        # Rimuovi solo se tutte e 3 le colonne chiave sono vuote
+        mask_valide = df_proposte[colonne_chiave].notna().any(axis=1)
+        df_proposte = df_proposte[mask_valide]
+        
+        # Ordina per data decrescente (proposte senza data vanno in fondo)
+        df_proposte = df_proposte.sort_values(
+            'Informazioni cronologiche', 
+            ascending=False, 
+            na_position='last'  # ⭐ Mette le date NaT alla fine
+        ).reset_index(drop=True)
         
         st.success(f"✅ {len(df_proposte)} proposte caricate con successo!")
+
 
         
         # ==================== FILTRI SIDEBAR ====================
