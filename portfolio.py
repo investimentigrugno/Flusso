@@ -201,6 +201,7 @@ def portfolio_tracker_app():
                     yanchor="auto",
                     y=-0.2,
                     xanchor="center",
+                    x=0.5,
                     font=dict(size=14)
                 )
             )
@@ -245,6 +246,7 @@ def portfolio_tracker_app():
                     yanchor="auto",
                     y=-0.2,
                     xanchor="center",
+                    x=0.5,
                     font=dict(size=14)
                 )
             )
