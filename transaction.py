@@ -144,10 +144,10 @@ def transaction_tracker_app():
             else:
                 st.error(f"❌ Il foglio ha solo {len(df_transactions.columns)} colonne, ne servono almeno 10")
                 st.stop()
-            
-            # Converti la colonna Data
-            df_transactions['Data'] = pd.to_datetime(df_transactions['Data'], errors='coerce')
-            
+        
+            # Converti la colonna Data con formato italiano dd/mm/yyyy
+            df_transactions['Data'] = pd.to_datetime(df_transactions['Data'], format='%d/%m/%Y', errors='coerce')
+
             # Rimuovi righe senza data valida
             df_transactions = df_transactions.dropna(subset=['Data'])
             
