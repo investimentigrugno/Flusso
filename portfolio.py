@@ -219,7 +219,7 @@ def portfolio_tracker_app():
             
             st.plotly_chart(fig_pos_value, use_container_width=True)
         
-        # ==================== GRAFICO 4: P&L STORICO (SOLO BARRE) ====================
+                # ==================== GRAFICO 4: P&L STORICO CON SMA ====================
         if df_dati is not None and not df_dati.empty:
             st.markdown("---")
             st.subheader("📈 P&L - Historical Data")
@@ -246,16 +246,43 @@ def portfolio_tracker_app():
                 df_chart_data = df_chart_data.dropna()
                 df_chart_data = df_chart_data.sort_values('Data')
                 
+                # ⭐ CALCOLA SMA9 E SMA20 IN PYTHON ⭐
+                df_chart_data['SMA9'] = df_chart_data['P&L%'].rolling(window=9).mean()
+                df_chart_data['SMA20'] = df_chart_data['P&L%'].rolling(window=20).mean()
+                
                 if len(df_chart_data) > 0:
-                    # Crea grafico solo con barre P&L
+                    # Crea grafico con barre P&L + linee SMA
                     fig_pl = go.Figure()
                     
+                    # Barre P&L
                     fig_pl.add_trace(go.Bar(
                         x=df_chart_data['Data'],
                         y=df_chart_data['P&L%'],
                         name='P&L %',
                         marker_color='#3498db',
                         hovertemplate='<b>Data:</b> %{x|%d/%m/%Y}<br><b>P&L:</b> %{y:.2f}%<extra></extra>'
+                    ))
+                    
+                    # Linea SMA9
+                    fig_pl.add_trace(go.Scatter(
+                        x=df_chart_data['Data'],
+                        y=df_chart_data['SMA9'],
+                        name='SMA9',
+                        mode='lines+markers',
+                        line=dict(color='#e74c3c', width=2),
+                        marker=dict(size=4),
+                        hovertemplate='<b>Data:</b> %{x|%d/%m/%Y}<br><b>SMA9:</b> %{y:.2f}%<extra></extra>'
+                    ))
+                    
+                    # Linea SMA20
+                    fig_pl.add_trace(go.Scatter(
+                        x=df_chart_data['Data'],
+                        y=df_chart_data['SMA20'],
+                        name='SMA20',
+                        mode='lines+markers',
+                        line=dict(color='#2ecc71', width=2),
+                        marker=dict(size=4),
+                        hovertemplate='<b>Data:</b> %{x|%d/%m/%Y}<br><b>SMA20:</b> %{y:.2f}%<extra></extra>'
                     ))
                     
                     # Linea a zero
@@ -276,11 +303,20 @@ def portfolio_tracker_app():
                             color='white'
                         ),
                         hovermode='x unified',
+                        legend=dict(
+                            orientation="h",
+                            yanchor="bottom",
+                            y=1.02,
+                            xanchor="right",
+                            x=1,
+                            font=dict(color='white'),
+                            bgcolor='rgba(0,0,0,0.5)'
+                        ),
                         height=600,
                         plot_bgcolor='#0e1117',
                         paper_bgcolor='#0e1117',
                         font=dict(color='white'),
-                        showlegend=False
+                        barmode='relative'
                     )
                     
                     st.plotly_chart(fig_pl, use_container_width=True)
@@ -303,6 +339,7 @@ def portfolio_tracker_app():
                 st.warning(f"⚠️ Impossibile creare grafico P&L: {str(e)}")
                 with st.expander("🔍 Dettagli errore"):
                     st.code(str(e))
+
         
         # ==================== METRICHE ====================
         if show_metrics:
