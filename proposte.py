@@ -299,15 +299,6 @@ def proposte_app():
                     else:
                         st.write(f"⚪ **{nome}**: Non ha votato")
 
-                
-                for nome, voto in votazioni.items():
-                    if str(voto).lower() == 'x':
-                        st.write(f"✅ **{nome}**: Favorevole")
-                    elif str(voto).lower() == 'o':
-                        st.write(f"❌ **{nome}**: Contrario")
-                    else:
-                        st.write(f"⚪ **{nome}**: Non votato")
-            
             # Motivazione in un box separato
             st.markdown("---")
             st.markdown("##### 📝 Motivazione")
