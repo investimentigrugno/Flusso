@@ -197,10 +197,10 @@ def portfolio_tracker_app():
                 showlegend=True,
                 height=600,
                 legend=dict(
-                    orientation="v",
-                    yanchor="middle",
-                    y=0.5,
-                    xanchor="auto",
+                    orientation="h",
+                    yanchor="auto",
+                    y=-0.2,
+                    xanchor="center",
                     font=dict(size=14)
                 )
             )
@@ -241,10 +241,10 @@ def portfolio_tracker_app():
                 showlegend=True,
                 height=600,
                 legend=dict(
-                    orientation="v",
-                    yanchor="middle",
-                    y=0.5,
-                    xanchor="auto",
+                    orientation="h",
+                    yanchor="auto",
+                    y=-0.2,
+                    xanchor="center",
                     font=dict(size=14)
                 )
             )
