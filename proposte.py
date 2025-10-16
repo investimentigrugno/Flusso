@@ -85,7 +85,7 @@ def proposte_app():
         else:
             st.warning(f"⚠️ Il foglio ha {len(df_proposte.columns)} colonne, ne servono 20")
          
-        # Converti le date con parsing robusto
+                # Converti le date con parsing robusto
         def parse_data_cronologica(data_str):
             """Parse data cronologica con formati multipli"""
             if pd.isna(data_str):
@@ -93,13 +93,22 @@ def proposte_app():
             
             data_str = str(data_str).strip()
             
+            # ⭐ SOSTITUISCI I PUNTI CON I DUE PUNTI NELL'ORARIO
+            # Da 15.19.26 a 15:19:26
+            if '.' in data_str and '/' in data_str:
+                parts = data_str.split(' ')
+                if len(parts) == 2:
+                    data_part = parts[0]
+                    time_part = parts[1].replace('.', ':')
+                    data_str = f"{data_part} {time_part}"
+            
             # Prova formati con orario
             formati = [
-                '%d/%m/%Y %H:%M:%S',
-                '%d/%m/%Y %H:%M',
+                '%d/%m/%Y %H:%M:%S',  # 16/09/2025 15:19:26
+                '%d/%m/%Y %H:%M',     # 16/09/2025 15:19
                 '%d-%m-%Y %H:%M:%S',
                 '%Y-%m-%d %H:%M:%S',
-                '%d/%m/%Y',  # Senza orario
+                '%d/%m/%Y',           # Solo data
             ]
             
             for formato in formati:
@@ -116,7 +125,7 @@ def proposte_app():
         
         # Applica parsing
         df_proposte['Informazioni cronologiche'] = df_proposte['Informazioni cronologiche'].apply(parse_data_cronologica)
-        
+
         # Converti Orizzonte temporale
         df_proposte['Orizzonte temporale investimento'] = pd.to_datetime(
             df_proposte['Orizzonte temporale investimento'],
