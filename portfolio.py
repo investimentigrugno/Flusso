@@ -96,17 +96,32 @@ def portfolio_tracker_app():
         
         st.success("✅ Dati caricati con successo!")
         
-        # ==================== SEZIONE TABELLE ====================
+                # ==================== SEZIONE TABELLE ====================
         st.markdown("---")
-        st.subheader("PORTFOLIO STATUS")
+        st.subheader("💼 Dati Principali del Portafoglio")
         st.dataframe(df_summary, use_container_width=True, hide_index=True)
         
-        st.subheader("PORTFOLIO")
+        st.subheader("Portfolio Completo")
+        
+        # ⭐ CARICA DINAMICAMENTE TUTTE LE RIGHE CON STRUMENTI ⭐
+        df_filtered = df.iloc[:, :13].copy()
+        
+        # Assumendo che la colonna NAME (strumento) sia la colonna B (indice 1)
+        # Cambia l'indice se la colonna NAME è diversa
+        name_col_index = 1
+        
+        # Filtra solo righe dove NAME non è vuoto
+        mask_valide = df_filtered.iloc[:, name_col_index].notna() & (df_filtered.iloc[:, name_col_index] != '')
+        df_filtered = df_filtered[mask_valide]
+        
+        # Mostra il numero di strumenti
+        st.caption(f"📊 {len(df_filtered)} strumenti in portafoglio")
+        
         st.dataframe(df_filtered, use_container_width=True, height=600, hide_index=True)
         
         # Print console
         print("\n" + "="*100)
-        print("TABELLA PORTFOLIO COMPLETA")
+        print(f"TABELLA PORTFOLIO COMPLETA - {len(df_filtered)} STRUMENTI")
         print("="*100)
         print(df_filtered.to_string())
         print("\n" + "="*100)
