@@ -243,87 +243,58 @@ def proposte_app():
             # Riordina dopo i filtri
             df_filtered = df_filtered.sort_values('Informazioni cronologiche', ascending=False).reset_index(drop=True)
             
-            # ==================== GRAFICI A BARRE ====================
+                        # ==================== GRAFICO A BARRE ====================
             st.markdown("---")
-            st.subheader("📊 Analisi Proposte")
+            st.subheader("📊 Proposte per Responsabile")
             
-            col_chart1, col_chart2 = st.columns(2)
+            # Conta tutte le proposte per responsabile (singoli e squadra)
+            resp_counts = {}
+            for resp in df_filtered['Responsabile proposta'].dropna():
+                if isinstance(resp, str):
+                    nomi = [r.strip() for r in resp.replace(',', ' ').split()]
+                    for nome in nomi:
+                        resp_counts[nome] = resp_counts.get(nome, 0) + 1
             
-            with col_chart1:
-                st.markdown("#### Proposte per Responsabile (Singolo)")
+            if resp_counts:
+                df_resp = pd.DataFrame(list(resp_counts.items()), columns=['Responsabile', 'Proposte'])
+                df_resp = df_resp.sort_values('Proposte', ascending=True)
                 
-                # Conta proposte individuali
-                resp_singoli = {}
-                for resp in df_filtered['Responsabile proposta'].dropna():
-                    if isinstance(resp, str):
-                        nomi = [r.strip() for r in resp.replace(',', ' ').split()]
-                        if len(nomi) == 1:  # Solo singoli
-                            resp_singoli[nomi[0]] = resp_singoli.get(nomi[0], 0) + 1
+                fig_resp = px.bar(
+                    df_resp,
+                    x='Proposte',
+                    y='Responsabile',
+                    orientation='h',
+                    color='Proposte',
+                    color_continuous_scale='Blues',
+                    text='Proposte'
+                )
                 
-                if resp_singoli:
-                    df_singoli = pd.DataFrame(list(resp_singoli.items()), columns=['Responsabile', 'Proposte'])
-                    df_singoli = df_singoli.sort_values('Proposte', ascending=True)
-                    
-                    fig_singoli = px.bar(
-                        df_singoli,
-                        x='Proposte',
-                        y='Responsabile',
-                        orientation='h',
-                        color='Proposte',
-                        color_continuous_scale='Blues'
-                    )
-                    
-                    fig_singoli.update_layout(
-                        plot_bgcolor='#0e1117',
-                        paper_bgcolor='#0e1117',
-                        font={'color': 'white'},
-                        xaxis={'title': dict(text='Numero Proposte', font=dict(color='white')), 'color': 'white', 'gridcolor': '#333333'},
-                        height=400,
-                        showlegend=False
-                    )
-                    
-                    st.plotly_chart(fig_singoli, use_container_width=True)
-                else:
-                    st.info("Nessuna proposta individuale")
-            
-            with col_chart2:
-                st.markdown("#### Proposte in Squadra (2+ persone)")
+                fig_resp.update_traces(
+                    texttemplate='%{text}',
+                    textposition='outside'
+                )
                 
-                # Conta proposte di squadra
-                resp_squadra = {}
-                for resp in df_filtered['Responsabile proposta'].dropna():
-                    if isinstance(resp, str):
-                        nomi = [r.strip() for r in resp.replace(',', ' ').split()]
-                        if len(nomi) > 1:  # Solo squadra
-                            chiave = ', '.join(sorted(nomi))
-                            resp_squadra[chiave] = resp_squadra.get(chiave, 0) + 1
+                fig_resp.update_layout(
+                    plot_bgcolor='#0e1117',
+                    paper_bgcolor='#0e1117',
+                    font={'color': 'white'},
+                    xaxis={
+                        'title': dict(text='Numero Proposte', font=dict(color='white')), 
+                        'color': 'white', 
+                        'gridcolor': '#333333'
+                    },
+                    yaxis={
+                        'title': dict(text='', font=dict(color='white')), 
+                        'color': 'white'
+                    },
+                    height=400,
+                    showlegend=False
+                )
                 
-                if resp_squadra:
-                    df_squadra = pd.DataFrame(list(resp_squadra.items()), columns=['Squadra', 'Proposte'])
-                    df_squadra = df_squadra.sort_values('Proposte', ascending=True)
-                    
-                    fig_squadra = px.bar(
-                        df_squadra,
-                        x='Proposte',
-                        y='Squadra',
-                        orientation='h',
-                        color='Proposte',
-                        color_continuous_scale='Greens'
-                    )
-                    
-                    fig_squadra.update_layout(
-                        plot_bgcolor='#0e1117',
-                        paper_bgcolor='#0e1117',
-                        font={'color': 'white'},
-                        xaxis={'title': dict(text='Numero Proposte', font=dict(color='white')), 'color': 'white', 'gridcolor': '#333333'},
-                        height=400,
-                        showlegend=False
-                    )
-                    
-                    st.plotly_chart(fig_squadra, use_container_width=True)
-                else:
-                    st.info("Nessuna proposta di squadra")
-            
+                st.plotly_chart(fig_resp, use_container_width=True)
+            else:
+                st.info("Nessuna proposta disponibile")
+
             # ==================== TABELLA PROPOSTE ====================
             st.markdown("---")
             st.subheader("📋 DETTAGLIO PROPOSTE")
