@@ -306,7 +306,11 @@ def proposte_app():
             
             # Orizzonte temporale
             st.markdown("##### 📅 Orizzonte Temporale")
-            st.write(proposta['Orizzonte temporale investimento'] if pd.notna(proposta['Orizzonte temporale investimento']) else "Non specificato")
+            orizzonte = proposta['Orizzonte temporale investimento']
+            if pd.notna(orizzonte):
+                st.write(orizzonte.strftime('%d/%m/%Y'))
+            else:
+                st.write("Non specificato")
             
             # Link e immagini
             col_link1, col_link2 = st.columns(2)
