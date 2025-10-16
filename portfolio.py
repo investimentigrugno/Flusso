@@ -340,7 +340,125 @@ def portfolio_tracker_app():
                 with st.expander("🔍 Dettagli errore"):
                     st.code(str(e))
 
-        
+                # ==================== GRAFICO 5: VOLATILITÀ CLOSE-TO-CLOSE ====================
+        if df_dati is not None and not df_dati.empty and len(df_chart_data) > 0:
+            st.markdown("---")
+            st.subheader("📉 Portfolio Volatility (Close-to-Close)")
+            
+            try:
+                import numpy as np
+                
+                # Usa i dati P&L già caricati
+                df_volatility = df_chart_data[['Data', 'P&L%']].copy()
+                df_volatility = df_volatility.sort_values('Data')
+                
+                # ⭐ CALCOLA RENDIMENTI GIORNALIERI ⭐
+                df_volatility['Rendimento'] = df_volatility['P&L%'].diff()
+                
+                # ⭐ CALCOLA VOLATILITÀ SU FINESTRE MOBILI (NON ANNUALIZZATA PER IL GRAFICO) ⭐
+                df_volatility['Volatility_10d'] = df_volatility['Rendimento'].rolling(window=10).std()
+                df_volatility['Volatility_50d'] = df_volatility['Rendimento'].rolling(window=50).std()
+                
+                # ⭐ CALCOLA VOLATILITÀ ANNUALIZZATA (PER LE METRICHE) ⭐
+                # Moltiplica per sqrt(252) = 15.87 (giorni di trading all'anno)
+                df_volatility['Volatility_10d_annual'] = df_volatility['Volatility_10d'] * np.sqrt(252)
+                df_volatility['Volatility_50d_annual'] = df_volatility['Volatility_50d'] * np.sqrt(252)
+                
+                # Rimuovi righe con NaN
+                df_volatility = df_volatility.dropna()
+                
+                if len(df_volatility) > 0:
+                    # Crea grafico volatilità (NON annualizzata per leggibilità)
+                    fig_vol = go.Figure()
+                    
+                    # Linea Volatilità 10 giorni
+                    fig_vol.add_trace(go.Scatter(
+                        x=df_volatility['Data'],
+                        y=df_volatility['Volatility_10d'],
+                        name='Volatility 10d',
+                        mode='lines',
+                        line=dict(color='#e74c3c', width=2.5),
+                        fill='tozeroy',
+                        fillcolor='rgba(231, 76, 60, 0.2)',
+                        hovertemplate='<b>Data:</b> %{x|%d/%m/%Y}<br><b>Vol 10d:</b> %{y:.2f}%<extra></extra>'
+                    ))
+                    
+                    # Linea Volatilità 50 giorni
+                    fig_vol.add_trace(go.Scatter(
+                        x=df_volatility['Data'],
+                        y=df_volatility['Volatility_50d'],
+                        name='Volatility 50d',
+                        mode='lines',
+                        line=dict(color='#3498db', width=2.5),
+                        fill='tozeroy',
+                        fillcolor='rgba(52, 152, 219, 0.2)',
+                        hovertemplate='<b>Data:</b> %{x|%d/%m/%Y}<br><b>Vol 50d:</b> %{y:.2f}%<extra></extra>'
+                    ))
+                    
+                    fig_vol.update_layout(
+                        xaxis=dict(
+                            title=dict(text='Data', font=dict(color='white')),
+                            showgrid=True,
+                            gridcolor='#333333',
+                            color='white'
+                        ),
+                        yaxis=dict(
+                            title=dict(text='Volatilità (%)', font=dict(color='white')),
+                            showgrid=True,
+                            gridcolor='#333333',
+                            ticksuffix='%',
+                            color='white'
+                        ),
+                        hovermode='x unified',
+                        legend=dict(
+                            orientation="h",
+                            yanchor="bottom",
+                            y=1.02,
+                            xanchor="right",
+                            x=1,
+                            font=dict(color='white'),
+                            bgcolor='rgba(0,0,0,0.5)'
+                        ),
+                        height=600,
+                        plot_bgcolor='#0e1117',
+                        paper_bgcolor='#0e1117',
+                        font=dict(color='white')
+                    )
+                    
+                    st.plotly_chart(fig_vol, use_container_width=True)
+                    
+                    # ⭐ METRICHE VOLATILITÀ ANNUALIZZATE ⭐
+                    col_vol1, col_vol2, col_vol3, col_vol4 = st.columns(4)
+                    
+                    with col_vol1:
+                        st.metric(
+                            "Vol 10d (annualizzata)", 
+                            f"{df_volatility['Volatility_10d_annual'].iloc[-1]:.2f}%"
+                        )
+                    with col_vol2:
+                        st.metric(
+                            "Vol 50d (annualizzata)", 
+                            f"{df_volatility['Volatility_50d_annual'].iloc[-1]:.2f}%"
+                        )
+                    with col_vol3:
+                        st.metric(
+                            "Media Vol 10d (ann.)", 
+                            f"{df_volatility['Volatility_10d_annual'].mean():.2f}%"
+                        )
+                    with col_vol4:
+                        st.metric(
+                            "Media Vol 50d (ann.)", 
+                            f"{df_volatility['Volatility_50d_annual'].mean():.2f}%"
+                        )
+                else:
+                    st.warning("⚠️ Non ci sono abbastanza dati per calcolare la volatilità")
+            
+            except Exception as e:
+                st.warning(f"⚠️ Errore calcolo volatilità: {str(e)}")
+                with st.expander("🔍 Dettagli errore"):
+                    st.code(str(e))
+
+
         # ==================== METRICHE ====================
         if show_metrics:
             st.markdown("---")
