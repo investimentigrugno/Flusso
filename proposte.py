@@ -207,12 +207,12 @@ def proposte_app():
         # Funzione per colorare ESITO
         def color_esito(val):
             if pd.isna(val):
-                return 'background-color: #333333'
+                return 'background-color: #555555; color: white; font-style: italic'  # Grigio per non votate
             if val >= 3:
-                return 'background-color: #2ecc71; color: white; font-weight: bold'
+                return 'background-color: #2ecc71; color: white; font-weight: bold'   # Verde approvate
             else:
-                return 'background-color: #e74c3c; color: white; font-weight: bold'
-        
+                return 'background-color: #e74c3c; color: white; font-weight: bold'   # Rosso respinte
+
         # Applica stile condizionale
         styled_df = df_display.style.map(color_esito, subset=['ESITO'])
         
