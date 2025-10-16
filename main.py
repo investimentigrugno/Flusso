@@ -26,6 +26,13 @@ except Exception as e:
     transaction_ok = False
 
 try:
+    from proposte import proposte_app
+    proposte_ok = True
+except Exception as e:
+    st.sidebar.error(f"Proposte error: {e}")
+    proposte_ok = False
+
+try:
     from screener import stock_screener_app
     stock_ok = True
 except Exception as e:
@@ -48,6 +55,9 @@ if portfolio_ok:
 if transaction_ok:
     MENU["💳 Transaction Tracker"] = transaction_tracker_app
 
+if proposte_ok:
+    MENU["🗳️ Proposte"] = proposte_app
+
 if stock_ok:
     MENU["📈 Stock Screener"] = stock_screener_app
 
@@ -68,7 +78,7 @@ scelta = st.sidebar.radio(
 )
 
 st.sidebar.markdown("---")
-st.sidebar.info(f"Moduli attivi: {len(MENU)}/4")
+st.sidebar.info(f"Moduli attivi: {len(MENU)}/5")
 
 # Info aggiuntive
 with st.sidebar.expander("ℹ️ Info App"):
@@ -87,7 +97,23 @@ with st.sidebar.expander("ℹ️ Info App"):
     - 5 Grafici: Tipo operazione, Top strumenti, Commissioni mensili, Distribuzione valuta
     - Tabella completa con tutte le transazioni filtrate
     - Export CSV con timestamp
-                
+    
+    **🗳️Proposte**
+    - Selettore dropdown - Scegli proposta da visualizzare
+    - Box colorato ESITO:
+        - Verde con ✅ se ESITO >= 3 (APPROVATA)
+        - Rosso con ❌ se ESITO < 3 (RESPINTA)
+    - Informazioni contenute:
+        1.	Informazioni Base - Strumento, operazione, responsabile, data
+        2.	Dati Finanziari - Quantità, PMC, SL, TP, valuta
+        3.	Votazione - ESITO + dettaglio voti di ogni membro con icone:
+            •	✅ Favorevole (x)
+            •	❌ Contrario (o)
+            •	⚪ Non votato
+        4. Motivazione - Box con testo completo della motivazione
+        5. Orizzonte temporale - Data scadenza investimento
+        6. Link e immagini - Bottoni cliccabili per allegati
+    
     **📈 Stock Screener**
     - Analisi titoli azionari
     - TOP 5 Picks con AI
@@ -101,7 +127,7 @@ with st.sidebar.expander("ℹ️ Info App"):
     
     ---
     
-    **Versione:** 2.2
+    **Versione:** 2.5
     
     **Sicurezza:** Tutti i dati vengono elaborati localmente
     """)
