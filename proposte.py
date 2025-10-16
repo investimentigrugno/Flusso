@@ -469,7 +469,7 @@ def proposte_app():
                 # Responsabili
                 responsabili = st.multiselect(
                     "Responsabile/i Proposta *",
-                    options=["GALLOZ", "STE", "GARGIU", "ALE", "GIACA"],
+                    options=["Galloz", "Ste", "Gargiu", "Ale", "Giaca"],
                     help="Seleziona uno o più responsabili"
                 )
                 
