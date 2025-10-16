@@ -215,9 +215,13 @@ def proposte_app():
         # Prepara dataframe per visualizzazione
         df_display = df_filtered.copy()
         
-        # Formatta le date
-        df_display['Informazioni cronologiche'] = df_display['Informazioni cronologiche'].dt.strftime('%d/%m/%Y %H:%M')
-        df_display['Orizzonte temporale investimento'] = df_display['Orizzonte temporale investimento'].dt.strftime('%d/%m/%Y')
+        # Formatta le date (solo data, senza orario)
+        df_display['Informazioni cronologiche'] = df_display['Informazioni cronologiche'].apply(
+            lambda x: x.strftime('%d/%m/%Y') if pd.notna(x) else ''
+        )
+        df_display['Orizzonte temporale investimento'] = df_display['Orizzonte temporale investimento'].apply(
+            lambda x: x.strftime('%d/%m/%Y') if pd.notna(x) else ''
+        )
         
         # Funzione per colorare ESITO
         def color_esito(val):
@@ -238,6 +242,7 @@ def proposte_app():
             height=600,
             hide_index=True
         )
+
         
         # ==================== DETTAGLIO SINGOLA PROPOSTA ====================
         st.markdown("---")
