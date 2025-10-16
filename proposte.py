@@ -92,7 +92,7 @@ def proposte_app():
     gid_proposte = "836776830"
     
     # ==================== CONFIGURAZIONE WEBHOOK ====================
-    WEBHOOK_URL = st.secrets.get("webhook_url_proposte", "https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec")
+    WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbwPSIjUt9gAYh0EY1vuoqEgyqQTSxxUrQgjGZqGrOFx4BWDeWbZCwcThGlivJsHznkD/exec"
     
     # Opzioni sidebar
     st.sidebar.markdown("### ⚙️ Opzioni Proposte")
