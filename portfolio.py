@@ -4,6 +4,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import time
 
+
 @st.cache_data(ttl=120)
 def load_sheet_csv(spreadsheet_id, gid):
     """Carica foglio pubblico via CSV export"""
@@ -24,6 +25,7 @@ def load_sheet_csv(spreadsheet_id, gid):
     
     return None
 
+
 def portfolio_tracker_app():
     """Applicazione Portfolio Tracker"""
     
@@ -32,11 +34,7 @@ def portfolio_tracker_app():
     
     # ID del foglio Google Sheets
     spreadsheet_id = "1mD9jxDJv26aZwCdIbvQVjlJGBhRwKWwQnPpPPq0ON5Y"
-    
-    # Trova il GID del foglio "Portfolio" nell'URL quando lo apri
-    # Esempio: https://docs.google.com/spreadsheets/d/XXXX/edit#gid=0
-    # Se non c'è #gid= nell'URL, il gid è 0 (primo foglio)
-    gid_portfolio = 0  # Modifica se necessario
+    gid_portfolio = 0
     gid_dati = 1009022145
     
     # Opzioni nella sidebar
@@ -55,7 +53,6 @@ def portfolio_tracker_app():
         with st.spinner("Caricamento dati dal Google Sheet..."):
             # Carica foglio Portfolio
             df = load_sheet_csv(spreadsheet_id, gid_portfolio)
-            
             # Carica foglio dati
             df_dati = load_sheet_csv(spreadsheet_id, gid_dati)
         
@@ -64,55 +61,50 @@ def portfolio_tracker_app():
             st.info("💡 Verifica che il foglio sia pubblico: Condividi → Chiunque con il link → Visualizzatore")
             st.stop()
         
-        
-        # ⭐ CARICA TUTTE LE RIGHE FINO ALLA PRIMA RIGA COMPLETAMENTE VUOTA ⭐
+        # ⭐ CARICA RIGHE FINO ALLA PRIMA COMPLETAMENTE VUOTA ⭐
         # Prendi prime 13 colonne
         df_filtered = df.iloc[:, :13].copy()
-
-        # Rimuovi righe dove TUTTE le colonne sono NaN
-        df_filtered = df_filtered.dropna(how='all')
-
-        # Controlla se ci sono righe intermedie vuote e fermati alla prima
-        righe_valide = []
-        for idx, row in df_filtered.iterrows():
-            # Se la riga ha almeno un valore non nullo, aggiungila
-            if row.notna().any():
-                righe_valide.append(idx)
-            else:
-                # Prima riga vuota trovata, fermati
+        
+        # Trova la prima riga completamente vuota
+        prima_riga_vuota = None
+        
+        for i in range(len(df_filtered)):
+            # Controlla se TUTTE le celle della riga sono vuote (NaN o stringa vuota)
+            riga = df_filtered.iloc[i]
+            tutte_vuote = True
+            
+            for valore in riga:
+                if pd.notna(valore) and str(valore).strip() != '':
+                    tutte_vuote = False
+                    break
+            
+            if tutte_vuote:
+                prima_riga_vuota = i
                 break
-
-        # Mantieni solo le righe valide
-        df_filtered = df_filtered.loc[righe_valide]
-
+        
+        # Taglia alla prima riga vuota
+        if prima_riga_vuota is not None and prima_riga_vuota > 0:
+            df_filtered = df_filtered.iloc[:prima_riga_vuota]
+        
+        # Reset index
+        df_filtered = df_filtered.reset_index(drop=True)
+        
         # Tabella dati principali
         df_summary = df.iloc[18:19, 3:12].copy()
-        
         summary_headers = [
-            "DEPOSIT", "VALUE €", "P&L %", "P&L TOT", "P&L % LIVE", 
+            "DEPOSIT", "VALUE €", "P&L %", "P&L TOT", "P&L % LIVE",
             "P&L LIVE", "TOT $", "EUR/USD", "TOT €"
         ]
         df_summary.columns = summary_headers
         
         st.success("✅ Dati caricati con successo!")
         
-                # ==================== SEZIONE TABELLE ====================
+        # ==================== SEZIONE TABELLE ====================
         st.markdown("---")
         st.subheader("💼 Dati Principali del Portafoglio")
         st.dataframe(df_summary, use_container_width=True, hide_index=True)
         
         st.subheader("Portfolio Completo")
-        
-        # ⭐ CARICA DINAMICAMENTE TUTTE LE RIGHE CON STRUMENTI ⭐
-        df_filtered = df.iloc[:, :13].copy()
-        
-        # Assumendo che la colonna NAME (strumento) sia la colonna B (indice 1)
-        # Cambia l'indice se la colonna NAME è diversa
-        name_col_index = 1
-        
-        # Filtra solo righe dove NAME non è vuoto
-        mask_valide = df_filtered.iloc[:, name_col_index].notna() & (df_filtered.iloc[:, name_col_index] != '')
-        df_filtered = df_filtered[mask_valide]
         
         # Mostra il numero di strumenti
         st.caption(f"📊 {len(df_filtered)} strumenti in portafoglio")
@@ -133,15 +125,14 @@ def portfolio_tracker_app():
         print("\n" + "="*100)
         
         # ==================== GRAFICO 1: DISTRIBUZIONE VALORE ====================
-        
         df_chart = df_filtered[['NAME', 'VALUE']].copy()
         df_chart['VALUE_CLEAN'] = df_chart['VALUE'].str.replace('€', '').str.replace('.', '').str.replace(',', '.').str.strip()
         df_chart['VALUE_NUMERIC'] = pd.to_numeric(df_chart['VALUE_CLEAN'], errors='coerce')
         df_chart = df_chart[df_chart['VALUE_NUMERIC'] > 0].dropna()
         
         fig = px.pie(
-            df_chart, 
-            values='VALUE_NUMERIC', 
+            df_chart,
+            values='VALUE_NUMERIC',
             names='NAME',
             hole=0.5
         )
@@ -167,12 +158,12 @@ def portfolio_tracker_app():
         
         st.plotly_chart(fig, use_container_width=True)
         
-        # ===================GRAFICO 2 E GRAFICO 3 VISUALIZZAZIONE DUE COLONNE ===============
+        # ==================== GRAFICI 2 E 3: AFFIANCATI ====================
         st.markdown("---")
-
+        
         # Crea due colonne per affiancare i grafici
         col_left, col_right = st.columns(2)
-
+        
         with col_left:
             # ==================== GRAFICO 2: TIPO ASSET ====================
             st.subheader("ASSET TYPES")
@@ -248,14 +239,14 @@ def portfolio_tracker_app():
             
             fig_pos_value.update_layout(
                 showlegend=True,
-                height = 600,
+                height=600,
                 legend=dict(
                     orientation="v",
                     yanchor="middle",
                     y=0.5,
                     xanchor="right",
                     x=1.08,
-                    font=dict(size=14),
+                    font=dict(size=14)
                 )
             )
             
@@ -334,6 +325,7 @@ def portfolio_tracker_app():
                     st.plotly_chart(fig_combined, use_container_width=True)
                     
                     col_stat1, col_stat2, col_stat3, col_stat4 = st.columns(4)
+                    
                     with col_stat1:
                         st.metric("Ultimo P&L %", f"{df_chart_data['P&L%'].iloc[-1]:.2f}%")
                     with col_stat2:
@@ -344,7 +336,7 @@ def portfolio_tracker_app():
                         st.metric("Min P&L %", f"{df_chart_data['P&L%'].min():.2f}%")
                 else:
                     st.warning("⚠️ Nessun dato disponibile per il 2025")
-                    
+            
             except Exception as e:
                 st.warning(f"⚠️ Impossibile creare grafico P&L: {str(e)}")
         
@@ -354,19 +346,13 @@ def portfolio_tracker_app():
             st.subheader("📉 PORTFOLIO VOLATILITY")
             
             try:
-                # CORREZIONE: usa colonna 10 (DATE, indice 9) invece di colonna 3
-                # Colonne: DATE (indice 9), VOLATILITY_S (indice 13), VOLATILITY_L (indice 14)
                 df_vol_data = df_dati.iloc[:, [9, 13, 14]].copy()
                 df_vol_data.columns = ['Data', 'Volatilità Breve', 'Volatilità Lungo']
                 
-                # Converti Data
                 df_vol_data['Data'] = pd.to_datetime(df_vol_data['Data'], errors='coerce')
                 df_vol_data = df_vol_data.dropna(subset=['Data'])
-                
-                # Filtra solo 2025
                 df_vol_data = df_vol_data[df_vol_data['Data'] >= '2025-01-01']
                 
-                # Pulisci percentuali
                 def clean_percentage(col):
                     if col.dtype == 'object':
                         col = col.str.replace('%', '').str.replace(',', '.').str.strip()
@@ -381,7 +367,6 @@ def portfolio_tracker_app():
                 if len(df_vol_data) == 0:
                     st.warning("⚠️ Nessun dato di volatilità disponibile per il 2025")
                 else:
-                    # Crea grafico
                     fig_volatility = go.Figure()
                     
                     fig_volatility.add_trace(go.Scatter(
@@ -438,7 +423,6 @@ def portfolio_tracker_app():
                     
                     st.plotly_chart(fig_volatility, use_container_width=True)
                     
-                    # Metriche
                     col_vol1, col_vol2, col_vol3, col_vol4 = st.columns(4)
                     
                     with col_vol1:
@@ -454,7 +438,6 @@ def portfolio_tracker_app():
                 st.warning(f"⚠️ Errore grafico volatilità: {str(e)}")
                 with st.expander("🔍 Dettagli errore"):
                     st.code(str(e))
-
         
         # ==================== METRICHE ====================
         if show_metrics:
@@ -491,5 +474,6 @@ def portfolio_tracker_app():
     except Exception as e:
         st.error(f"❌ Errore: {str(e)}")
         st.info("💡 Verifica che il foglio sia pubblico")
+        
         with st.expander("🔍 Dettagli errore"):
             st.code(str(e))
