@@ -222,7 +222,7 @@ def transaction_tracker_app():
             
             # Formatta la data per visualizzazione
             df_display = df_filtered_trans.copy()
-            df_display['Data'] = df_display['Data'].dt.strftime('%m/%d/%Y')
+            df_display['Data'] = df_display['Data'].dt.strftime('%d/%m/%Y')
             
             # Mostra tabella
             st.dataframe(
