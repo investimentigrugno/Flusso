@@ -164,7 +164,7 @@ def proposte_app():
             help="Filtra proposte con ESITO >= valore selezionato"
         )
         
-                # Applica filtri
+        # Applica filtri
         df_filtered = df_proposte.copy()
         
         if responsabile_filter:
@@ -188,7 +188,7 @@ def proposte_app():
         # Riordina dopo i filtri
         df_filtered = df_filtered.sort_values('Informazioni cronologiche', ascending=False).reset_index(drop=True)
 
-                # ==================== TABELLA PROPOSTE CON FORMATTAZIONE ====================
+        # ==================== TABELLA PROPOSTE CON FORMATTAZIONE ====================
         st.markdown("---")
         st.subheader("📋 DETTAGLIO PROPOSTE")
         st.caption("🔽 Ordinate dalla più recente")
@@ -250,13 +250,13 @@ def proposte_app():
             
             # Box colorato in base all'ESITO
             esito_val = proposta['ESITO']
-            if pd.notna(esito_val) and esito_val >= 3:
+            if pd.isna(esito_val):
+                st.warning("⚠️ PROPOSTA NON ANCORA VOTATA")
+            elif esito_val >= 3:
                 st.success(f"✅ ESITO: {esito_val} - PROPOSTA APPROVATA")
-            elif pd.notna(esito_val):
-                st.error(f"❌ ESITO: {esito_val} - PROPOSTA RESPINTA")
             else:
-                st.info("ℹ️ ESITO non disponibile")
-            
+                st.error(f"❌ ESITO: {esito_val} - PROPOSTA RESPINTA")
+
             # Mostra dettagli in colonne
             col_det1, col_det2, col_det3 = st.columns(3)
             
@@ -277,7 +277,11 @@ def proposte_app():
             
             with col_det3:
                 st.markdown("##### ✅ Votazione")
-                st.write(f"**ESITO:** {proposta['ESITO']}")
+                
+                if pd.notna(proposta['ESITO']):
+                    st.write(f"**ESITO:** {proposta['ESITO']}")
+                else:
+                    st.write(f"**ESITO:** Non disponibile")
                 
                 # Mostra votazioni con icone
                 votazioni = {
@@ -287,6 +291,16 @@ def proposte_app():
                     'ALE': proposta['ALE'],
                     'GIACA': proposta['GIACA']
                 }
+                
+                for nome, voto in votazioni.items():
+                    voto_str = str(voto).lower().strip()
+                    if voto_str == 'x':
+                        st.write(f"✅ **{nome}**: Favorevole")
+                    elif voto_str == 'o':
+                        st.write(f"❌ **{nome}**: Contrario")
+                    else:
+                        st.write(f"⚪ **{nome}**: Non ha votato")
+
                 
                 for nome, voto in votazioni.items():
                     if str(voto).lower() == 'x':
