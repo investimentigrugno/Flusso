@@ -278,7 +278,6 @@ def proposte_app():
                         paper_bgcolor='#0e1117',
                         font={'color': 'white'},
                         xaxis={'title': dict(text='Numero Proposte', font=dict(color='white')), 'color': 'white', 'gridcolor': '#333333'},
-                        yaxis={'title': dict(text='', font=dict(color='white')), 'color': 'white'},
                         height=400,
                         showlegend=False
                     )
@@ -317,7 +316,6 @@ def proposte_app():
                         paper_bgcolor='#0e1117',
                         font={'color': 'white'},
                         xaxis={'title': dict(text='Numero Proposte', font=dict(color='white')), 'color': 'white', 'gridcolor': '#333333'},
-                        yaxis={'title': dict(text='', font=dict(color='white')), 'color': 'white'},
                         height=400,
                         showlegend=False
                     )
