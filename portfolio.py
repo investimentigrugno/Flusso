@@ -200,8 +200,7 @@ def portfolio_tracker_app():
                     orientation="v",
                     yanchor="middle",
                     y=0.5,
-                    xanchor="left",
-                    x=1.01,
+                    xanchor="auto",
                     font=dict(size=14)
                 )
             )
@@ -245,8 +244,7 @@ def portfolio_tracker_app():
                     orientation="v",
                     yanchor="middle",
                     y=0.5,
-                    xanchor="right",
-                    x=1.08,
+                    xanchor="auto",
                     font=dict(size=14)
                 )
             )
