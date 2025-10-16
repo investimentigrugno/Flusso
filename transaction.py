@@ -152,7 +152,7 @@ def transaction_tracker_app():
             df_transactions = df_transactions.dropna(subset=['Data'])
             
             # Ordina per data decrescente (più recenti prima)
-            df_transactions = df_transactions.sort_values('Data', ascending=False)
+            df_transactions = df_transactions.sort_values('Data', ascending=False).reset_index(drop=True)
             
             st.success(f"✅ {len(df_transactions)} transazioni caricate con successo!")
             
