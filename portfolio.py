@@ -80,7 +80,7 @@ def portfolio_tracker_app():
                 righe_valide.append(idx)
             else:
                 # Prima riga vuota trovata, fermati
-            break
+                break
 
         # Mantieni solo le righe valide
         df_filtered = df_filtered.loc[righe_valide]
