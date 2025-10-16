@@ -69,7 +69,7 @@ if not MENU:
     st.stop()
 
 # Sidebar
-st.sidebar.title("🚀 Multi Utility App")
+st.sidebar.title("🚀 FLUSSO GRUGNO")
 st.sidebar.markdown("---")
 
 scelta = st.sidebar.radio(
