@@ -64,9 +64,27 @@ def portfolio_tracker_app():
             st.info("💡 Verifica che il foglio sia pubblico: Condividi → Chiunque con il link → Visualizzatore")
             st.stop()
         
-        # Tabella principale (prime 16 righe e 13 colonne)
-        df_filtered = df.iloc[:16, :13]
         
+        # ⭐ CARICA TUTTE LE RIGHE FINO ALLA PRIMA RIGA COMPLETAMENTE VUOTA ⭐
+        # Prendi prime 13 colonne
+        df_filtered = df.iloc[:, :13].copy()
+
+        # Rimuovi righe dove TUTTE le colonne sono NaN
+        df_filtered = df_filtered.dropna(how='all')
+
+        # Controlla se ci sono righe intermedie vuote e fermati alla prima
+        righe_valide = []
+        for idx, row in df_filtered.iterrows():
+            # Se la riga ha almeno un valore non nullo, aggiungila
+            if row.notna().any():
+                righe_valide.append(idx)
+            else:
+                # Prima riga vuota trovata, fermati
+            break
+
+        # Mantieni solo le righe valide
+        df_filtered = df_filtered.loc[righe_valide]
+
         # Tabella dati principali
         df_summary = df.iloc[18:19, 3:12].copy()
         
