@@ -157,12 +157,12 @@ def proposte_app():
         )
         
         # Filtro Valuta
-        valute_options = sorted(df_proposte['In che valuta è lo strumento ?'].dropna().unique().tolist())
-        valuta_filter = st.sidebar.multiselect(
-            "Valuta",
-            options=valute_options,
-            default=[]
-        )
+        #valute_options = sorted(df_proposte['In che valuta è lo strumento ?'].dropna().unique().tolist())
+        #valuta_filter = st.sidebar.multiselect(
+            #"Valuta",
+            #options=valute_options,
+            #default=[]
+        #)
         
         # Applica filtri
         df_filtered = df_proposte.copy()
@@ -223,8 +223,6 @@ def proposte_app():
             height=600,
             hide_index=True
         )
-
-
         
         # ==================== DETTAGLIO SINGOLA PROPOSTA ====================
         st.markdown("---")
