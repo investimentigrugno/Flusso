@@ -164,16 +164,6 @@ def proposte_app():
             default=[]
         )
         
-        # Filtro ESITO
-        esito_filter = st.sidebar.slider(
-            "ESITO minimo",
-            min_value=1.0,
-            max_value=5.0,
-            value=1.0,
-            step=0.5,
-            help="Filtra proposte con ESITO >= valore selezionato"
-        )
-        
         # Applica filtri
         df_filtered = df_proposte.copy()
         
