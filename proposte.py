@@ -243,7 +243,7 @@ def proposte_app():
         st.markdown("---")
         st.subheader("🔍 Dettaglio Proposta")
         
-                if len(df_filtered) > 0:
+        if len(df_filtered) > 0:
             # Selettore proposta
             strumenti_list = df_filtered['Quale strumento ?'].tolist()
             # Formatta le date per il selettore
