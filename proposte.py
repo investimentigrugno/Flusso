@@ -42,20 +42,20 @@ def append_proposta_via_webhook(proposta_data, webhook_url):
     try:
         # Prepara i dati per il webhook
         payload = {
-            "data_cronologica": proposta_data['Informazioni cronologiche'],
-            "responsabile": proposta_data['Responsabile proposta'],
-            "buy_sell": proposta_data['Buy / Sell'],
-            "strumento": proposta_data['Quale strumento ?'],
-            "quantita": proposta_data['Quantità ?'],
-            "pmc": proposta_data['PMC ?'],
-            "sl": proposta_data['SL ?'],
-            "tp": proposta_data['TP ?'],
-            "orizzonte": proposta_data['Orizzonte temporale investimento'],
-            "allegato": proposta_data['Allegato'],
-            "motivazione": proposta_data['Motivazione'],
-            "link": proposta_data['Link'],
-            "immagine": proposta_data['Immagine'],
-            "valuta": proposta_data['In che valuta è lo strumento ?']
+            "data_cronologica": proposta_data['DATA'],
+            "responsabile": proposta_data['RESPONSABILE'],
+            "buy_sell": proposta_data['OPERAZIONE'],
+            "strumento": proposta_data['STRUMENTO'],
+            "quantita": proposta_data['QUANTITA'],
+            "pmc": proposta_data['PMC'],
+            "sl": proposta_data['SL'],
+            "tp": proposta_data['TP'],
+            "orizzonte": proposta_data['ORIZZONTE TEMPORALE'],
+            "ALLEGATO": proposta_data['ALLEGATO'],
+            "MOTIVAZIONE": proposta_data['MOTIVAZIONE'],
+            "LINK": proposta_data['LINK'],
+            "IMMAGINE": proposta_data['IMMAGINE'],
+            "valuta": proposta_data['VALUTA']
         }
         
         # Invia richiesta POST al webhook
@@ -116,25 +116,25 @@ def proposte_app():
             
             if df_proposte is None or df_proposte.empty:
                 st.error("❌ Impossibile caricare il foglio 'Proposte'")
-                st.info("💡 Verifica che il foglio sia pubblico: Condividi → Chiunque con il link → Visualizzatore")
+                st.info("💡 Verifica che il foglio sia pubblico: Condividi → Chiunque con il LINK → Visualizzatore")
                 st.stop()
             
             # Definisci i nomi delle colonne attese
             expected_columns = [
-                'Informazioni cronologiche',
-                'Responsabile proposta',
-                'Buy / Sell',
-                'Quale strumento ?',
-                'Quantità ?',
-                'PMC ?',
-                'SL ?',
-                'TP ?',
-                'Orizzonte temporale investimento',
-                'Allegato',
-                'Motivazione',
-                'Link',
-                'Immagine',
-                'In che valuta è lo strumento ?',
+                'DATA',
+                'RESPONSABILE',
+                'OPERAZIONE',
+                'STRUMENTO',
+                'QUANTITA',
+                'PMC',
+                'SL',
+                'TP',
+                'ORIZZONTE TEMPORALE',
+                'ALLEGATO',
+                'MOTIVAZIONE',
+                'LINK',
+                'IMMAGINE',
+                'VALUTA',
                 'ESITO',
                 'GALLOZ',
                 'STE',
@@ -149,21 +149,21 @@ def proposte_app():
                 st.warning(f"⚠️ Il foglio ha {len(df_proposte.columns)} colonne, ne servono 20")
             
             # Converti date
-            df_proposte['Informazioni cronologiche'] = df_proposte['Informazioni cronologiche'].astype(str).str.replace(
+            df_proposte['DATA'] = df_proposte['DATA'].astype(str).str.replace(
                 r'(\d{2})\.(\d{2})\.(\d{2})',
                 r'\1:\2:\3',
                 regex=True
             )
             
-            df_proposte['Informazioni cronologiche'] = pd.to_datetime(
-                df_proposte['Informazioni cronologiche'],
+            df_proposte['DATA'] = pd.to_datetime(
+                df_proposte['DATA'],
                 format='%d/%m/%Y %H:%M:%S',
                 errors='coerce',
                 dayfirst=True
             )
             
-            df_proposte['Orizzonte temporale investimento'] = pd.to_datetime(
-                df_proposte['Orizzonte temporale investimento'],
+            df_proposte['ORIZZONTE TEMPORALE'] = pd.to_datetime(
+                df_proposte['ORIZZONTE TEMPORALE'],
                 format='%d/%m/%Y',
                 errors='coerce',
                 dayfirst=True
@@ -173,13 +173,13 @@ def proposte_app():
             df_proposte['ESITO'] = pd.to_numeric(df_proposte['ESITO'], errors='coerce').astype('Int64')
             
             # Rimuovi righe vuote
-            colonne_chiave = ['Quale strumento ?', 'Buy / Sell', 'Responsabile proposta']
+            colonne_chiave = ['STRUMENTO', 'OPERAZIONE', 'RESPONSABILE']
             mask_valide = df_proposte[colonne_chiave].notna().any(axis=1)
             df_proposte = df_proposte[mask_valide]
             
             # Ordina per data decrescente
             df_proposte = df_proposte.sort_values(
-                'Informazioni cronologiche',
+                'DATA',
                 ascending=False,
                 na_position='last'
             ).reset_index(drop=True)
@@ -192,7 +192,7 @@ def proposte_app():
             
             # Filtro per responsabile
             responsabili_unici = []
-            for resp in df_proposte['Responsabile proposta'].dropna().unique():
+            for resp in df_proposte['RESPONSABILE'].dropna().unique():
                 if isinstance(resp, str):
                     responsabili_unici.extend([r.strip() for r in resp.replace(',', ' ').split()])
             responsabili_unici = sorted(list(set(responsabili_unici)))
@@ -204,7 +204,7 @@ def proposte_app():
             )
             
             # Filtro Buy/Sell
-            buysell_options = df_proposte['Buy / Sell'].dropna().unique().tolist()
+            buysell_options = df_proposte['OPERAZIONE'].dropna().unique().tolist()
             buysell_filter = st.sidebar.multiselect(
                 "Operazione",
                 options=buysell_options,
@@ -224,13 +224,13 @@ def proposte_app():
             
             if responsabile_filter:
                 df_filtered = df_filtered[
-                    df_filtered['Responsabile proposta'].apply(
+                    df_filtered['RESPONSABILE'].apply(
                         lambda x: any(r in str(x) for r in responsabile_filter) if pd.notna(x) else False
                     )
                 ]
             
             if buysell_filter:
-                df_filtered = df_filtered[df_filtered['Buy / Sell'].isin(buysell_filter)]
+                df_filtered = df_filtered[df_filtered['OPERAZIONE'].isin(buysell_filter)]
             
             # ⭐ Applica filtro ESITO (confronto con interi) ⭐
             if esito_options == "Approvate (≥3)":
@@ -242,7 +242,7 @@ def proposte_app():
             # Se "Tutte" non applicare filtro
             
             # Riordina dopo i filtri
-            df_filtered = df_filtered.sort_values('Informazioni cronologiche', ascending=False).reset_index(drop=True)
+            df_filtered = df_filtered.sort_values('DATA', ascending=False).reset_index(drop=True)
 
                         # ==================== GRAFICO A BARRE ====================
             st.markdown("---")
@@ -250,7 +250,7 @@ def proposte_app():
             
             # Conta tutte le proposte per responsabile (singoli e squadra)
             resp_counts = {}
-            for resp in df_filtered['Responsabile proposta'].dropna():
+            for resp in df_filtered['RESPONSABILE'].dropna():
                 if isinstance(resp, str):
                     nomi = [r.strip() for r in resp.replace(',', ' ').split()]
                     for nome in nomi:
@@ -303,11 +303,11 @@ def proposte_app():
             
             df_display = df_filtered.copy()
             
-            df_display['Informazioni cronologiche'] = df_display['Informazioni cronologiche'].apply(
+            df_display['DATA'] = df_display['DATA'].apply(
                 lambda x: x.strftime('%d/%m/%Y') if pd.notna(x) else ''
             )
             
-            df_display['Orizzonte temporale investimento'] = df_display['Orizzonte temporale investimento'].apply(
+            df_display['ORIZZONTE TEMPORALE'] = df_display['ORIZZONTE TEMPORALE'].apply(
                 lambda x: x.strftime('%d/%m/%Y') if pd.notna(x) else ''
             )
             
@@ -333,8 +333,8 @@ def proposte_app():
             st.subheader("🔍 Dettaglio Proposta")
             
             if len(df_filtered) > 0:
-                strumenti_list = df_filtered['Quale strumento ?'].tolist()
-                date_list = df_filtered['Informazioni cronologiche'].apply(
+                strumenti_list = df_filtered['STRUMENTO'].tolist()
+                date_list = df_filtered['DATA'].apply(
                     lambda x: x.strftime('%d/%m/%Y') if pd.notna(x) else 'Data non disponibile'
                 ).tolist()
                 
@@ -360,11 +360,11 @@ def proposte_app():
                 
                 with col_det1:
                     st.markdown("##### 📌 Informazioni Base")
-                    st.write(f"**Strumento:** {proposta['Quale strumento ?']}")
-                    st.write(f"**Operazione:** {proposta['Buy / Sell']}")
-                    st.write(f"**Responsabile:** {proposta['Responsabile proposta']}")
+                    st.write(f"**Strumento:** {proposta['STRUMENTO']}")
+                    st.write(f"**Operazione:** {proposta['OPERAZIONE']}")
+                    st.write(f"**Responsabile:** {proposta['RESPONSABILE']}")
                     
-                    data_proposta = proposta['Informazioni cronologiche']
+                    data_proposta = proposta['DATA']
                     if pd.notna(data_proposta):
                         st.write(f"**Data proposta:** {data_proposta.strftime('%d/%m/%Y')}")
                     else:
@@ -372,11 +372,11 @@ def proposte_app():
                 
                 with col_det2:
                     st.markdown("##### 💰 Dati Finanziari")
-                    st.write(f"**Quantità:** {proposta['Quantità ?']}")
-                    st.write(f"**PMC:** {proposta['PMC ?']}")
-                    st.write(f"**SL:** {proposta['SL ?']}")
-                    st.write(f"**TP:** {proposta['TP ?']}")
-                    st.write(f"**Valuta:** {proposta['In che valuta è lo strumento ?']}")
+                    st.write(f"**Quantità:** {proposta['QUANTITA']}")
+                    st.write(f"**PMC:** {proposta['PMC']}")
+                    st.write(f"**SL:** {proposta['SL']}")
+                    st.write(f"**TP:** {proposta['TP']}")
+                    st.write(f"**Valuta:** {proposta['VALUTA']}")
                 
                 with col_det3:
                     st.markdown("##### ✅ Votazione")
@@ -404,11 +404,11 @@ def proposte_app():
                             st.write(f"⚪ **{nome}**: Non ha votato")
                 
                 st.markdown("---")
-                st.markdown("##### 📝 Motivazione")
-                st.info(proposta['Motivazione'] if pd.notna(proposta['Motivazione']) else "Nessuna motivazione fornita")
+                st.markdown("##### 📝 MOTIVAZIONE")
+                st.info(proposta['MOTIVAZIONE'] if pd.notna(proposta['MOTIVAZIONE']) else "Nessuna MOTIVAZIONE fornita")
                 
                 st.markdown("##### 📅 Orizzonte Temporale")
-                orizzonte = proposta['Orizzonte temporale investimento']
+                orizzonte = proposta['ORIZZONTE TEMPORALE']
                 if pd.notna(orizzonte):
                     st.write(orizzonte.strftime('%d/%m/%Y'))
                 else:
@@ -417,16 +417,16 @@ def proposte_app():
                 col_link1, col_link2 = st.columns(2)
                 
                 with col_link1:
-                    if pd.notna(proposta['Link']) and proposta['Link']:
-                        st.markdown(f"##### 🔗 [Apri Link Allegato]({proposta['Link']})")
+                    if pd.notna(proposta['LINK']) and proposta['LINK']:
+                        st.markdown(f"##### 🔗 [Apri LINK ALLEGATO]({proposta['LINK']})")
                     else:
-                        st.caption("Nessun link allegato")
+                        st.caption("Nessun LINK ALLEGATO")
                 
                 with col_link2:
-                    if pd.notna(proposta['Immagine']) and proposta['Immagine']:
-                        st.markdown(f"##### 🖼️ [Visualizza Immagine]({proposta['Immagine']})")
+                    if pd.notna(proposta['IMMAGINE']) and proposta['IMMAGINE']:
+                        st.markdown(f"##### 🖼️ [Visualizza IMMAGINE]({proposta['IMMAGINE']})")
                     else:
-                        st.caption("Nessuna immagine allegata")
+                        st.caption("Nessuna IMMAGINE allegata")
             else:
                 st.info("ℹ️ Nessuna proposta disponibile con i filtri selezionati")
             
@@ -469,7 +469,7 @@ def proposte_app():
                 # Responsabili
                 responsabili = st.multiselect(
                     "Responsabile/i Proposta *",
-                    options=["Galloz", "Ste", "Gargiu", "Ale", "Giaca"],
+                    options=["GALLOZ", "STE", "GARGIU", "ALE", "GIACA"],
                     help="Seleziona uno o più responsabili"
                 )
                 
@@ -537,35 +537,35 @@ def proposte_app():
                     help="Data obiettivo investimento"
                 )
                 
-                # Allegato
+                # ALLEGATO
                 allegato_tipo = st.selectbox(
-                    "Tipo Allegato",
-                    options=["", "link", "immagine"]
+                    "Tipo ALLEGATO",
+                    options=["", "LINK", "IMMAGINE"]
                 )
             
-            # Motivazione
-            motivazione = st.text_area(
-                "Motivazione *",
-                placeholder="Descrivi la motivazione della proposta (30-40 parole)",
+            # MOTIVAZIONE
+            MOTIVAZIONE = st.text_area(
+                "MOTIVAZIONE *",
+                placeholder="Descrivi la MOTIVAZIONE della proposta (30-40 parole)",
                 help="Spiega il razionale della proposta",
                 height=100
             )
             
-            # Link/Immagine
+            # LINK/IMMAGINE
             col_all1, col_all2 = st.columns(2)
             
             with col_all1:
-                link = st.text_input(
-                    "Link (URL)",
+                LINK = st.text_input(
+                    "LINK (URL)",
                     placeholder="https://...",
-                    help="Link a documento o analisi"
+                    help="LINK a documento o analisi"
                 )
             
             with col_all2:
-                immagine = st.text_input(
-                    "Immagine (URL)",
+                IMMAGINE = st.text_input(
+                    "IMMAGINE (URL)",
                     placeholder="https://...",
-                    help="Link a immagine su Google Drive"
+                    help="LINK a IMMAGINE su Google Drive"
                 )
             
             st.markdown("---")
@@ -601,8 +601,8 @@ def proposte_app():
             if pmc <= 0:
                 errors.append("⚠️ Il 'PMC' deve essere maggiore di 0")
             
-            if not motivazione:
-                errors.append("⚠️ La 'Motivazione' è obbligatoria")
+            if not MOTIVAZIONE:
+                errors.append("⚠️ La 'MOTIVAZIONE' è obbligatoria")
             
             if errors:
                 for error in errors:
@@ -616,20 +616,20 @@ def proposte_app():
                     return formato.format(numero).replace('.', ',')
                 
                 new_proposta = {
-                    'Informazioni cronologiche': now.strftime('%d/%m/%Y %H.%M.%S'),
-                    'Responsabile proposta': ', '.join(responsabili),
-                    'Buy / Sell': buy_sell,
-                    'Quale strumento ?': strumento,
-                    'Quantità ?': format_numero_italiano(quantita, 4),
-                    'PMC ?': format_numero_italiano(pmc, 4),
-                    'SL ?': format_numero_italiano(sl, 4) if sl > 0 else '',
-                    'TP ?': format_numero_italiano(tp, 4) if tp > 0 else '',
-                    'Orizzonte temporale investimento': orizzonte.strftime('%d/%m/%Y') if orizzonte else '',
-                    'Allegato': allegato_tipo,
-                    'Motivazione': motivazione,
-                    'Link': link,
-                    'Immagine': immagine,
-                    'In che valuta è lo strumento ?': valuta
+                    'DATA': now.strftime('%d/%m/%Y %H.%M.%S'),
+                    'RESPONSABILE': ', '.join(responsabili),
+                    'OPERAZIONE': buy_sell,
+                    'STRUMENTO': strumento,
+                    'QUANTITA': format_numero_italiano(quantita, 4),
+                    'PMC': format_numero_italiano(pmc, 4),
+                    'SL': format_numero_italiano(sl, 4) if sl > 0 else '',
+                    'TP': format_numero_italiano(tp, 4) if tp > 0 else '',
+                    'ORIZZONTE TEMPORALE': orizzonte.strftime('%d/%m/%Y') if orizzonte else '',
+                    'ALLEGATO': allegato_tipo,
+                    'MOTIVAZIONE': MOTIVAZIONE,
+                    'LINK': LINK,
+                    'IMMAGINE': IMMAGINE,
+                    'VALUTA': valuta
                 }
                 
                 # Invia al webhook
@@ -667,6 +667,6 @@ def proposte_app():
             - **Strumento**: Inserisci il ticker ufficiale
             - **PMC**: Prezzo medio di carico target
             - **SL/TP**: Stop Loss e Take Profit (opzionali)
-            - **Motivazione**: Spiega brevemente il razionale della proposta
-            - **Allegato**: Aggiungi link o immagini di supporto
+            - **MOTIVAZIONE**: Spiega brevemente il razionale della proposta
+            - **ALLEGATO**: Aggiungi LINK o immagini di supporto
             """)
