@@ -342,7 +342,7 @@ def transaction_tracker_app():
                 # 6. Lungo/Breve Termine
                 lungo_breve = st.selectbox(
                 "Posizione",
-                options=["", "L", "B"],
+                options=["", "L", "B", "P"],
                 format_func=lambda x: {
                     "": "Non specificato",
                     "L": "L - Lungo termine",
