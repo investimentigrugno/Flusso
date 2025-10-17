@@ -309,6 +309,13 @@ def transaction_tracker_app():
                     placeholder="Es: BIT:LDO, NASDAQ:AAPL, BTCEUR",
                     help="Inserire il ticker corretto presente su Google Finance"
                 )
+
+                # 3b. Nome Strumento (opzionale)
+                nome_strumento = st.text_input(
+                    "Nome Strumento",
+                    placeholder="Es: Apple Inc., Bitcoin",
+                    help="Nome leggibile dello strumento (opzionale)"
+                )
                 
                 # 4. PMC (Prezzo Medio di Carico)
                 pmc_input = st.number_input(
@@ -331,6 +338,20 @@ def transaction_tracker_app():
                 )
             
             with col2:
+                
+                # 6. Lungo/Breve Termine
+                lungo_breve = st.selectbox(
+                "Posizione",
+                options=["", "L", "B"],
+                format_func=lambda x: {
+                    "": "Non specificato",
+                    "L": "L - Lungo termine",
+                    "B": "B - Breve termine",
+                    "P": "P - Passività",
+                }[x],
+                help="Orizzonte temporale della posizione"
+                )
+                
                 # 7. Valuta
                 valuta_input = st.selectbox(
                     "Valuta *",
@@ -431,7 +452,10 @@ def transaction_tracker_app():
                     'Valuta': valuta_input,
                     'Tasso di cambio': f"{tasso_cambio_input:.4f}",
                     'Commissioni': f"{commissioni_input:.2f}",
-                    'Controvalore €': f"{controvalore_calcolato:.2f}"
+                    'Controvalore €': f"{controvalore_calcolato:.2f}",
+                    'Lungo/Breve Termine': lungo_breve,
+                    'Nome Strumento': nome_strumento
+
                 }
                 
                 # Invia al webhook
