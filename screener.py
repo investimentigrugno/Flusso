@@ -399,6 +399,13 @@ def fetch_screener_data():
         with st.spinner("🔍 Recupero dati dal mercato..."):
             query = (
                 Query()
+                .set_markets('america', 'australia','belgium','brazil', 'canada', 'chile', 'china','italy',
+                            'czech', 'denmark', 'egypt', 'estonia', 'finland', 'france', 'germany', 'greece',
+                            'hongkong', 'hungary','india', 'indonesia', 'ireland', 'israel', 'japan','korea',
+                            'kuwait', 'lithuania', 'luxembourg', 'malaysia', 'mexico', 'morocco', 'netherlands',
+                            'newzealand', 'norway', 'peru', 'philippines', 'poland', 'portugal', 'qatar', 'russia',
+                            'singapore', 'slovakia', 'spain', 'sweden', 'switzerland', 'taiwan', 'uae', 'uk',
+                            'venezuela', 'vietnam', 'crypto')
                 .select('name', 'description', 'country', 'sector', 'currency', 'close', 'change', 'volume',
                        'market_cap_basic', 'RSI', 'MACD.macd', 'MACD.signal', 'SMA50', 'SMA200',
                        'Volatility.D', 'Recommend.All', 'float_shares_percent_current',
