@@ -121,9 +121,17 @@ def portfolio_tracker_app():
         )
         
         fig.update_layout(
-            showlegend=False,
+            showlegend=True,
+            legend=dict(
+                orientation="h",
+                yanchor="auto",
+                y=-0.3,
+                xanchor="auto",
+                x=0.5,
+                font=dict(size=14)
+            ),
             height=800,
-            margin=dict(l=20, r=20, t=80, b=150)
+            margin=dict(l=20, r=20, t=50, b=100)
         )
         
         st.plotly_chart(fig, use_container_width=True)
@@ -164,13 +172,14 @@ def portfolio_tracker_app():
                 showlegend=True,
                 height=600,
                 legend=dict(
-                    orientation="v",
-                    yanchor="middle",
-                    y=0.5,
-                    xanchor="left",
-                    x=1.01,
+                    orientation="h",
+                    yanchor="auto",
+                    y=1.1,
+                    xanchor="auto",
+                    x=0.5,
                     font=dict(size=14)
-                )
+                ),
+                margin=dict(l=20, r=20, t=50, b=10)
             )
             
             st.plotly_chart(fig_asset_type, use_container_width=True)
@@ -208,13 +217,14 @@ def portfolio_tracker_app():
                 showlegend=True,
                 height=600,
                 legend=dict(
-                    orientation="v",
-                    yanchor="middle",
-                    y=0.5,
-                    xanchor="right",
-                    x=1.08,
+                    orientation="h",
+                    yanchor="auto",
+                    y=1.1,
+                    xanchor="auto",
+                    x=0.5,
                     font=dict(size=14)
-                )
+                ),
+                margin=dict(l=20, r=20, t=50, b=10)
             )
             
             st.plotly_chart(fig_pos_value, use_container_width=True)
