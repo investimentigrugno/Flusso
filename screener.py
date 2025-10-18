@@ -413,8 +413,10 @@ def fetch_screener_data():
                        'Perf.W', 'Perf.1M')
                 .where(
                     Column('type').isin(['stock']),
+                    Column('is_primary') == True,
                     Column('market_cap_basic').between(1_000_000_000, 200_000_000_000_000),
                     Column('close') > Column('SMA50'),
+                    Column('close') > Column('SMA100'),
                     Column('close') > Column('SMA200'),
                     Column('RSI').between(30, 80),
                     Column('MACD.macd') > Column('MACD.signal'),
