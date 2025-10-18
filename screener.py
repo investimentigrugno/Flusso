@@ -411,6 +411,7 @@ def fetch_screener_data():
                        'Volatility.D', 'Recommend.All', 'float_shares_percent_current',
                        'relative_volume_10d_calc', 'price_earnings_ttm', 'earnings_per_share_basic_ttm',
                        'Perf.W', 'Perf.1M')
+                .set_property('preset', 'all_stocks')
                 .where(
                     Column('type').isin(['stock']),
                     Column('market_cap_basic').between(1_000_000_000, 200_000_000_000_000),
