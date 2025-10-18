@@ -19,7 +19,7 @@ except:
     except:
         GROQ_API_KEY = ""
 
-MODEL_NAME = "llama-4-scout-17b-16e-instruct"
+MODEL_NAME = "llama-3.3-70b-versatile"
 
 # Importa la libreria Groq ufficiale
 try:
