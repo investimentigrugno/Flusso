@@ -222,7 +222,7 @@ Stima del potenziale di crescita a 2-4 settimane con target price realistico bas
 Strategia concreta con:
 - Stop Loss consigliato (percentuale e prezzo)
 - Take Profit consigliato (percentuale e prezzo)
-- Dimensionamento posizione
+- Dimensionamento posizione da un minx del 2% del portafoglio fino a un max del 5%
 (max 120 parole)
 
 ## 5. RACCOMANDAZIONE FINALE

@@ -413,6 +413,7 @@ def fetch_screener_data():
                     Column('MACD.macd') > Column('MACD.signal'),
                     Column('Volatility.D') > 0.2,
                     Column('Recommend.All') > 0.1,
+                    Column('relative_volume_10d_calc') > 0.7,
                     Column('float_shares_percent_current') > 0.3,
                 )
                 .order_by('market_cap_basic', ascending=False)
