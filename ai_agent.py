@@ -3,13 +3,23 @@ import pandas as pd
 from datetime import datetime
 import re
 from typing import List, Dict
+import os
 
 # ============================================================================
 # CONFIGURAZIONE GROQ API - VERSIONE CORRETTA
 # ============================================================================
 
-GROQ_API_KEY = "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"
-MODEL_NAME = "meta-llama/llama-4-scout-17b-16e-instruct"
+try:
+    # Streamlit Cloud / Secrets locali
+    GROQ_API_KEY = st.secrets["GROQ_API_KEY"]
+except:
+    try:
+        # Variabile d'ambiente (backup)
+        GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
+    except:
+        GROQ_API_KEY = ""
+
+MODEL_NAME = "llama-4-scout-17b-16e-instruct"
 
 # Importa la libreria Groq ufficiale
 try:
@@ -22,6 +32,9 @@ except ImportError:
 def get_groq_client():
     """Crea client Groq"""
     if not GROQ_AVAILABLE:
+        return None
+    if not GROQ_API_KEY:
+        st.error("⚠️ API Key Groq non configurata. Configura i secrets.")
         return None
     try:
         client = Groq(api_key=GROQ_API_KEY)
