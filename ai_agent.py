@@ -9,7 +9,7 @@ from typing import List, Dict
 # ============================================================================
 
 GROQ_API_KEY = "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"
-MODEL_NAME = "llama-3.1-70b-versatile"
+MODEL_NAME = "llama-3.3-70b-versatile"
 
 # Importa la libreria Groq ufficiale
 try:
