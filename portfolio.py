@@ -68,6 +68,11 @@ def portfolio_tracker_app():
         # Carica Portfolio Status
         df_summary = df_status.iloc[0:1, :].copy()
         df_summary = df_summary.reset_index(drop=True)
+
+        #Carica gestione liquidità
+        df_liquidita = df_status.iloc[3:4,:4].copy()
+        df_liquidita.columns = ['COMMISSION & TAXES', 'COMMISSION & TAXES %', 'CASH DISPONIBILE', 'CASH NON DISPONIBILE']
+        df_liquidita = df_liquidita.reset_index(drop=True)
         
         # Carica Portfolio completo fino alla prima riga vuota
         df_filtered = df.iloc[:, :13].copy()
@@ -97,6 +102,10 @@ def portfolio_tracker_app():
         st.markdown("---")
         st.subheader("💼 Portfolio Status")
         st.dataframe(df_summary, use_container_width=True, hide_index=True)
+
+        st.markdown("---")
+        st.subheader("💰 Gestione Liquidità")
+        st.dataframe(df_liquidita, use_container_width=True, hide_index=True)
         
         st.subheader("Portfolio Completo")
         st.caption(f"📊 {len(df_filtered)} strumenti in portafoglio")
