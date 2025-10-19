@@ -12,6 +12,7 @@ import random
 from deep_translator import GoogleTranslator, single_detection
 from typing import List, Dict
 import re
+from ai_agent import generate_detailed_report
 
 # --- API CONFIGURATION ---
 FINNHUB_API_KEY = "d38fnb9r01qlbdj59nogd38fnb9r01qlbdj59np0"
@@ -966,58 +967,45 @@ Questa app utilizza un **algoritmo di scoring intelligente** e **notizie tradott
             
             with tab4:
                 st.header("📊 Analisi Fondamentale Azienda")
-                symbol = st.text_input("Inserisci Simbolo o Nome Azienda (es. AAPL, TSLA, NVDA):", "")
-            
+                symbol = st.text_input("Inserisci Simbolo o Nome Azienda (es. AAPL, TSLA, NVDA):", "", key="fundamental_analysis_symbol")
+
                 if symbol:
-                    if st.button("📑 Estrai Dati Finanziari"):
+                    if st.button("📑 Estrai Dati Finanziari", key="extract_financial_data_btn"):
                         df_fundamental = fetch_fundamental_data(symbol)
-            
+
                         if not df_fundamental.empty:
                             row = df_fundamental.iloc[0]
-                            st.subheader(f"{row.get('description', '')} ({row.get('name', symbol.upper())})")
-                            st.caption(f"Settore: {row.get('sector', 'n/a')} | Paese: {row.get('country', 'n/a')}")
-            
-                            st.markdown("### 💼 Dati Fondamentali Principali")
-                            display_cols = [
-                                "Ricavi Totali", "Utile Lordo", "Utile Netto", 
-                                "P/E (TTM)", "EPS (TTM)", "Margine Operativo %", "Margine Netto %",
-                                "Totale Attività", "Totale Passività", 
-                                "Patrimonio Netto", "Free Cash Flow", "Dividend Yield"
-                            ]
-                            cols = [col for col in display_cols if col in df_fundamental.columns]
-                            st.dataframe(df_fundamental[cols].T, use_container_width=True, height=400)
-            
+                            company_name = row.get("description", symbol.upper())
+
+                            st.subheader(f"{company_name} ({row.get('name', symbol.upper())})")
+                            st.caption(f"Settore: {row.get('sector', '-')}, Paese: {row.get('country', '-')}")
+
+                            # Tabella dati fondamentali
+                            st.markdown("### 💼 Dati Fondamentali")
+                            display_cols = [c for c in df_fundamental.columns if c not in ["name","description","sector","country"]]
+                            st.dataframe(df_fundamental[display_cols].T, use_container_width=True, height=400)
+
+                            # Report AI
                             st.markdown("---")
-                            st.markdown("### 🧾 Report Sintetico")
-                            # Genera analisi testuale semplice
-                            try:
-                                growth_comment = ""
-                                if 'P/E (TTM)' in row and pd.notnull(row['P/E (TTM)']):
-                                    if row['P/E (TTM)'] < 15:
-                                        growth_comment = "Il titolo sembra sottovalutato rispetto ai suoi utili."
-                                    elif row['P/E (TTM)'] > 30:
-                                        growth_comment = "Il titolo appare sopravvalutato rispetto agli utili attuali."
-                                    else:
-                                        growth_comment = "Il rapporto prezzo/utili è in linea con il mercato."
-            
-                                profitability = ""
-                                if 'Margine Netto %' in row and pd.notnull(row['Margine Netto %']):
-                                    profitability = (
-                                        "Margini elevati e buone prospettive di redditività."
-                                        if row['Margine Netto %'] > 15 else
-                                        "Margini deboli, profitabilità moderata."
+                            st.markdown("### 🧠 Analisi AI dei Bilanci")
+                            if st.button("🤖 Genera Report AI", key="generate_ai_report_btn"):
+                                with st.spinner("Generazione del report AI in corso..."):
+                                    data_dict = df_fundamental.iloc[0].to_dict()
+                                    ai_report = generate_detailed_report(company_name, data_dict)
+                                    st.success("✅ Report AI generato.")
+                                    
+                                    with st.expander("📄 Visualizza Report Completo", expanded=True):
+                                        st.markdown(ai_report)
+
+                                    # Download report
+                                    st.download_button(
+                                        label="📥 Scarica Report AI",
+                                        data=ai_report,
+                                        file_name=f"Report_{company_name}_{datetime.now().strftime('%Y%m%d')}.txt",
+                                        mime="text/plain",
+                                        key="download_ai_report_btn"
                                     )
-            
-                                st.info(f"""
-                                **Sintesi Automatica:**
-                                - Ricavi Annuali: {row.get('Ricavi Totali', '-')}.
-                                - Utile Netto: {row.get('Utile Netto', '-')}.
-                                - EPS (Ultimi 12 mesi): {row.get('EPS (TTM)', '-')}.
-                                - {growth_comment}
-                                - {profitability}
-                                """)
-                            except Exception as e:
-                                st.error(f"Errore nella generazione del report: {e}")
+
 
             
             # Summary
