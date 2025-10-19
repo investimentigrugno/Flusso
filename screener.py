@@ -414,7 +414,7 @@ def fetch_screener_data():
                 .where(
                     Column('type').isin(['stock']),
                     Column('is_primary') == True,
-                    Column('market_cap_basic').between(1_000_000_000, 200_000_000_000_000),
+                    Column('market_cap_basic').between(10_000_000_000, 200_000_000_000_000),
                     Column('close') > Column('SMA50'),
                     Column('close') > Column('SMA100'),
                     Column('close') > Column('SMA200'),
@@ -426,7 +426,7 @@ def fetch_screener_data():
                     Column('float_shares_percent_current') > 0.3,
                 )
                 .order_by('market_cap_basic', ascending=False)
-                .limit(300)
+                .limit(200)
                 .get_scanner_data()
             )
             
@@ -714,7 +714,7 @@ def stock_screener_app():
             display_columns = st.multiselect(
                 "Seleziona colonne da visualizzare:",
                 available_columns,
-                default=['Company', 'Symbol', 'Investment_Score', 'Price', 'Country']
+                default=['Company', 'Symbol', 'Investment_Score', 'Price', 'Country','Sector','TradingView_URL']
             )
             
             if display_columns:

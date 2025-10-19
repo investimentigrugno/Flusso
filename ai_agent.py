@@ -29,6 +29,27 @@ except ImportError:
     GROQ_AVAILABLE = False
     st.error("Libreria Groq non installata. Esegui: pip install groq")
 
+# ============================================================================
+# FUNZIONI UTILITY
+# ============================================================================
+
+def escape_markdown_latex(text: str) -> str:
+    """
+    Escapa caratteri speciali LaTeX/Markdown per evitare rendering errato in Streamlit.
+    Previene l'interpretazione di $ come formula matematica e _ come corsivo.
+    """
+    if not isinstance(text, str):
+        return text
+    
+    # Escapa il dollaro per evitare interpretazione LaTeX
+    text = text.replace("$", "\\$")
+    # Escapa underscore per evitare interpretazione Markdown
+    text = text.replace("_", "\\_")
+    # Escapa asterischi singoli (opzionale, se causano problemi)
+    # text = text.replace("*", "\\*")
+    
+    return text
+
 def get_groq_client():
     """Crea client Groq"""
     if not GROQ_AVAILABLE:
@@ -43,8 +64,18 @@ def get_groq_client():
         st.error(f"Errore inizializzazione Groq: {e}")
         return None
 
-def call_groq_api(prompt: str, max_tokens: int = 1000) -> str:
-    """Chiama l'API Groq usando la libreria ufficiale"""
+def call_groq_api(prompt: str, max_tokens: int = 1000, escape_output: bool = True) -> str:
+    """
+    Chiama l'API Groq usando la libreria ufficiale.
+    
+    Args:
+        prompt: Il prompt da inviare all'AI
+        max_tokens: Numero massimo di token nella risposta
+        escape_output: Se True, applica escape dei caratteri speciali (default: True)
+    
+    Returns:
+        Testo della risposta AI (con o senza escape)
+    """
     try:
         client = get_groq_client()
         if not client:
@@ -66,8 +97,14 @@ def call_groq_api(prompt: str, max_tokens: int = 1000) -> str:
             max_tokens=max_tokens
         )
         
-        return chat_completion.choices[0].message.content
-            
+        ai_response = chat_completion.choices[0].message.content
+        
+        # Applica escape se richiesto
+        if escape_output:
+            ai_response = escape_markdown_latex(ai_response)
+        
+        return ai_response
+        
     except Exception as e:
         return f"Errore API Groq: {str(e)}"
 
@@ -117,7 +154,7 @@ Analizza questa azienda per determinare la probabilità di successo negli invest
 **Settore**: {company_data.get('Sector', 'N/A')} | **Paese**: {company_data.get('Country', 'N/A')}
 
 **METRICHE CHIAVE**:
-- Prezzo: ${company_data.get('Price', 'N/A')}
+- Prezzo: {company_data.get('Price', 'N/A')} USD
 - Market Cap: {company_data.get('Market Cap', 'N/A')}
 - Investment Score: {company_data.get('Investment_Score', 'N/A')}/100
 
@@ -134,6 +171,11 @@ Analizza questa azienda per determinare la probabilità di successo negli invest
 - Performance Mese: {company_data.get('Perf Month %', 'N/A')}
 - Volume: {company_data.get('Volume', 'N/A')}
 
+IMPORTANTE:
+- Usa "USD" o "dollari" invece del simbolo del dollaro
+- Evita underscore nei nomi tecnici
+- Usa numeri seguiti da "miliardi" o "milioni" (es: "70 miliardi" invece di simboli)
+
 Fornisci un'analisi strutturata:
 
 1. **Punti di Forza** (3 bullet points concisi)
@@ -144,7 +186,8 @@ Fornisci un'analisi strutturata:
 Sii conciso, professionale e basato sui dati forniti.
 """
     
-    analysis = call_groq_api(company_context, max_tokens=800)
+    # escape_output=True applica automaticamente l'escape
+    analysis = call_groq_api(company_context, max_tokens=800, escape_output=True)
     success_probability = extract_success_probability(analysis, company_data.get('Investment_Score', 0))
     
     return {
@@ -200,12 +243,18 @@ Crea un report professionale di investimento dettagliato per:
 **Settore**: {company_analysis['sector']}
 **Investment Score**: {company_analysis['investment_score']:.1f}/100
 **Probabilità Successo AI**: {company_analysis['success_probability']:.1f}/100
-**Prezzo Attuale**: ${company_analysis['price']}
+**Prezzo Attuale**: {company_analysis['price']} USD
 **Cambio %**: {company_analysis['change_pct']}
 **Rating Tecnico**: {company_analysis['rating']}
 
 **ANALISI PRELIMINARE**:
 {company_analysis['analysis']}
+
+IMPORTANTE - REGOLE DI FORMATTAZIONE:
+- Usa "USD" o "dollari" invece del simbolo del dollaro ($)
+- Scrivi "miliardi" o "milioni" invece di usare simboli come B o M
+- Evita underscore (_) nei nomi tecnici
+- Usa linguaggio chiaro e leggibile
 
 Genera un report investimento strutturato con queste sezioni:
 
@@ -220,9 +269,9 @@ Stima del potenziale di crescita a 2-4 settimane con target price realistico bas
 
 ## 4. GESTIONE DEL RISCHIO
 Strategia concreta con:
-- Stop Loss consigliato (percentuale e prezzo)
-- Take Profit consigliato (percentuale e prezzo)
-- Dimensionamento posizione da un minx del 2% del portafoglio fino a un max del 5%
+- Stop Loss consigliato (percentuale e prezzo in USD)
+- Take Profit consigliato (percentuale e prezzo in USD)
+- Dimensionamento posizione da un minimo del 2% del portafoglio fino a un massimo del 5%
 (max 120 parole)
 
 ## 5. RACCOMANDAZIONE FINALE
@@ -232,7 +281,8 @@ Motivazione specifica basata sui dati (max 80 parole)
 Mantieni tono professionale, concreto e orientato all'azione. Usa numeri specifici dove possibile.
 """
     
-    report = call_groq_api(report_prompt, max_tokens=2000)
+    # escape_output=True applica automaticamente l'escape
+    report = call_groq_api(report_prompt, max_tokens=2000, escape_output=True)
     return report
 
 # ============================================================================
@@ -285,7 +335,7 @@ def ai_agent_app():
                 api_ok = False
     
     with col2:
-        st.info(f"🧠 Modello: Llama 3.1 70B")
+        st.info(f"🧠 Modello: Llama 3.3 70B")
         st.caption("⚡ Powered by Groq Cloud")
     
     st.markdown("---")
@@ -444,9 +494,13 @@ def ai_agent_app():
                 
                 # Mostra report se generato
                 if f'report_{idx}' in st.session_state:
-                    st.markdown(st.session_state[f'report_{idx}'])
+                    with st.expander("📄 Visualizza Report Completo", expanded=True):
+                        st.markdown(st.session_state[f'report_{idx}'])
                     
-                    # Download report
+                    # Download report (senza escape per file di testo)
+                    # Rimuovi gli escape per il download
+                    report_for_download = st.session_state[f'report_{idx}'].replace("\\$", "$").replace("\\_", "_")
+                    
                     report_text = f"""
 {'='*70}
 REPORT DI INVESTIMENTO - {company['company']} ({company['symbol']})
@@ -462,11 +516,11 @@ Rating Tecnico: {company['rating']}
 
 {'='*70}
 
-{st.session_state[f'report_{idx}']}
+{report_for_download}
 
 {'='*70}
 Report generato da Flusso Grugno AI Agent
-Powered by Groq AI - Llama 3.1 70B
+Powered by Groq AI - Llama 3.3 70B
 {'='*70}
 """
                     
@@ -504,7 +558,7 @@ Powered by Groq AI - Llama 3.1 70B
             
             ### ⚡ Tecnologia
             - **Cloud AI**: Groq (ultra-veloce)
-            - **Modello**: Llama 3.1 70B
+            - **Modello**: Llama 3.3 70B
             - **API**: Completamente gratuita
             - **Limiti**: 6000 analisi/giorno
             
