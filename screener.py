@@ -496,9 +496,15 @@ def fetch_fundamental_data(symbol: str):
     import pandas as pd
 
     try:
-        # Recupera una lista ampia (regionale: america)
         result = (
             Query()
+            .set_markets('america', 'australia','belgium','brazil', 'canada', 'chile', 'china','italy',
+                            'czech', 'denmark', 'egypt', 'estonia', 'finland', 'france', 'germany', 'greece',
+                            'hongkong', 'hungary','india', 'indonesia', 'ireland', 'israel', 'japan','korea',
+                            'kuwait', 'lithuania', 'luxembourg', 'malaysia', 'mexico', 'morocco', 'netherlands',
+                            'newzealand', 'norway', 'peru', 'philippines', 'poland', 'portugal', 'qatar', 'russia',
+                            'singapore', 'slovakia', 'spain', 'sweden', 'switzerland', 'taiwan', 'uae', 'uk',
+                            'venezuela', 'vietnam', 'crypto')
             .select(
                 'name', 'description', 'country', 'sector', 'close',
                 'market_cap_basic', 'total_revenue_qoq_growth_fy', 'gross_profit_qoq_growth_fq', 
@@ -508,7 +514,7 @@ def fetch_fundamental_data(symbol: str):
                 'operating_margin', 'net_margin_ttm', 'free_cash_flow_qoq_growth_fq'
             )
             .order_by('market_cap_basic', ascending=False)
-            .limit(500)
+            .limit(50)
             .get_scanner_data()
         )
         total_count, df = result
