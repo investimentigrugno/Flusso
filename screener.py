@@ -490,13 +490,13 @@ def get_top_5_investment_picks(df):
 # ============================================================================
 
 def fetch_fundamental_data(symbol: str):
-    """Recupera dati fondamentali da TradingView usando la sintassi ufficiale dell'API."""
-    from tradingview_screener import Query, col
+    """Recupera dati fondamentali e filtra manualmente per simbolo."""
+    from tradingview_screener import Query
     import streamlit as st
     import pandas as pd
 
     try:
-        # Sintassi corretta secondo la documentazione ufficiale
+        # Recupera una lista ampia (regionale: america)
         result = (
             Query()
             .select(
@@ -507,22 +507,28 @@ def fetch_fundamental_data(symbol: str):
                 'total_assets', 'total_debt', 'stockholders_equity',
                 'operating_margin_ttm', 'net_profit_margin_ttm', 'free_cash_flow'
             )
-            .where(
-                col('name').like(f'*{symbol.upper()}*')
-            )
-            .limit(10)
+            .order_by('market_cap_basic', ascending=False)
+            .limit(500)
             .get_scanner_data()
         )
-
         total_count, df = result
-        
         if df.empty:
-            st.warning(f"Nessun dato trovato per '{symbol}' su TradingView.")
+            st.warning("Nessun dato scaricato.")
             return pd.DataFrame()
 
-        df_filtered = df.head(1).copy()
+        # Filtra manualmente
+        mask = df['name'].str.fullmatch(symbol.upper(), case=False, na=False)
+        filtered = df[mask]
+        if filtered.empty:
+            mask2 = df['name'].str.contains(symbol, case=False, na=False) | df['description'].str.contains(symbol, case=False, na=False)
+            filtered = df[mask2]
 
-        # Rinomina colonne
+        if filtered.empty:
+            st.warning(f"Titolo '{symbol}' non trovato. Prova con ticker completo (es. NASDAQ:AAPL oppure AAPL).")
+            return pd.DataFrame()
+        df_filtered = filtered.head(1).copy()
+
+        # Rinomina e formatta le colonne (come nella versione precedente)
         column_mapping = {
             'total_revenue': 'Ricavi Totali',
             'gross_profit': 'Utile Lordo',
@@ -539,20 +545,18 @@ def fetch_fundamental_data(symbol: str):
             'close': 'Prezzo Attuale'
         }
 
+        # Applica rinominazione solo per colonne esistenti
         existing_cols = {k: v for k, v in column_mapping.items() if k in df_filtered.columns}
         df_filtered = df_filtered.rename(columns=existing_cols)
 
-        # Formattazione valori monetari
         money_cols = ['Ricavi Totali', 'Utile Lordo', 'Utile Netto', 'Totale Attività',
-                     'Debito Totale', 'Patrimonio Netto', 'Free Cash Flow']
-        
+                      'Debito Totale', 'Patrimonio Netto', 'Free Cash Flow']
         for col in money_cols:
             if col in df_filtered.columns:
                 df_filtered[col] = df_filtered[col].apply(
                     lambda x: f"{x/1e9:.2f}B USD" if pd.notnull(x) and abs(x) >= 1e6 else f"{x/1e6:.1f}M USD" if pd.notnull(x) and x != 0 else "N/A"
                 )
 
-        # Formattazione percentuali
         percent_cols = ['Dividend Yield %', 'Margine Operativo %', 'Margine Netto %']
         for col in percent_cols:
             if col in df_filtered.columns:
@@ -560,7 +564,6 @@ def fetch_fundamental_data(symbol: str):
                     lambda x: f"{x:.2f}%" if pd.notnull(x) else "N/A"
                 )
 
-        # Formattazione ratios
         ratio_cols = ['P/E (TTM)', 'EPS (TTM)', 'Prezzo Attuale']
         for col in ratio_cols:
             if col in df_filtered.columns:
@@ -573,6 +576,7 @@ def fetch_fundamental_data(symbol: str):
     except Exception as e:
         st.error(f"Errore nel caricamento dati fondamentali: {str(e)}")
         return pd.DataFrame()
+
 
 def generate_ai_financial_report(company_name: str, fundamentals: dict):
     """Genera un report narrativo basato sui dati finanziari dell'azienda tramite Groq API."""
@@ -1094,14 +1098,14 @@ Questa app utilizza un **algoritmo di scoring intelligente** e **notizie tradott
             with tab4:
                 st.header("📊 Analisi Fondamentale Azienda")
                 symbol = st.text_input("Inserisci Simbolo (es. AAPL, TSLA, NVDA):", "", key="fundamental_search_input")
-
                 if symbol:
                     if st.button("📊 Analizza Dati Fondamentali", key="analyze_fundamentals_btn"):
                         df_result = fetch_fundamental_data(symbol)
                         if not df_result.empty:
                             process_fundamental_results(df_result, symbol)
                         else:
-                            st.info("💡 Prova con il ticker completo (es. NASDAQ:AAPL invece di AAPL)")
+                            st.info("💡 Prova con il ticker completo (es. NASDAQ:AAPL oppure AAPL)")
+
 
             # Summary
             current_date = datetime.now()
