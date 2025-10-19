@@ -4,6 +4,64 @@ from datetime import datetime
 import re
 from typing import List, Dict
 import os
+import json
+
+def sanitize_prompt(prompt: str) -> str:
+    """Pulisce il prompt da caratteri problematici prima di inviarlo all'AI."""
+    if not isinstance(prompt, str):
+        return ""
+    
+    # Rimuovi caratteri di controllo e non stampabili
+    prompt = ''.join(char for char in prompt if char.isprintable() or char in ['\n', '\r', '\t'])
+    
+    # Limita la lunghezza per evitare overflow
+    if len(prompt) > 4000:
+        prompt = prompt[:4000] + "\n\n[Testo troncato per lunghezza]"
+    
+    return prompt
+
+def validate_ai_response(response: str) -> bool:
+    """Valida che la risposta AI sia leggibile e non corrotta."""
+    if not isinstance(response, str) or len(response.strip()) < 10:
+        return False
+    
+    # Controlla se contiene troppe ripetizioni di caratteri strani
+    corrupted_patterns = [
+        r'(.{1,5})\1{10,}',  # Ripetizioni eccessive di pattern
+        r'[^\w\s\.\,\!\?\:\;\-\(\)\[\]\{\}\"\'\/\\\n\r\t]{20,}',  # Troppi caratteri speciali consecutivi
+        r'(Britain|RODUCTION|MAV|PSI|contaminants|roscope){5,}',  # Pattern specifici del tuo errore
+    ]
+    
+    for pattern in corrupted_patterns:
+        if re.search(pattern, response):
+            return False
+    
+    return True
+
+def clean_ai_response(response: str) -> str:
+    """Pulisce la risposta AI da eventuali artefatti."""
+    if not isinstance(response, str):
+        return "Errore: Risposta AI non valida"
+    
+    # Rimuovi pattern corrotti comuni
+    corrupted_patterns = [
+        r'<\|end_header_id\|>',
+        r'-------- +',
+        r'(Britain|RODUCTION|MAV|PSI){3,}',
+        r'/slider+',
+        r'externalActionCode+',
+        r'BuillerFactory+',
+    ]
+    
+    cleaned = response
+    for pattern in corrupted_patterns:
+        cleaned = re.sub(pattern, '', cleaned)
+    
+    # Rimuovi linee vuote eccessive
+    cleaned = re.sub(r'\n{3,}', '\n\n', cleaned)
+    
+    return cleaned.strip()
+
 
 # ============================================================================
 # CONFIGURAZIONE GROQ API - VERSIONE CORRETTA
@@ -64,49 +122,63 @@ def get_groq_client():
         st.error(f"Errore inizializzazione Groq: {e}")
         return None
 
-def call_groq_api(prompt: str, max_tokens: int = 1000, escape_output: bool = True) -> str:
+def call_groq_api(prompt: str, max_tokens: int = 1000, escape_output: bool = True, retry_count: int = 2) -> str:
     """
-    Chiama l'API Groq usando la libreria ufficiale.
-    
-    Args:
-        prompt: Il prompt da inviare all'AI
-        max_tokens: Numero massimo di token nella risposta
-        escape_output: Se True, applica escape dei caratteri speciali (default: True)
-    
-    Returns:
-        Testo della risposta AI (con o senza escape)
+    Chiama l'API Groq con validazione e retry automatico per errori di corruzione.
     """
-    try:
-        client = get_groq_client()
-        if not client:
-            return "Errore: Client Groq non disponibile"
-        
-        chat_completion = client.chat.completions.create(
-            messages=[
-                {
-                    "role": "system",
-                    "content": "Sei un analista finanziario esperto specializzato in analisi azionaria e valutazione di investimenti. Fornisci analisi dettagliate, basate sui dati e professionali."
-                },
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ],
-            model=MODEL_NAME,
-            temperature=0.7,
-            max_tokens=max_tokens
-        )
-        
-        ai_response = chat_completion.choices[0].message.content
-        
-        # Applica escape se richiesto
-        if escape_output:
-            ai_response = escape_markdown_latex(ai_response)
-        
-        return ai_response
-        
-    except Exception as e:
-        return f"Errore API Groq: {str(e)}"
+    # Sanitizza il prompt
+    clean_prompt = sanitize_prompt(prompt)
+    
+    for attempt in range(retry_count + 1):
+        try:
+            client = get_groq_client()
+            if not client:
+                return "Errore: Client Groq non disponibile"
+            
+            chat_completion = client.chat.completions.create(
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "Sei un analista finanziario esperto. Fornisci analisi chiare e professionali. Non ripetere testo o generare contenuti corrotti."
+                    },
+                    {
+                        "role": "user",
+                        "content": clean_prompt
+                    }
+                ],
+                model=MODEL_NAME,
+                temperature=0.5,  # Ridotta per stabilità
+                max_tokens=max_tokens,
+                top_p=0.9  # Aggiunto per migliore qualità
+            )
+            
+            ai_response = chat_completion.choices[0].message.content
+            
+            # Valida la risposta
+            if not validate_ai_response(ai_response):
+                if attempt < retry_count:
+                    st.warning(f"⚠️ Risposta AI corrotta, tentativo {attempt + 2}/{retry_count + 1}...")
+                    continue
+                else:
+                    return "❌ Errore: L'AI ha generato una risposta corrotta. Riprova più tardi."
+            
+            # Pulisci eventuali artefatti
+            ai_response = clean_ai_response(ai_response)
+            
+            # Applica escape se richiesto
+            if escape_output:
+                ai_response = escape_markdown_latex(ai_response)
+            
+            return ai_response
+            
+        except Exception as e:
+            if attempt < retry_count:
+                st.warning(f"⚠️ Errore API (tentativo {attempt + 2}/{retry_count + 1}): {str(e)}")
+                continue
+            else:
+                return f"❌ Errore API Groq: {str(e)}"
+    
+    return "❌ Errore: Impossibile ottenere una risposta valida dopo diversi tentativi."
 
 def check_groq_connection() -> bool:
     """Verifica se la connessione Groq funziona"""
@@ -131,6 +203,34 @@ def check_groq_connection() -> bool:
     except Exception as e:
         st.error(f"Errore connessione: {str(e)}")
         return False
+
+def get_fallback_analysis(company_data: pd.Series) -> str:
+    """Genera un'analisi di fallback semplice quando l'AI fallisce."""
+    try:
+        score = company_data.get('Investment_Score', 0)
+        rsi = company_data.get('RSI', 50)
+        
+        strength = "alto" if score > 70 else "medio" if score > 50 else "basso"
+        momentum = "positivo" if rsi > 50 else "neutrale" if rsi > 40 else "negativo"
+        
+        return f"""
+**Analisi Tecnica di Base:**
+
+**Punti di Forza:**
+- Investment Score: {score:.1f}/100 ({strength})
+- RSI: {rsi} (momentum {momentum})
+- Settore: {company_data.get('Sector', 'N/A')}
+
+**Valutazione:**
+Il titolo presenta caratteristiche {'promettenti' if score > 60 else 'moderate'} 
+basate sui dati tecnici disponibili.
+
+**Probabilità: {min(int(score), 100)}/100**
+
+**Sintesi:** Analisi basata su indicatori tecnici standard.
+"""
+    except:
+        return "**Analisi non disponibile** - Dati insufficienti per la valutazione."
 
 # ============================================================================
 # FUNZIONI ANALISI AZIENDE
@@ -186,8 +286,14 @@ Fornisci un'analisi strutturata:
 Sii conciso, professionale e basato sui dati forniti.
 """
     
-    # escape_output=True applica automaticamente l'escape
-    analysis = call_groq_api(company_context, max_tokens=800, escape_output=True)
+    # escape_output=True applica automaticamente l'escape prova prima l'AI
+    analysis = call_groq_api(company_context, max_tokens=800, escape_output=True, retry_count=2)
+    
+    # Se l'analisi contiene errori evidenti, usa il fallback
+    if "❌" in analysis or len(analysis.strip()) < 50:
+        st.warning(f"⚠️ Usando analisi di fallback per {company_data.get('Symbol', 'N/A')}")
+        analysis = get_fallback_analysis(company_data)
+    
     success_probability = extract_success_probability(analysis, company_data.get('Investment_Score', 0))
     
     return {
