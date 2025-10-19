@@ -484,6 +484,69 @@ def get_top_5_investment_picks(df):
     
     return top_5
 
+def fetch_fundamental_data(symbol: str):
+    """Recupera dati fondamentali (bilanci, fatturato, EPS, margini, multipli) da TradingView."""
+    from tradingview_screener import Query, Column
+    import streamlit as st
+    import pandas as pd
+
+    try:
+        q = (
+            Query()
+            .select(
+                "name", "description", "country", "sector",
+                "market_cap_basic", "fundamental_currency_code", 
+                "income_statement_total_revenue", "income_statement_gross_profit", 
+                "income_statement_net_income", "earnings_per_share_basic_ttm",
+                "price_earnings_ttm", "dividend_yield_recent",
+                "balance_sheet_total_assets", "balance_sheet_total_liabilities",
+                "balance_sheet_shareholders_equity", "operating_margin_ttm",
+                "net_profit_margin_ttm", "free_cash_flow_ttm"
+            )
+            .where(Column("name").eq(symbol.upper()))
+            .get_scanner_data()
+        )
+
+        df = q[1]
+        if df.empty:
+            st.warning(f"Nessun dato fondamentale trovato per {symbol}.")
+            return pd.DataFrame()
+
+        df = df.rename(columns={
+            "income_statement_total_revenue": "Ricavi Totali",
+            "income_statement_gross_profit": "Utile Lordo",
+            "income_statement_net_income": "Utile Netto",
+            "earnings_per_share_basic_ttm": "EPS (TTM)",
+            "price_earnings_ttm": "P/E (TTM)",
+            "dividend_yield_recent": "Dividend Yield",
+            "balance_sheet_total_assets": "Totale Attività",
+            "balance_sheet_total_liabilities": "Totale Passività",
+            "balance_sheet_shareholders_equity": "Patrimonio Netto",
+            "operating_margin_ttm": "Margine Operativo %",
+            "net_profit_margin_ttm": "Margine Netto %",
+            "free_cash_flow_ttm": "Free Cash Flow"
+        })
+
+        # Formattazione numerica
+        for col in [
+            "Ricavi Totali", "Utile Lordo", "Utile Netto", "Totale Attività",
+            "Totale Passività", "Patrimonio Netto", "Free Cash Flow"
+        ]:
+            if col in df.columns:
+                df[col] = df[col].apply(lambda x: f"${x/1e9:.2f}B" if pd.notnull(x) else "-")
+
+        numeric_cols = ["P/E (TTM)", "Dividend Yield", "Margine Operativo %", "Margine Netto %"]
+        for col in numeric_cols:
+            if col in df.columns:
+                df[col] = df[col].round(2)
+
+        return df
+
+    except Exception as e:
+        st.error(f"Errore nel caricamento dati fondamentali: {e}")
+        return pd.DataFrame()
+
+
 # ============================================================================
 # FUNZIONE PRINCIPALE PER IL MAIN
 # ============================================================================
