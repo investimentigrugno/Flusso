@@ -490,89 +490,80 @@ def get_top_5_investment_picks(df):
 # ============================================================================
 
 def fetch_fundamental_data(symbol: str):
-    """Recupera dati fondamentali e filtra manualmente per simbolo."""
+    """Recupera dati fondamentali per un singolo simbolo usando .set_tickers()."""
     from tradingview_screener import Query
     import streamlit as st
     import pandas as pd
 
     try:
+        # Usa .set_tickers() per cercare direttamente il simbolo
         result = (
             Query()
-            .set_markets('america', 'australia','belgium','brazil', 'canada', 'chile', 'china','italy',
-                            'czech', 'denmark', 'egypt', 'estonia', 'finland', 'france', 'germany', 'greece',
-                            'hongkong', 'hungary','india', 'indonesia', 'ireland', 'israel', 'japan','korea',
-                            'kuwait', 'lithuania', 'luxembourg', 'malaysia', 'mexico', 'morocco', 'netherlands',
-                            'newzealand', 'norway', 'peru', 'philippines', 'poland', 'portugal', 'qatar', 'russia',
-                            'singapore', 'slovakia', 'spain', 'sweden', 'switzerland', 'taiwan', 'uae', 'uk',
-                            'venezuela', 'vietnam', 'crypto')
+            .set_markets("america")  # Limitiamo ai mercati USA per performance
+            .set_tickers([symbol.upper()])  # Cerca specificamente questo simbolo
             .select(
                 'name', 'description', 'country', 'sector', 'close',
-                'market_cap_basic', 'total_revenue_qoq_growth_fy', 'gross_profit_qoq_growth_fq', 
-                'net_income_qoq_growth_fq', 'earnings_per_share_diluted_qoq_growth_fq', 
-                'price_earnings_ttm', 'price_free_cash_flow_ttm',
-                'total_assets', 'total_debt', 'shrhldrs_equity_fq',
-                'operating_margin', 'net_margin_ttm', 'free_cash_flow_qoq_growth_fq'
+                'market_cap_basic', 'total_revenue_qoq_growth_fy', 'gross_profit_qoq_growth_fq',
+                'net_income_qoq_growth_fq', 'earnings_per_share_diluted_qoq_growth_fq',
+                'price_earnings_ttm', 'price_free_cash_flow_ttm', 'total_assets',
+                'total_debt', 'shrhldr_s_equity_fq', 'operating_margin',
+                'net_margin_ttm', 'free_cash_flow_qoq_growth_fq'
             )
-            .order_by('market_cap_basic', ascending=False)
-            .limit(50)
             .get_scanner_data()
         )
+
         total_count, df = result
+        
         if df.empty:
-            st.warning("Nessun dato scaricato.")
+            st.warning(f"Nessun dato trovato per '{symbol.upper()}'. Verifica che il simbolo sia corretto.")
             return pd.DataFrame()
 
-        # Filtra manualmente
-        mask = df['name'].str.fullmatch(symbol.upper(), case=False, na=False)
-        filtered = df[mask]
-        if filtered.empty:
-            mask2 = df['name'].str.contains(symbol, case=False, na=False) | df['description'].str.contains(symbol, case=False, na=False)
-            filtered = df[mask2]
+        df_filtered = df.head(1).copy()
 
-        if filtered.empty:
-            st.warning(f"Titolo '{symbol}' non trovato. Prova con ticker completo (es. NASDAQ:AAPL oppure AAPL).")
-            return pd.DataFrame()
-        df_filtered = filtered.head(1).copy()
-
-        # Rinomina e formatta le colonne (come nella versione precedente)
+        # Usa ESATTAMENTE le tue column mappings dal file
         column_mapping = {
             'close': 'Prezzo attuale',
             'market_cap_basic': 'Capitalizzazione di mercato',
-            'total_revenue_qoq_growth_fy': 'Crescita ricavi totali QoQ %',
-            'gross_profit_qoq_growth_fq': 'Crescita utile lordo QoQ %',
-            'net_income_qoq_growth_fq': 'Crescita utile netto QoQ %',
-            'earnings_per_share_diluted_qoq_growth_fq': 'Crescita EPS diluito QoQ %',
-            'price_earnings_ttm': 'P/E ultimi 12 mesi',
-            'price_free_cash_flow_ttm': 'P/FCF ultimi 12 mesi',
+            'total_revenue_qoq_growth_fy': 'Crescita ricavi totali (QoQ %)',
+            'gross_profit_qoq_growth_fq': 'Crescita utile lordo (QoQ %)', 
+            'net_income_qoq_growth_fq': 'Crescita utile netto (QoQ %)',
+            'earnings_per_share_diluted_qoq_growth_fq': 'Crescita EPS diluito (QoQ %)',
+            'price_earnings_ttm': 'P/E (ultimi 12 mesi)',
+            'price_free_cash_flow_ttm': 'P/FCF (ultimi 12 mesi)',
             'total_assets': 'Totale Attività',
             'total_debt': 'Debito Totale',
-            'shrhldrs_equity_fq': 'Patrimonio Netto',
-            'operating_margin': 'Margine Operativo ultimi 12 mesi %',
-            'net_margin_ttm': 'Margine Netto ultimi 12 mesi %',
-            'free_cash_flow_qoq_growth_fq': 'Crescita FCF QoQ %',
-            'free_cash_flow_cagr_5y': 'Crescita FCF YoY ultimi 5 anni %',
+            'shrhldr_s_equity_fq': 'Patrimonio Netto',
+            'operating_margin': 'Margine Operativo (%)',
+            'net_margin_ttm': 'Margine Netto (ultimi 12 mesi %)',
+            'free_cash_flow_qoq_growth_fq': 'Crescita FCF (QoQ %)'
         }
 
         # Applica rinominazione solo per colonne esistenti
         existing_cols = {k: v for k, v in column_mapping.items() if k in df_filtered.columns}
         df_filtered = df_filtered.rename(columns=existing_cols)
 
-        money_cols = ['Ricavi Totali', 'Utile Lordo', 'Utile Netto', 'Totale Attività',
-                      'Debito Totale', 'Patrimonio Netto', 'Free Cash Flow']
+        # Usa le TUE funzioni di formattazione
+        # Valori monetari grandi (miliardi/milioni)
+        money_cols = ['Capitalizzazione di mercato', 'Totale Attività', 'Debito Totale', 'Patrimonio Netto']
         for col in money_cols:
             if col in df_filtered.columns:
                 df_filtered[col] = df_filtered[col].apply(
-                    lambda x: f"{x/1e9:.2f}B USD" if pd.notnull(x) and abs(x) >= 1e6 else f"{x/1e6:.1f}M USD" if pd.notnull(x) and x != 0 else "N/A"
+                    lambda x: format_currency(x, "$") if pd.notnull(x) else "N/A"
                 )
 
-        percent_cols = ['Dividend Yield %', 'Margine Operativo %', 'Margine Netto %']
+        # Percentuali (crescite e margini)
+        percent_cols = [
+            'Crescita ricavi totali (QoQ %)', 'Crescita utile lordo (QoQ %)', 
+            'Crescita utile netto (QoQ %)', 'Crescita EPS diluito (QoQ %)',
+            'Margine Operativo (%)', 'Margine Netto (ultimi 12 mesi %)', 
+            'Crescita FCF (QoQ %)'
+        ]
         for col in percent_cols:
             if col in df_filtered.columns:
-                df_filtered[col] = df_filtered[col].apply(
-                    lambda x: f"{x:.2f}%" if pd.notnull(x) else "N/A"
-                )
+                df_filtered[col] = df_filtered[col].apply(format_percentage)
 
-        ratio_cols = ['P/E (TTM)', 'EPS (TTM)', 'Prezzo Attuale']
+        # Ratios (P/E, P/FCF, prezzo)
+        ratio_cols = ['P/E (ultimi 12 mesi)', 'P/FCF (ultimi 12 mesi)', 'Prezzo attuale']
         for col in ratio_cols:
             if col in df_filtered.columns:
                 df_filtered[col] = df_filtered[col].apply(
@@ -586,13 +577,23 @@ def fetch_fundamental_data(symbol: str):
         return pd.DataFrame()
 
 
+
 def generate_fundamental_ai_report(company_name: str, fundamentals: dict):
-    """Genera report AI specifico per analisi fondamentale."""
+    """Genera report AI specifico per analisi fondamentale usando le colonne corrette."""
     try:
+        # Filtra solo i dati rilevanti con i nuovi nomi delle colonne
+        relevant_data = {k: v for k, v in fundamentals.items() 
+                        if k in ['description', 'sector', 'country', 'Prezzo attuale', 
+                                'Capitalizzazione di mercato', 'Crescita ricavi totali (QoQ %)', 
+                                'Crescita utile netto (QoQ %)', 'P/E (ultimi 12 mesi)', 
+                                'P/FCF (ultimi 12 mesi)', 'Margine Operativo (%)',
+                                'Margine Netto (ultimi 12 mesi %)', 'Totale Attività',
+                                'Debito Totale', 'Patrimonio Netto']}
+        
         prompt = f"""
 Sei un analista finanziario esperto. Analizza l'azienda '{company_name}' basandoti sui seguenti dati fondamentali:
 
-{fundamentals}
+{relevant_data}
 
 Scrivi un REPORT PROFESSIONALE strutturato con:
 
@@ -600,13 +601,13 @@ Scrivi un REPORT PROFESSIONALE strutturato con:
 Panoramica generale dei risultati finanziari dell'azienda (80 parole)
 
 ## 2. ANALISI DELLA REDDITIVITÀ  
-Valuta margini operativi, netti, EPS e rapporto P/E (100 parole)
+Valuta margini operativi, netti, P/E e crescita utili (100 parole)
 
 ## 3. SOLIDITÀ PATRIMONIALE
-Analizza cash flow, patrimonio netto e sostenibilità finanziaria (100 parole)
+Analizza attività, debiti, patrimonio netto e sostenibilità (100 parole)
 
-## 4. VALUTAZIONE E DIVIDENDI
-Commenta attrattività del titolo e policy dei dividendi (80 parole)
+## 4. CRESCITA E DINAMICHE
+Commenta crescita ricavi, utili e cash flow trimestrale (80 parole)
 
 ## 5. PROSPETTIVE E RACCOMANDAZIONI
 Outlook futuro e raccomandazione di investimento (100 parole)
@@ -616,6 +617,7 @@ IMPORTANTE:
 - Scrivi "miliardi" o "milioni" per i grandi numeri
 - Evita underscore nei termini tecnici
 - Mantieni tono professionale e basato sui dati
+- Commenta le crescite QoQ (quarter-over-quarter)
 """
         
         # Usa la funzione esistente dall'ai_agent
@@ -624,6 +626,7 @@ IMPORTANTE:
         
     except Exception as e:
         return f"❌ Errore nella generazione del report AI: {str(e)}"
+
 
 
 
@@ -1120,14 +1123,12 @@ Questa app utilizza un **algoritmo di scoring intelligente** e **notizie tradott
                             st.error(f"❌ Nessun dato trovato per '{symbol}'")
                             st.info("💡 Suggerimenti:")
                             st.markdown("""
-                            - Prova con il ticker completo: `NASDAQ:AAPL` invece di `AAPL`
                             - Verifica che sia un simbolo valido sui mercati USA
-                            - Usa simboli di aziende grandi (market cap > 1B)
+                            - Prova simboli di aziende grandi (es. AAPL, MSFT, GOOGL)
+                            - Non usare prefissi exchange (usa 'AAPL' non 'NASDAQ:AAPL')
                             """)
                 
-                # Info box
-                # Aggiungi questo alla fine del with tab4:
-                # Info box
+                # Info box (il tuo expander esistente)
                 with st.expander("ℹ️ Come funziona l'Analisi Fondamentale"):
                     st.markdown("""
                     ### 🔍 Cosa Analizza
