@@ -12,7 +12,7 @@ import random
 from deep_translator import GoogleTranslator, single_detection
 from typing import List, Dict
 import re
-from ai_agent import generate_detailed_report
+from ai_agent import call_groq_api, escape_markdown_latex
 
 # --- API CONFIGURATION ---
 FINNHUB_API_KEY = "d38fnb9r01qlbdj59nogd38fnb9r01qlbdj59np0"
@@ -501,11 +501,11 @@ def fetch_fundamental_data(symbol: str):
             Query()
             .select(
                 'name', 'description', 'country', 'sector', 'close',
-                'market_cap_basic', 'total_revenue', 'gross_profit', 
-                'net_income', 'earnings_per_share_basic_ttm', 
-                'price_earnings_ttm', 'dividend_yield_recent',
-                'total_assets', 'total_debt', 'stockholders_equity',
-                'operating_margin_ttm', 'net_profit_margin_ttm', 'free_cash_flow'
+                'market_cap_basic', 'total_revenue_qoq_growth_fy', 'gross_profit_qoq_growth_fq', 
+                'net_income_qoq_growth_fq', 'earnings_per_share_diluted_qoq_growth_fq', 
+                'price_earnings_ttm', 'price_free_cash_flow_ttm',
+                'total_assets', 'total_debt', 'shrhldrs_equity_fq',
+                'operating_margin', 'net_margin_ttm', 'free_cash_flow_qoq_growth_fq'
             )
             .order_by('market_cap_basic', ascending=False)
             .limit(500)
@@ -530,19 +530,21 @@ def fetch_fundamental_data(symbol: str):
 
         # Rinomina e formatta le colonne (come nella versione precedente)
         column_mapping = {
-            'total_revenue': 'Ricavi Totali',
-            'gross_profit': 'Utile Lordo',
-            'net_income': 'Utile Netto',
-            'earnings_per_share_basic_ttm': 'EPS (TTM)',
-            'price_earnings_ttm': 'P/E (TTM)',
-            'dividend_yield_recent': 'Dividend Yield %',
+            'close': 'Prezzo attuale',
+            'market_cap_basic': 'Capitalizzazione di mercato',
+            'total_revenue_qoq_growth_fy': 'Crescita ricavi totali QoQ %',
+            'gross_profit_qoq_growth_fq': 'Crescita utile lordo QoQ %',
+            'net_income_qoq_growth_fq': 'Crescita utile netto QoQ %',
+            'earnings_per_share_diluted_qoq_growth_fq': 'Crescita EPS diluito QoQ %',
+            'price_earnings_ttm': 'P/E ultimi 12 mesi',
+            'price_free_cash_flow_ttm': 'P/FCF ultimi 12 mesi',
             'total_assets': 'Totale Attività',
             'total_debt': 'Debito Totale',
-            'stockholders_equity': 'Patrimonio Netto',
-            'operating_margin_ttm': 'Margine Operativo %',
-            'net_profit_margin_ttm': 'Margine Netto %',
-            'free_cash_flow': 'Free Cash Flow',
-            'close': 'Prezzo Attuale'
+            'shrhldrs_equity_fq': 'Patrimonio Netto',
+            'operating_margin': 'Margine Operativo ultimi 12 mesi %',
+            'net_margin_ttm': 'Margine Netto ultimi 12 mesi %',
+            'free_cash_flow_qoq_growth_fq': 'Crescita FCF QoQ %',
+            'free_cash_flow_cagr_5y': 'Crescita FCF YoY ultimi 5 anni %',
         }
 
         # Applica rinominazione solo per colonne esistenti
@@ -578,24 +580,14 @@ def fetch_fundamental_data(symbol: str):
         return pd.DataFrame()
 
 
-def generate_ai_financial_report(company_name: str, fundamentals: dict):
-    """Genera un report narrativo basato sui dati finanziari dell'azienda tramite Groq API."""
+def generate_fundamental_ai_report(company_name: str, fundamentals: dict):
+    """Genera report AI specifico per analisi fondamentale (diverso da quello dell'agente principale)."""
     try:
-        GROQ_API_KEY = st.secrets.get("GROQ_API_KEY", None)
-        if not GROQ_API_KEY:
-            return "⚠️ Report AI non disponibile: API Key non configurata su Streamlit Cloud."
-        
-        # Filtra solo i dati rilevanti per il prompt
-        relevant_data = {k: v for k, v in fundamentals.items() 
-                        if k in ['description', 'sector', 'country', 'Prezzo Attuale', 
-                                'Ricavi Totali', 'Utile Netto', 'P/E (TTM)', 'EPS (TTM)',
-                                'Margine Operativo %', 'Margine Netto %', 'Dividend Yield %',
-                                'Free Cash Flow', 'Patrimonio Netto']}
-        
+        # Usa la funzione call_groq_api già esistente dall'ai_agent
         prompt = f"""
 Sei un analista finanziario esperto. Analizza l'azienda '{company_name}' basandoti sui seguenti dati fondamentali:
 
-{relevant_data}
+{fundamentals}
 
 Scrivi un REPORT PROFESSIONALE strutturato con:
 
@@ -621,28 +613,15 @@ IMPORTANTE:
 - Mantieni tono professionale e basato sui dati
 """
         
-        from groq import Groq
-        client = Groq(api_key=GROQ_API_KEY)
+        # Usa la funzione esistente dall'ai_agent
+        ai_report = call_groq_api(prompt, max_tokens=1500)
         
-        response = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=[
-                {"role": "system", "content": "Sei un analista finanziario esperto specializzato in analisi fondamentale e bilanci aziendali."},
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0.6,
-            max_tokens=1500
-        )
-        
-        ai_report = response.choices[0].message.content
-        
-        # Applica escape per Streamlit
-        ai_report = ai_report.replace("$", "\\$").replace("_", "\\_")
-        
+        # L'escape è già applicato dalla call_groq_api se configurata correttamente
         return ai_report
         
     except Exception as e:
         return f"❌ Errore nella generazione del report AI: {str(e)}"
+
 
 def process_fundamental_results(df_result, symbol):
     """Processa e mostra i risultati dell'analisi fondamentale."""
@@ -652,31 +631,38 @@ def process_fundamental_results(df_result, symbol):
     st.subheader(f"📈 {company_name} ({row.get('name', symbol)})")
     st.caption(f"Settore: {row.get('sector', 'N/A')} | Paese: {row.get('country', 'N/A')}")
     
-    # Tabella dati
+    # Tabella dati fondamentali
     st.markdown("### 💼 Dati Fondamentali")
     excluded_cols = ['name', 'description', 'sector', 'country']
     display_cols = [c for c in df_result.columns if c not in excluded_cols]
     st.dataframe(df_result[display_cols].T, use_container_width=True, height=400)
     
-    # Report AI
-    if st.button("🤖 Genera Report AI", key="generate_report_btn"):
+    # Report AI fondamentale (diverso dall'agente principale)
+    st.markdown("---")
+    st.markdown("### 🧠 Analisi AI dei Bilanci")
+    if st.button("🤖 Genera Report AI", key="generate_fundamental_report_btn"):
         with st.spinner("Generazione report AI..."):
             data_dict = row.to_dict()
-            ai_report = generate_ai_financial_report(company_name, data_dict)
+            # Usa la nuova funzione specifica per i fondamentali
+            ai_report = generate_fundamental_ai_report(company_name, data_dict)
             
-            with st.expander("📄 Report Completo", expanded=True):
-                st.markdown(ai_report)
-            
-            # Download
-            st.download_button(
-                label="📥 Scarica Report",
-                data=ai_report.replace("\\$", "$").replace("\\_", "_"),
-                file_name=f"Report_{company_name}_{datetime.now().strftime('%Y%m%d')}.txt",
-                mime="text/plain",
-                key="download_report_btn"
-            )
-
-
+            if "❌" not in ai_report:
+                st.success("✅ Report AI generato.")
+                with st.expander("📄 Report Completo", expanded=True):
+                    st.markdown(ai_report)
+                
+                # Download report
+                clean_report = ai_report.replace("\\$", "$").replace("\\_", "_")
+                st.download_button(
+                    label="📥 Scarica Report AI",
+                    data=clean_report,
+                    file_name=f"Fundamental_Report_{company_name}_{datetime.now().strftime('%Y%m%d')}.txt",
+                    mime="text/plain",
+                    key="download_fundamental_report_btn"
+                )
+            else:
+                st.error("❌ Errore nella generazione del report AI.")
+                st.info("💡 Riprova più tardi o verifica la connessione API.")
 
 # ============================================================================
 # FUNZIONE PRINCIPALE PER IL MAIN
@@ -1097,14 +1083,71 @@ Questa app utilizza un **algoritmo di scoring intelligente** e **notizie tradott
             
             with tab4:
                 st.header("📊 Analisi Fondamentale Azienda")
-                symbol = st.text_input("Inserisci Simbolo (es. AAPL, TSLA, NVDA):", "", key="fundamental_search_input")
-                if symbol:
-                    if st.button("📊 Analizza Dati Fondamentali", key="analyze_fundamentals_btn"):
+                st.markdown("Cerca un'azienda specifica e ottieni un'analisi AI completa dei suoi bilanci")
+                
+                # Input ricerca
+                col1, col2 = st.columns([3, 1])
+                
+                with col1:
+                    symbol = st.text_input(
+                        "Inserisci Simbolo (es. AAPL, TSLA, NVDA):", 
+                        "", 
+                        key="fundamental_search_input",
+                        help="Inserisci il ticker dell'azienda (es. AAPL per Apple)"
+                    )
+                
+                with col2:
+                    st.markdown("") # Spacing
+                    analyze_btn = st.button(
+                        "📊 Analizza", 
+                        key="analyze_fundamentals_btn",
+                        type="primary",
+                        use_container_width=True
+                    )
+                
+                if symbol and analyze_btn:
+                    with st.spinner(f"🔍 Ricerca dati fondamentali per {symbol.upper()}..."):
                         df_result = fetch_fundamental_data(symbol)
+                        
                         if not df_result.empty:
                             process_fundamental_results(df_result, symbol)
                         else:
-                            st.info("💡 Prova con il ticker completo (es. NASDAQ:AAPL oppure AAPL)")
+                            st.error(f"❌ Nessun dato trovato per '{symbol}'")
+                            st.info("💡 Suggerimenti:")
+                            st.markdown("""
+                            - Prova con il ticker completo: `NASDAQ:AAPL` invece di `AAPL`
+                            - Verifica che sia un simbolo valido sui mercati USA
+                            - Usa simboli di aziende grandi (market cap > 1B)
+                            """)
+                
+                # Info box
+                with st.expander("ℹ️ Come funziona l'Analisi Fondamentale"):
+                    st.markdown("""
+                    ### 🔍 Cosa Analizza
+                    
+                    **Dati Finanziari Estratti:**
+                    - 💰 Ricavi e crescita trimestrale
+                    - 📈 Utili per azione (EPS) e crescita
+                    - 💵 Free Cash Flow e crescita
+                    - 🏦 Bilancio: attività, debiti, patrimonio
+                    - 📊 Margini operativi e netti
+                    - 💎 Multipli di valutazione (P/E, P/FCF)
+                    
+                    **Report AI Generato:**
+                    - Sintesi esecutiva dei risultati
+                    - Analisi della redditività
+                    - Solidità patrimoniale
+                    - Valutazione e dividendi
+                    - Prospettive e raccomandazioni
+                    
+                    ### 🎯 Esempio di Utilizzo
+                    1. Digita `AAPL` nell'input
+                    2. Clicca **"📊 Analizza"**
+                    3. Visualizza i dati fondamentali
+                    4. Clicca **"🤖 Genera Report AI"** per l'analisi completa
+                    5. Scarica il report con **"📥 Scarica Report AI"**
+                    """)
+
 
 
             # Summary
