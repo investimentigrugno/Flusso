@@ -413,7 +413,7 @@ def fetch_screener_data():
                        'relative_volume_10d_calc', 'price_earnings_ttm', 'earnings_per_share_basic_ttm',
                        'Perf.W', 'Perf.1M')
                 .where(
-                    Column('type').isin(['stock']),
+                    Column('type').isin(['stock','etf']),
                     Column('is_primary') == True,
                     Column('market_cap_basic').between(10_000_000_000, 200_000_000_000_000),
                     Column('close') > Column('SMA50'),
@@ -499,8 +499,14 @@ def fetch_fundamental_data(symbol: str):
         # Usa .set_tickers() per cercare direttamente il simbolo
         result = (
             Query()
-            .set_markets("america")  # Limitiamo ai mercati USA per performance
-            .set_tickers([symbol.upper()])  # Cerca specificamente questo simbolo
+            .set_markets('america', 'australia','belgium','brazil', 'canada', 'chile', 'china','italy',
+                            'czech', 'denmark', 'egypt', 'estonia', 'finland', 'france', 'germany', 'greece',
+                            'hongkong', 'hungary','india', 'indonesia', 'ireland', 'israel', 'japan','korea',
+                            'kuwait', 'lithuania', 'luxembourg', 'malaysia', 'mexico', 'morocco', 'netherlands',
+                            'newzealand', 'norway', 'peru', 'philippines', 'poland', 'portugal', 'qatar', 'russia',
+                            'singapore', 'slovakia', 'spain', 'sweden', 'switzerland', 'taiwan', 'uae', 'uk',
+                            'venezuela', 'vietnam', 'crypto')
+            .set_tickers([symbol.upper()])
             .select(
                 'name', 'description', 'country', 'sector', 'close',
                 'market_cap_basic', 'total_revenue_qoq_growth_fy', 'gross_profit_qoq_growth_fq',
@@ -508,6 +514,10 @@ def fetch_fundamental_data(symbol: str):
                 'price_earnings_ttm', 'price_free_cash_flow_ttm', 'total_assets',
                 'total_debt', 'shrhldr_s_equity_fq', 'operating_margin',
                 'net_margin_ttm', 'free_cash_flow_qoq_growth_fq'
+            )
+            .where(
+                Column('type').isin(['stock']),
+                Column('is_primary') == True,
             )
             .get_scanner_data()
         )
