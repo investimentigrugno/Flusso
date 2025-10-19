@@ -490,101 +490,123 @@ def get_top_5_investment_picks(df):
 # ============================================================================
 
 def fetch_fundamental_data(symbol: str):
-    """Recupera dati fondamentali per un singolo simbolo usando .set_tickers()."""
+    """Recupera dati fondamentali per un singolo simbolo usando formato 'EXCHANGE:TICKER'."""
     from tradingview_screener import Query
     import streamlit as st
     import pandas as pd
 
-    try:
-        # Usa .set_tickers() per cercare direttamente il simbolo
-        result = (
-            Query()
-            .set_markets('america', 'australia','belgium','brazil', 'canada', 'chile', 'china','italy',
+    symbol = symbol.upper().strip()
+    
+    # Definisce i ticker possibili nel formato corretto 'EXCHANGE:TICKER'
+    possible_tickers = []
+    
+    if ":" in symbol:
+        # Se l'utente ha già inserito il formato exchange:ticker
+        possible_tickers.append(symbol)
+    else:
+        # Prova con i principali exchange USA nel formato richiesto
+        for exchange in ["NASDAQ", "NYSE", "AMEX"]:
+            possible_tickers.append(f"{exchange}:{symbol}")
+    
+    # Prova ogni formato fino a trovare quello giusto
+    for ticker in possible_tickers:
+        try:
+            st.info(f"🔍 Provo con formato: {ticker}")
+            
+            result = (
+                Query()
+                .set_markets('america', 'australia','belgium','brazil', 'canada', 'chile', 'china','italy',
                             'czech', 'denmark', 'egypt', 'estonia', 'finland', 'france', 'germany', 'greece',
                             'hongkong', 'hungary','india', 'indonesia', 'ireland', 'israel', 'japan','korea',
                             'kuwait', 'lithuania', 'luxembourg', 'malaysia', 'mexico', 'morocco', 'netherlands',
                             'newzealand', 'norway', 'peru', 'philippines', 'poland', 'portugal', 'qatar', 'russia',
                             'singapore', 'slovakia', 'spain', 'sweden', 'switzerland', 'taiwan', 'uae', 'uk',
                             'venezuela', 'vietnam', 'crypto')
-            .set_tickers([symbol.upper()])
-            .select(
-                'name', 'description', 'country', 'sector', 'close',
-                'market_cap_basic', 'total_revenue_qoq_growth_fy', 'gross_profit_qoq_growth_fq',
-                'net_income_qoq_growth_fq', 'earnings_per_share_diluted_qoq_growth_fq',
-                'price_earnings_ttm', 'price_free_cash_flow_ttm', 'total_assets',
-                'total_debt', 'shrhldr_s_equity_fq', 'operating_margin',
-                'net_margin_ttm', 'free_cash_flow_qoq_growth_fq'
-            )
-            .where(
-                Column('type').isin(['stock']),
-                Column('is_primary') == True,
-            )
-            .get_scanner_data()
-        )
-
-        total_count, df = result
-        
-        if df.empty:
-            st.warning(f"Nessun dato trovato per '{symbol.upper()}'. Verifica che il simbolo sia corretto.")
-            return pd.DataFrame()
-
-        df_filtered = df.head(1).copy()
-
-        # Usa ESATTAMENTE le tue column mappings dal file
-        column_mapping = {
-            'close': 'Prezzo attuale',
-            'market_cap_basic': 'Capitalizzazione di mercato',
-            'total_revenue_qoq_growth_fy': 'Crescita ricavi totali (QoQ %)',
-            'gross_profit_qoq_growth_fq': 'Crescita utile lordo (QoQ %)', 
-            'net_income_qoq_growth_fq': 'Crescita utile netto (QoQ %)',
-            'earnings_per_share_diluted_qoq_growth_fq': 'Crescita EPS diluito (QoQ %)',
-            'price_earnings_ttm': 'P/E (ultimi 12 mesi)',
-            'price_free_cash_flow_ttm': 'P/FCF (ultimi 12 mesi)',
-            'total_assets': 'Totale Attività',
-            'total_debt': 'Debito Totale',
-            'shrhldr_s_equity_fq': 'Patrimonio Netto',
-            'operating_margin': 'Margine Operativo (%)',
-            'net_margin_ttm': 'Margine Netto (ultimi 12 mesi %)',
-            'free_cash_flow_qoq_growth_fq': 'Crescita FCF (QoQ %)'
-        }
-
-        # Applica rinominazione solo per colonne esistenti
-        existing_cols = {k: v for k, v in column_mapping.items() if k in df_filtered.columns}
-        df_filtered = df_filtered.rename(columns=existing_cols)
-
-        # Usa le TUE funzioni di formattazione
-        # Valori monetari grandi (miliardi/milioni)
-        money_cols = ['Capitalizzazione di mercato', 'Totale Attività', 'Debito Totale', 'Patrimonio Netto']
-        for col in money_cols:
-            if col in df_filtered.columns:
-                df_filtered[col] = df_filtered[col].apply(
-                    lambda x: format_currency(x, "$") if pd.notnull(x) else "N/A"
+                .set_tickers([ticker])
+                .select(
+                    'name', 'description', 'country', 'sector', 'close',
+                    'market_cap_basic', 'total_revenue_qoq_growth_fy', 'gross_profit_qoq_growth_fq',
+                    'net_income_qoq_growth_fq', 'earnings_per_share_diluted_qoq_growth_fq',
+                    'price_earnings_ttm', 'price_free_cash_flow_ttm', 'total_assets',
+                    'total_debt', 'shrhldr_s_equity_fq', 'operating_margin',
+                    'net_margin_ttm', 'free_cash_flow_qoq_growth_fq'
                 )
+                .get_scanner_data()
+            )
+            
+            total_count, df = result
+            
+            if not df.empty:
+                st.success(f"✅ Trovato: {ticker}")
+                df_filtered = df.head(1).copy()
 
-        # Percentuali (crescite e margini)
-        percent_cols = [
-            'Crescita ricavi totali (QoQ %)', 'Crescita utile lordo (QoQ %)', 
-            'Crescita utile netto (QoQ %)', 'Crescita EPS diluito (QoQ %)',
-            'Margine Operativo (%)', 'Margine Netto (ultimi 12 mesi %)', 
-            'Crescita FCF (QoQ %)'
-        ]
-        for col in percent_cols:
-            if col in df_filtered.columns:
-                df_filtered[col] = df_filtered[col].apply(format_percentage)
+                # Usa le tue column mappings esistenti
+                column_mapping = {
+                    'close': 'Prezzo attuale',
+                    'market_cap_basic': 'Capitalizzazione di mercato',
+                    'total_revenue_qoq_growth_fy': 'Crescita ricavi totali (QoQ %)',
+                    'gross_profit_qoq_growth_fq': 'Crescita utile lordo (QoQ %)', 
+                    'net_income_qoq_growth_fq': 'Crescita utile netto (QoQ %)',
+                    'earnings_per_share_diluted_qoq_growth_fq': 'Crescita EPS diluito (QoQ %)',
+                    'price_earnings_ttm': 'P/E (ultimi 12 mesi)',
+                    'price_free_cash_flow_ttm': 'P/FCF (ultimi 12 mesi)',
+                    'total_assets': 'Totale Attività',
+                    'total_debt': 'Debito Totale',
+                    'shrhldr_s_equity_fq': 'Patrimonio Netto',
+                    'operating_margin': 'Margine Operativo (%)',
+                    'net_margin_ttm': 'Margine Netto (ultimi 12 mesi %)',
+                    'free_cash_flow_qoq_growth_fq': 'Crescita FCF (QoQ %)'
+                }
 
-        # Ratios (P/E, P/FCF, prezzo)
-        ratio_cols = ['P/E (ultimi 12 mesi)', 'P/FCF (ultimi 12 mesi)', 'Prezzo attuale']
-        for col in ratio_cols:
-            if col in df_filtered.columns:
-                df_filtered[col] = df_filtered[col].apply(
-                    lambda x: f"{x:.2f}" if pd.notnull(x) else "N/A"
-                )
+                # Applica rinominazione solo per colonne esistenti
+                existing_cols = {k: v for k, v in column_mapping.items() if k in df_filtered.columns}
+                df_filtered = df_filtered.rename(columns=existing_cols)
 
-        return df_filtered
+                # Formattazione usando le tue funzioni esistenti
+                money_cols = ['Capitalizzazione di mercato', 'Totale Attività', 'Debito Totale', 'Patrimonio Netto']
+                for col in money_cols:
+                    if col in df_filtered.columns:
+                        df_filtered[col] = df_filtered[col].apply(
+                            lambda x: format_currency(x, "$") if pd.notnull(x) else "N/A"
+                        )
 
-    except Exception as e:
-        st.error(f"Errore nel caricamento dati fondamentali: {str(e)}")
-        return pd.DataFrame()
+                # Percentuali
+                percent_cols = [
+                    'Crescita ricavi totali (QoQ %)', 'Crescita utile lordo (QoQ %)', 
+                    'Crescita utile netto (QoQ %)', 'Crescita EPS diluito (QoQ %)',
+                    'Margine Operativo (%)', 'Margine Netto (ultimi 12 mesi %)', 
+                    'Crescita FCF (QoQ %)'
+                ]
+                for col in percent_cols:
+                    if col in df_filtered.columns:
+                        df_filtered[col] = df_filtered[col].apply(format_percentage)
+
+                # Ratios
+                ratio_cols = ['P/E (ultimi 12 mesi)', 'P/FCF (ultimi 12 mesi)', 'Prezzo attuale']
+                for col in ratio_cols:
+                    if col in df_filtered.columns:
+                        df_filtered[col] = df_filtered[col].apply(
+                            lambda x: f"{x:.2f}" if pd.notnull(x) else "N/A"
+                        )
+
+                return df_filtered
+                
+        except Exception as e:
+            st.warning(f"❌ Formato {ticker} non funziona: {str(e)}")
+            continue
+    
+    # Se nessun formato ha funzionato
+    st.error(f"❌ Nessun dato trovato per '{symbol}' nei formati NASDAQ:{symbol}, NYSE:{symbol}, AMEX:{symbol}")
+    st.info("""
+    💡 **Suggerimenti**:
+    - Prova a cercare il ticker su TradingView.com prima
+    - Inserisci direttamente il formato completo (es. 'NASDAQ:AAPL')
+    - Verifica che sia un titolo del mercato USA
+    - Esempi che funzionano: NASDAQ:AAPL, NYSE:JPM, NASDAQ:TSLA
+    """)
+    
+    return pd.DataFrame()
+
 
 
 
@@ -1108,10 +1130,11 @@ Questa app utilizza un **algoritmo di scoring intelligente** e **notizie tradott
                 
                 with col1:
                     symbol = st.text_input(
-                        "Inserisci Simbolo (es. AAPL, TSLA, NVDA):", 
+                        "Inserisci Simbolo:", 
                         "", 
                         key="fundamental_search_input",
-                        help="Inserisci il ticker dell'azienda (es. AAPL per Apple)"
+                        help="Esempi: AAPL, TSLA, NASDAQ:GOOGL, NYSE:JPM",
+                        placeholder="Es. AAPL oppure NASDAQ:AAPL"
                     )
                 
                 with col2:
@@ -1123,20 +1146,37 @@ Questa app utilizza un **algoritmo di scoring intelligente** e **notizie tradott
                         use_container_width=True
                     )
                 
+                # Esempi veloci
+                st.markdown("**Esempi rapidi:**")
+                col_ex1, col_ex2, col_ex3, col_ex4 = st.columns(4)
+                
+                with col_ex1:
+                    if st.button("🍎 AAPL", key="ex_aapl", help="Apple"):
+                        st.session_state.fundamental_search_input = "AAPL"
+                        st.rerun()
+                
+                with col_ex2:
+                    if st.button("🚗 TSLA", key="ex_tsla", help="Tesla"):
+                        st.session_state.fundamental_search_input = "TSLA"
+                        st.rerun()
+                
+                with col_ex3:
+                    if st.button("🏢 MSFT", key="ex_msft", help="Microsoft"):
+                        st.session_state.fundamental_search_input = "MSFT"
+                        st.rerun()
+                
+                with col_ex4:
+                    if st.button("🔍 GOOGL", key="ex_googl", help="Google"):
+                        st.session_state.fundamental_search_input = "GOOGL"
+                        st.rerun()
+                
                 if symbol and analyze_btn:
                     with st.spinner(f"🔍 Ricerca dati fondamentali per {symbol.upper()}..."):
                         df_result = fetch_fundamental_data(symbol)
                         
                         if not df_result.empty:
                             process_fundamental_results(df_result, symbol)
-                        else:
-                            st.error(f"❌ Nessun dato trovato per '{symbol}'")
-                            st.info("💡 Suggerimenti:")
-                            st.markdown("""
-                            - Verifica che sia un simbolo valido sui mercati USA
-                            - Prova simboli di aziende grandi (es. AAPL, MSFT, GOOGL)
-                            - Non usare prefissi exchange (usa 'AAPL' non 'NASDAQ:AAPL')
-                            """)
+
                 
                 # Info box (il tuo expander esistente)
                 with st.expander("ℹ️ Come funziona l'Analisi Fondamentale"):
