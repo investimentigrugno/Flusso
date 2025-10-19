@@ -1146,36 +1146,39 @@ Questa app utilizza un **algoritmo di scoring intelligente** e **notizie tradott
                         use_container_width=True
                     )
                 
-                # Esempi veloci
+                # Esempi veloci SENZA modifica session_state
                 st.markdown("**Esempi rapidi:**")
                 col_ex1, col_ex2, col_ex3, col_ex4 = st.columns(4)
                 
                 with col_ex1:
                     if st.button("🍎 AAPL", key="ex_aapl", help="Apple"):
-                        st.session_state.fundamental_search_input = "AAPL"
-                        st.rerun()
+                        # Usa una variabile temporanea invece di session_state
+                        symbol = "AAPL"
+                        st.info("Selezionato: AAPL - Clicca 'Analizza' per procedere")
                 
                 with col_ex2:
                     if st.button("🚗 TSLA", key="ex_tsla", help="Tesla"):
-                        st.session_state.fundamental_search_input = "TSLA"
-                        st.rerun()
+                        symbol = "TSLA"
+                        st.info("Selezionato: TSLA - Clicca 'Analizza' per procedere")
                 
                 with col_ex3:
                     if st.button("🏢 MSFT", key="ex_msft", help="Microsoft"):
-                        st.session_state.fundamental_search_input = "MSFT"
-                        st.rerun()
+                        symbol = "MSFT"
+                        st.info("Selezionato: MSFT - Clicca 'Analizza' per procedere")
                 
                 with col_ex4:
                     if st.button("🔍 GOOGL", key="ex_googl", help="Google"):
-                        st.session_state.fundamental_search_input = "GOOGL"
-                        st.rerun()
+                        symbol = "GOOGL"
+                        st.info("Selezionato: GOOGL - Clicca 'Analizza' per procedere")
                 
+                # Analisi
                 if symbol and analyze_btn:
                     with st.spinner(f"🔍 Ricerca dati fondamentali per {symbol.upper()}..."):
                         df_result = fetch_fundamental_data(symbol)
                         
                         if not df_result.empty:
                             process_fundamental_results(df_result, symbol)
+
 
                 
                 # Info box (il tuo expander esistente)
