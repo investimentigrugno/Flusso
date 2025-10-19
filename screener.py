@@ -484,6 +484,69 @@ def get_top_5_investment_picks(df):
     
     return top_5
 
+def fetch_fundamental_data(symbol: str):
+    """Recupera dati fondamentali (bilanci, fatturato, EPS, margini, multipli) da TradingView."""
+    from tradingview_screener import Query, Column
+    import streamlit as st
+    import pandas as pd
+
+    try:
+        q = (
+            Query()
+            .select(
+                "name", "description", "country", "sector",
+                "market_cap_basic", "fundamental_currency_code", 
+                "income_statement_total_revenue", "income_statement_gross_profit", 
+                "income_statement_net_income", "earnings_per_share_basic_ttm",
+                "price_earnings_ttm", "dividend_yield_recent",
+                "balance_sheet_total_assets", "balance_sheet_total_liabilities",
+                "balance_sheet_shareholders_equity", "operating_margin_ttm",
+                "net_profit_margin_ttm", "free_cash_flow_ttm"
+            )
+            .where(Column("name").eq(symbol.upper()))
+            .get_scanner_data()
+        )
+
+        df = q[1]
+        if df.empty:
+            st.warning(f"Nessun dato fondamentale trovato per {symbol}.")
+            return pd.DataFrame()
+
+        df = df.rename(columns={
+            "income_statement_total_revenue": "Ricavi Totali",
+            "income_statement_gross_profit": "Utile Lordo",
+            "income_statement_net_income": "Utile Netto",
+            "earnings_per_share_basic_ttm": "EPS (TTM)",
+            "price_earnings_ttm": "P/E (TTM)",
+            "dividend_yield_recent": "Dividend Yield",
+            "balance_sheet_total_assets": "Totale Attività",
+            "balance_sheet_total_liabilities": "Totale Passività",
+            "balance_sheet_shareholders_equity": "Patrimonio Netto",
+            "operating_margin_ttm": "Margine Operativo %",
+            "net_profit_margin_ttm": "Margine Netto %",
+            "free_cash_flow_ttm": "Free Cash Flow"
+        })
+
+        # Formattazione numerica
+        for col in [
+            "Ricavi Totali", "Utile Lordo", "Utile Netto", "Totale Attività",
+            "Totale Passività", "Patrimonio Netto", "Free Cash Flow"
+        ]:
+            if col in df.columns:
+                df[col] = df[col].apply(lambda x: f"${x/1e9:.2f}B" if pd.notnull(x) else "-")
+
+        numeric_cols = ["P/E (TTM)", "Dividend Yield", "Margine Operativo %", "Margine Netto %"]
+        for col in numeric_cols:
+            if col in df.columns:
+                df[col] = df[col].round(2)
+
+        return df
+
+    except Exception as e:
+        st.error(f"Errore nel caricamento dati fondamentali: {e}")
+        return pd.DataFrame()
+
+
 # ============================================================================
 # FUNZIONE PRINCIPALE PER IL MAIN
 # ============================================================================
@@ -901,6 +964,62 @@ Questa app utilizza un **algoritmo di scoring intelligente** e **notizie tradott
                         
                         st.markdown("---")
             
+            with tab4:
+                st.header("📊 Analisi Fondamentale Azienda")
+                symbol = st.text_input("Inserisci Simbolo o Nome Azienda (es. AAPL, TSLA, NVDA):", "")
+            
+                if symbol:
+                    if st.button("📑 Estrai Dati Finanziari"):
+                        df_fundamental = fetch_fundamental_data(symbol)
+            
+                        if not df_fundamental.empty:
+                            row = df_fundamental.iloc[0]
+                            st.subheader(f"{row.get('description', '')} ({row.get('name', symbol.upper())})")
+                            st.caption(f"Settore: {row.get('sector', 'n/a')} | Paese: {row.get('country', 'n/a')}")
+            
+                            st.markdown("### 💼 Dati Fondamentali Principali")
+                            display_cols = [
+                                "Ricavi Totali", "Utile Lordo", "Utile Netto", 
+                                "P/E (TTM)", "EPS (TTM)", "Margine Operativo %", "Margine Netto %",
+                                "Totale Attività", "Totale Passività", 
+                                "Patrimonio Netto", "Free Cash Flow", "Dividend Yield"
+                            ]
+                            cols = [col for col in display_cols if col in df_fundamental.columns]
+                            st.dataframe(df_fundamental[cols].T, use_container_width=True, height=400)
+            
+                            st.markdown("---")
+                            st.markdown("### 🧾 Report Sintetico")
+                            # Genera analisi testuale semplice
+                            try:
+                                growth_comment = ""
+                                if 'P/E (TTM)' in row and pd.notnull(row['P/E (TTM)']):
+                                    if row['P/E (TTM)'] < 15:
+                                        growth_comment = "Il titolo sembra sottovalutato rispetto ai suoi utili."
+                                    elif row['P/E (TTM)'] > 30:
+                                        growth_comment = "Il titolo appare sopravvalutato rispetto agli utili attuali."
+                                    else:
+                                        growth_comment = "Il rapporto prezzo/utili è in linea con il mercato."
+            
+                                profitability = ""
+                                if 'Margine Netto %' in row and pd.notnull(row['Margine Netto %']):
+                                    profitability = (
+                                        "Margini elevati e buone prospettive di redditività."
+                                        if row['Margine Netto %'] > 15 else
+                                        "Margini deboli, profitabilità moderata."
+                                    )
+            
+                                st.info(f"""
+                                **Sintesi Automatica:**
+                                - Ricavi Annuali: {row.get('Ricavi Totali', '-')}.
+                                - Utile Netto: {row.get('Utile Netto', '-')}.
+                                - EPS (Ultimi 12 mesi): {row.get('EPS (TTM)', '-')}.
+                                - {growth_comment}
+                                - {profitability}
+                                """)
+                            except Exception as e:
+                                st.error(f"Errore nella generazione del report: {e}")
+
+            
             # Summary
             current_date = datetime.now()
             st.success(f"""
@@ -929,14 +1048,60 @@ Le notizie vengono recuperate dall'API Finnhub e tradotte automaticamente:
             """)
     
     with tab4:
-        # TRADINGVIEW SEARCH
-        st.header("🔍 Ricerca Titolo TradingView")
-        
-        symbol = st.text_input("Inserisci simbolo o nome titolo", "")
-        
+        st.header("📊 Analisi Fondamentale Azienda")
+        symbol = st.text_input("Inserisci Simbolo o Nome Azienda (es. AAPL, TSLA, NVDA):", "")
+    
         if symbol:
-            url = f"https://www.tradingview.com/chart/?symbol={symbol.upper()}"
-            st.markdown(f"[Apri grafico TradingView per {symbol}]({url})")
+            if st.button("📑 Estrai Dati Finanziari"):
+                df_fundamental = fetch_fundamental_data(symbol)
+    
+                if not df_fundamental.empty:
+                    row = df_fundamental.iloc[0]
+                    st.subheader(f"{row.get('description', '')} ({row.get('name', symbol.upper())})")
+                    st.caption(f"Settore: {row.get('sector', 'n/a')} | Paese: {row.get('country', 'n/a')}")
+    
+                    st.markdown("### 💼 Dati Fondamentali Principali")
+                    display_cols = [
+                        "Ricavi Totali", "Utile Lordo", "Utile Netto", 
+                        "P/E (TTM)", "EPS (TTM)", "Margine Operativo %", "Margine Netto %",
+                        "Totale Attività", "Totale Passività", 
+                        "Patrimonio Netto", "Free Cash Flow", "Dividend Yield"
+                    ]
+                    cols = [col for col in display_cols if col in df_fundamental.columns]
+                    st.dataframe(df_fundamental[cols].T, use_container_width=True, height=400)
+    
+                    st.markdown("---")
+                    st.markdown("### 🧾 Report Sintetico")
+                    # Genera analisi testuale semplice
+                    try:
+                        growth_comment = ""
+                        if 'P/E (TTM)' in row and pd.notnull(row['P/E (TTM)']):
+                            if row['P/E (TTM)'] < 15:
+                                growth_comment = "Il titolo sembra sottovalutato rispetto ai suoi utili."
+                            elif row['P/E (TTM)'] > 30:
+                                growth_comment = "Il titolo appare sopravvalutato rispetto agli utili attuali."
+                            else:
+                                growth_comment = "Il rapporto prezzo/utili è in linea con il mercato."
+    
+                        profitability = ""
+                        if 'Margine Netto %' in row and pd.notnull(row['Margine Netto %']):
+                            profitability = (
+                                "Margini elevati e buone prospettive di redditività."
+                                if row['Margine Netto %'] > 15 else
+                                "Margini deboli, profitabilità moderata."
+                            )
+    
+                        st.info(f"""
+                        **Sintesi Automatica:**
+                        - Ricavi Annuali: {row.get('Ricavi Totali', '-')}.
+                        - Utile Netto: {row.get('Utile Netto', '-')}.
+                        - EPS (Ultimi 12 mesi): {row.get('EPS (TTM)', '-')}.
+                        - {growth_comment}
+                        - {profitability}
+                        """)
+                    except Exception as e:
+                        st.error(f"Errore nella generazione del report: {e}")
+
     
     # --- SIDEBAR ---
     st.sidebar.title("ℹ️ Informazioni")
