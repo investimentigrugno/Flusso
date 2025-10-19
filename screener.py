@@ -581,9 +581,8 @@ def fetch_fundamental_data(symbol: str):
 
 
 def generate_fundamental_ai_report(company_name: str, fundamentals: dict):
-    """Genera report AI specifico per analisi fondamentale (diverso da quello dell'agente principale)."""
+    """Genera report AI specifico per analisi fondamentale."""
     try:
-        # Usa la funzione call_groq_api già esistente dall'ai_agent
         prompt = f"""
 Sei un analista finanziario esperto. Analizza l'azienda '{company_name}' basandoti sui seguenti dati fondamentali:
 
@@ -615,12 +614,11 @@ IMPORTANTE:
         
         # Usa la funzione esistente dall'ai_agent
         ai_report = call_groq_api(prompt, max_tokens=1500)
-        
-        # L'escape è già applicato dalla call_groq_api se configurata correttamente
         return ai_report
         
     except Exception as e:
         return f"❌ Errore nella generazione del report AI: {str(e)}"
+
 
 
 def process_fundamental_results(df_result, symbol):
@@ -637,13 +635,13 @@ def process_fundamental_results(df_result, symbol):
     display_cols = [c for c in df_result.columns if c not in excluded_cols]
     st.dataframe(df_result[display_cols].T, use_container_width=True, height=400)
     
-    # Report AI fondamentale (diverso dall'agente principale)
+    # Report AI fondamentale
     st.markdown("---")
     st.markdown("### 🧠 Analisi AI dei Bilanci")
     if st.button("🤖 Genera Report AI", key="generate_fundamental_report_btn"):
         with st.spinner("Generazione report AI..."):
             data_dict = row.to_dict()
-            # Usa la nuova funzione specifica per i fondamentali
+            # Chiama la funzione AI per i fondamentali
             ai_report = generate_fundamental_ai_report(company_name, data_dict)
             
             if "❌" not in ai_report:
@@ -663,6 +661,7 @@ def process_fundamental_results(df_result, symbol):
             else:
                 st.error("❌ Errore nella generazione del report AI.")
                 st.info("💡 Riprova più tardi o verifica la connessione API.")
+
 
 # ============================================================================
 # FUNZIONE PRINCIPALE PER IL MAIN
@@ -1121,6 +1120,8 @@ Questa app utilizza un **algoritmo di scoring intelligente** e **notizie tradott
                             """)
                 
                 # Info box
+                # Aggiungi questo alla fine del with tab4:
+                # Info box
                 with st.expander("ℹ️ Come funziona l'Analisi Fondamentale"):
                     st.markdown("""
                     ### 🔍 Cosa Analizza
@@ -1147,8 +1148,6 @@ Questa app utilizza un **algoritmo di scoring intelligente** e **notizie tradott
                     4. Clicca **"🤖 Genera Report AI"** per l'analisi completa
                     5. Scarica il report con **"📥 Scarica Report AI"**
                     """)
-
-
 
             # Summary
             current_date = datetime.now()
