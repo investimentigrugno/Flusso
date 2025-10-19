@@ -485,67 +485,193 @@ def get_top_5_investment_picks(df):
     
     return top_5
 
+# ============================================================================
+# FUNZIONI ANALISI FONDAMENTALE - AGGIUNGI PRIMA DI stock_screener_app()
+# ============================================================================
+
 def fetch_fundamental_data(symbol: str):
-    """Recupera dati fondamentali (bilanci, fatturato, EPS, margini, multipli) da TradingView."""
-    from tradingview_screener import Query, Column
+    """Recupera dati fondamentali da TradingView usando la sintassi ufficiale dell'API."""
+    from tradingview_screener import Query, col
     import streamlit as st
     import pandas as pd
 
     try:
-        q = (
+        # Sintassi corretta secondo la documentazione ufficiale
+        result = (
             Query()
             .select(
-                "name", "description", "country", "sector",
-                "market_cap_basic", "fundamental_currency_code", 
-                "income_statement_total_revenue", "income_statement_gross_profit", 
-                "income_statement_net_income", "earnings_per_share_basic_ttm",
-                "price_earnings_ttm", "dividend_yield_recent",
-                "balance_sheet_total_assets", "balance_sheet_total_liabilities",
-                "balance_sheet_shareholders_equity", "operating_margin_ttm",
-                "net_profit_margin_ttm", "free_cash_flow_ttm"
+                'name', 'description', 'country', 'sector', 'close',
+                'market_cap_basic', 'total_revenue', 'gross_profit', 
+                'net_income', 'earnings_per_share_basic_ttm', 
+                'price_earnings_ttm', 'dividend_yield_recent',
+                'total_assets', 'total_debt', 'stockholders_equity',
+                'operating_margin_ttm', 'net_profit_margin_ttm', 'free_cash_flow'
             )
-            .where(Column("name").eq(symbol.upper()))
+            .where(
+                col('name').like(f'*{symbol.upper()}*')
+            )
+            .limit(10)
             .get_scanner_data()
         )
 
-        df = q[1]
+        total_count, df = result
+        
         if df.empty:
-            st.warning(f"Nessun dato fondamentale trovato per {symbol}.")
+            st.warning(f"Nessun dato trovato per '{symbol}' su TradingView.")
             return pd.DataFrame()
 
-        df = df.rename(columns={
-            "income_statement_total_revenue": "Ricavi Totali",
-            "income_statement_gross_profit": "Utile Lordo",
-            "income_statement_net_income": "Utile Netto",
-            "earnings_per_share_basic_ttm": "EPS (TTM)",
-            "price_earnings_ttm": "P/E (TTM)",
-            "dividend_yield_recent": "Dividend Yield",
-            "balance_sheet_total_assets": "Totale Attività",
-            "balance_sheet_total_liabilities": "Totale Passività",
-            "balance_sheet_shareholders_equity": "Patrimonio Netto",
-            "operating_margin_ttm": "Margine Operativo %",
-            "net_profit_margin_ttm": "Margine Netto %",
-            "free_cash_flow_ttm": "Free Cash Flow"
-        })
+        df_filtered = df.head(1).copy()
 
-        # Formattazione numerica
-        for col in [
-            "Ricavi Totali", "Utile Lordo", "Utile Netto", "Totale Attività",
-            "Totale Passività", "Patrimonio Netto", "Free Cash Flow"
-        ]:
-            if col in df.columns:
-                df[col] = df[col].apply(lambda x: f"${x/1e9:.2f}B" if pd.notnull(x) else "-")
+        # Rinomina colonne
+        column_mapping = {
+            'total_revenue': 'Ricavi Totali',
+            'gross_profit': 'Utile Lordo',
+            'net_income': 'Utile Netto',
+            'earnings_per_share_basic_ttm': 'EPS (TTM)',
+            'price_earnings_ttm': 'P/E (TTM)',
+            'dividend_yield_recent': 'Dividend Yield %',
+            'total_assets': 'Totale Attività',
+            'total_debt': 'Debito Totale',
+            'stockholders_equity': 'Patrimonio Netto',
+            'operating_margin_ttm': 'Margine Operativo %',
+            'net_profit_margin_ttm': 'Margine Netto %',
+            'free_cash_flow': 'Free Cash Flow',
+            'close': 'Prezzo Attuale'
+        }
 
-        numeric_cols = ["P/E (TTM)", "Dividend Yield", "Margine Operativo %", "Margine Netto %"]
-        for col in numeric_cols:
-            if col in df.columns:
-                df[col] = df[col].round(2)
+        existing_cols = {k: v for k, v in column_mapping.items() if k in df_filtered.columns}
+        df_filtered = df_filtered.rename(columns=existing_cols)
 
-        return df
+        # Formattazione valori monetari
+        money_cols = ['Ricavi Totali', 'Utile Lordo', 'Utile Netto', 'Totale Attività',
+                     'Debito Totale', 'Patrimonio Netto', 'Free Cash Flow']
+        
+        for col in money_cols:
+            if col in df_filtered.columns:
+                df_filtered[col] = df_filtered[col].apply(
+                    lambda x: f"{x/1e9:.2f}B USD" if pd.notnull(x) and abs(x) >= 1e6 else f"{x/1e6:.1f}M USD" if pd.notnull(x) and x != 0 else "N/A"
+                )
+
+        # Formattazione percentuali
+        percent_cols = ['Dividend Yield %', 'Margine Operativo %', 'Margine Netto %']
+        for col in percent_cols:
+            if col in df_filtered.columns:
+                df_filtered[col] = df_filtered[col].apply(
+                    lambda x: f"{x:.2f}%" if pd.notnull(x) else "N/A"
+                )
+
+        # Formattazione ratios
+        ratio_cols = ['P/E (TTM)', 'EPS (TTM)', 'Prezzo Attuale']
+        for col in ratio_cols:
+            if col in df_filtered.columns:
+                df_filtered[col] = df_filtered[col].apply(
+                    lambda x: f"{x:.2f}" if pd.notnull(x) else "N/A"
+                )
+
+        return df_filtered
 
     except Exception as e:
-        st.error(f"Errore nel caricamento dati fondamentali: {e}")
+        st.error(f"Errore nel caricamento dati fondamentali: {str(e)}")
         return pd.DataFrame()
+
+def generate_ai_financial_report(company_name: str, fundamentals: dict):
+    """Genera un report narrativo basato sui dati finanziari dell'azienda tramite Groq API."""
+    try:
+        GROQ_API_KEY = st.secrets.get("GROQ_API_KEY", None)
+        if not GROQ_API_KEY:
+            return "⚠️ Report AI non disponibile: API Key non configurata su Streamlit Cloud."
+        
+        # Filtra solo i dati rilevanti per il prompt
+        relevant_data = {k: v for k, v in fundamentals.items() 
+                        if k in ['description', 'sector', 'country', 'Prezzo Attuale', 
+                                'Ricavi Totali', 'Utile Netto', 'P/E (TTM)', 'EPS (TTM)',
+                                'Margine Operativo %', 'Margine Netto %', 'Dividend Yield %',
+                                'Free Cash Flow', 'Patrimonio Netto']}
+        
+        prompt = f"""
+Sei un analista finanziario esperto. Analizza l'azienda '{company_name}' basandoti sui seguenti dati fondamentali:
+
+{relevant_data}
+
+Scrivi un REPORT PROFESSIONALE strutturato con:
+
+## 1. SINTESI ESECUTIVA
+Panoramica generale dei risultati finanziari dell'azienda (80 parole)
+
+## 2. ANALISI DELLA REDDITIVITÀ  
+Valuta margini operativi, netti, EPS e rapporto P/E (100 parole)
+
+## 3. SOLIDITÀ PATRIMONIALE
+Analizza cash flow, patrimonio netto e sostenibilità finanziaria (100 parole)
+
+## 4. VALUTAZIONE E DIVIDENDI
+Commenta attrattività del titolo e policy dei dividendi (80 parole)
+
+## 5. PROSPETTIVE E RACCOMANDAZIONI
+Outlook futuro e raccomandazione di investimento (100 parole)
+
+IMPORTANTE:
+- Usa "USD" invece del simbolo dollaro
+- Scrivi "miliardi" o "milioni" per i grandi numeri
+- Evita underscore nei termini tecnici
+- Mantieni tono professionale e basato sui dati
+"""
+        
+        from groq import Groq
+        client = Groq(api_key=GROQ_API_KEY)
+        
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {"role": "system", "content": "Sei un analista finanziario esperto specializzato in analisi fondamentale e bilanci aziendali."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.6,
+            max_tokens=1500
+        )
+        
+        ai_report = response.choices[0].message.content
+        
+        # Applica escape per Streamlit
+        ai_report = ai_report.replace("$", "\\$").replace("_", "\\_")
+        
+        return ai_report
+        
+    except Exception as e:
+        return f"❌ Errore nella generazione del report AI: {str(e)}"
+
+def process_fundamental_results(df_result, symbol):
+    """Processa e mostra i risultati dell'analisi fondamentale."""
+    row = df_result.iloc[0]
+    company_name = row.get('description', symbol.upper())
+    
+    st.subheader(f"📈 {company_name} ({row.get('name', symbol)})")
+    st.caption(f"Settore: {row.get('sector', 'N/A')} | Paese: {row.get('country', 'N/A')}")
+    
+    # Tabella dati
+    st.markdown("### 💼 Dati Fondamentali")
+    excluded_cols = ['name', 'description', 'sector', 'country']
+    display_cols = [c for c in df_result.columns if c not in excluded_cols]
+    st.dataframe(df_result[display_cols].T, use_container_width=True, height=400)
+    
+    # Report AI
+    if st.button("🤖 Genera Report AI", key="generate_report_btn"):
+        with st.spinner("Generazione report AI..."):
+            data_dict = row.to_dict()
+            ai_report = generate_ai_financial_report(company_name, data_dict)
+            
+            with st.expander("📄 Report Completo", expanded=True):
+                st.markdown(ai_report)
+            
+            # Download
+            st.download_button(
+                label="📥 Scarica Report",
+                data=ai_report.replace("\\$", "$").replace("\\_", "_"),
+                file_name=f"Report_{company_name}_{datetime.now().strftime('%Y%m%d')}.txt",
+                mime="text/plain",
+                key="download_report_btn"
+            )
+
 
 
 # ============================================================================
@@ -967,47 +1093,16 @@ Questa app utilizza un **algoritmo di scoring intelligente** e **notizie tradott
             
             with tab4:
                 st.header("📊 Analisi Fondamentale Azienda")
-                symbol = st.text_input("Inserisci Simbolo o Nome Azienda (es. AAPL, TSLA, NVDA):", "", key="fundamental_analysis_symbol")
+                symbol = st.text_input("Inserisci Simbolo (es. AAPL, TSLA, NVDA):", "", key="fundamental_search_input")
 
                 if symbol:
-                    if st.button("📑 Estrai Dati Finanziari", key="extract_financial_data_btn"):
-                        df_fundamental = fetch_fundamental_data(symbol)
+                    if st.button("📊 Analizza Dati Fondamentali", key="analyze_fundamentals_btn"):
+                        df_result = fetch_fundamental_data(symbol)
+                        if not df_result.empty:
+                            process_fundamental_results(df_result, symbol)
+                        else:
+                            st.info("💡 Prova con il ticker completo (es. NASDAQ:AAPL invece di AAPL)")
 
-                        if not df_fundamental.empty:
-                            row = df_fundamental.iloc[0]
-                            company_name = row.get("description", symbol.upper())
-
-                            st.subheader(f"{company_name} ({row.get('name', symbol.upper())})")
-                            st.caption(f"Settore: {row.get('sector', '-')}, Paese: {row.get('country', '-')}")
-
-                            # Tabella dati fondamentali
-                            st.markdown("### 💼 Dati Fondamentali")
-                            display_cols = [c for c in df_fundamental.columns if c not in ["name","description","sector","country"]]
-                            st.dataframe(df_fundamental[display_cols].T, use_container_width=True, height=400)
-
-                            # Report AI
-                            st.markdown("---")
-                            st.markdown("### 🧠 Analisi AI dei Bilanci")
-                            if st.button("🤖 Genera Report AI", key="generate_ai_report_btn"):
-                                with st.spinner("Generazione del report AI in corso..."):
-                                    data_dict = df_fundamental.iloc[0].to_dict()
-                                    ai_report = generate_detailed_report(company_name, data_dict)
-                                    st.success("✅ Report AI generato.")
-                                    
-                                    with st.expander("📄 Visualizza Report Completo", expanded=True):
-                                        st.markdown(ai_report)
-
-                                    # Download report
-                                    st.download_button(
-                                        label="📥 Scarica Report AI",
-                                        data=ai_report,
-                                        file_name=f"Report_{company_name}_{datetime.now().strftime('%Y%m%d')}.txt",
-                                        mime="text/plain",
-                                        key="download_ai_report_btn"
-                                    )
-
-
-            
             # Summary
             current_date = datetime.now()
             st.success(f"""
