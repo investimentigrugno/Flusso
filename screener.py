@@ -494,6 +494,7 @@ def fetch_fundamental_data(symbol: str):
     from tradingview_screener import Query
     import streamlit as st
     import pandas as pd
+    import numpy as np
 
     markets_list = [
         'america', 'australia', 'belgium', 'brazil', 'canada', 'chile', 'china', 'italy',
@@ -505,25 +506,33 @@ def fetch_fundamental_data(symbol: str):
         'venezuela', 'vietnam', 'crypto'
     ]
 
-    symbol_core = symbol.upper().split(":")[-1]
+    symbol_core = symbol.upper().strip().split(":")[-1]
+
+    expected_columns = [
+        'name', 'description', 'country', 'sector', 'close',
+        'market_cap_basic', 'total_revenue_qoq_growth_fy', 'gross_profit_qoq_growth_fq',
+        'net_income_qoq_growth_fq', 'earnings_per_share_diluted_qoq_growth_fq',
+        'price_earnings_ttm', 'price_free_cash_flow_ttm', 'total_assets',
+        'total_debt', 'shrhldr_s_equity_fq', 'operating_margin',
+        'net_margin_ttm', 'free_cash_flow_qoq_growth_fq'
+    ]
 
     try:
         result = (
             Query()
             .set_markets(markets_list)
             .set_tickers([symbol_core])
-            .select(
-                'name', 'description', 'country', 'sector', 'close',
-                'market_cap_basic', 'total_revenue_qoq_growth_fy', 'gross_profit_qoq_growth_fq',
-                'net_income_qoq_growth_fq', 'earnings_per_share_diluted_qoq_growth_fq',
-                'price_earnings_ttm', 'price_free_cash_flow_ttm', 'total_assets',
-                'total_debt', 'shrhldr_s_equity_fq', 'operating_margin',
-                'net_margin_ttm', 'free_cash_flow_qoq_growth_fq'
-            )
+            .select(*expected_columns)
             .get_scanner_data()
         )
 
         total, df = result
+
+        # Normalizza aggiungendo colonne mancanti con NaN
+        for col in expected_columns:
+            if col not in df.columns:
+                df[col] = np.nan
+
         if df.empty:
             st.warning(f"Nessun dato trovato per '{symbol}'.")
             return pd.DataFrame()
@@ -546,11 +555,9 @@ def fetch_fundamental_data(symbol: str):
             'net_margin_ttm': 'Margine Netto (ultimi 12 mesi %)',
             'free_cash_flow_qoq_growth_fq': 'Crescita FCF (QoQ %)'
         }
-
         existing_cols = {k: v for k, v in column_mapping.items() if k in df_filtered.columns}
         df_filtered = df_filtered.rename(columns=existing_cols)
 
-        # Utilizza le funzioni di formattazione nel file per i valori delle colonne specifiche
         money_cols = ['Capitalizzazione di mercato', 'Totale Attività', 'Debito Totale', 'Patrimonio Netto']
         for col in money_cols:
             if col in df_filtered.columns:
@@ -576,10 +583,11 @@ def fetch_fundamental_data(symbol: str):
                 )
 
         return df_filtered
-        
+
     except Exception as exc:
         st.error(f"Errore nel caricamento dati fondamentali: {exc}")
         return pd.DataFrame()
+
 
     
     # Se nessun formato ha funzionato
