@@ -1146,30 +1146,6 @@ Questa app utilizza un **algoritmo di scoring intelligente** e **notizie tradott
                         use_container_width=True
                     )
                 
-                # Esempi rapidi senza modificare session_state  
-                st.markdown("**Esempi rapidi:**")
-                col_ex1, col_ex2, col_ex3, col_ex4 = st.columns(4)
-                
-                with col_ex1:
-                    if st.button("🍎 AAPL", key="ex_aapl"):
-                        st.session_state["fundamental_search_input"] = "AAPL"
-                        st.experimental_rerun()
-                
-                with col_ex2:
-                    if st.button("🚗 TSLA", key="ex_tsla"):
-                        st.session_state["fundamental_search_input"] = "TSLA"
-                        st.experimental_rerun()
-                
-                with col_ex3:
-                    if st.button("🏢 MSFT", key="ex_msft"):
-                        st.session_state["fundamental_search_input"] = "MSFT"
-                        st.experimental_rerun()
-                
-                with col_ex4:
-                    if st.button("🔍 GOOGL", key="ex_googl"):
-                        st.session_state["fundamental_search_input"] = "GOOGL"
-                        st.experimental_rerun()
-                
                 # Quando l'utente inserisce un simbolo e preme "Analizza"
                 if symbol and analyze_btn:
                     with st.spinner(f"🔍 Ricerca dati fondamentali per '{symbol}'..."):
