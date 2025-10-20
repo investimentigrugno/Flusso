@@ -520,8 +520,8 @@ def fetch_fundamental_data(symbol: str):
     try:
         result = (
             Query()
-            .set_markets(markets_list)
-            .set_tickers([symbol_core])
+            .set_markets(*markets_list)
+            .set_tickers(symbol_core)
             .select(*expected_columns)
             .get_scanner_data()
         )
