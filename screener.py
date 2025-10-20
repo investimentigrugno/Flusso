@@ -392,10 +392,9 @@ def get_tradingview_url(symbol):
         clean_symbol = symbol.split(':')[1]
     else:
         clean_symbol = symbol
-    url = f"https://www.tradingview.com/chart/?symbol={symbol}"
-    # Link HTML per Streamlit
-    return f'<a href="{url}" target="_blank">📊View Chart</a>'
-
+    # Ritorna SOLO l'URL (senza HTML)
+    return f"https://www.tradingview.com/chart/?symbol={symbol}"
+    
 def fetch_screener_data():
     """Fetch data from TradingView screener with enhanced columns for scoring"""
     try:
