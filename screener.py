@@ -542,7 +542,7 @@ def fetch_fundamental_data(symbol: str):
         column_mapping = {
             'close': 'Prezzo attuale',
             'market_cap_basic': 'Capitalizzazione di mercato',
-            'total_revenue_qoq_growth_fy': 'Crescita ricavi totali (QoQ %)',
+            'total_revenue_yoy_growth_fy': 'Crescita ricavi totali quadrimestre (YoY %)',
             'gross_profit_qoq_growth_fq': 'Crescita utile lordo (QoQ %)', 
             'net_income_qoq_growth_fq': 'Crescita utile netto (QoQ %)',
             'earnings_per_share_diluted_qoq_growth_fq': 'Crescita EPS diluito (QoQ %)',
@@ -550,7 +550,7 @@ def fetch_fundamental_data(symbol: str):
             'price_free_cash_flow_ttm': 'P/FCF (ultimi 12 mesi)',
             'total_assets': 'Totale Attività',
             'total_debt': 'Debito Totale',
-            'shrhldr_s_equity_fq': 'Patrimonio Netto',
+            'number_of_shareholders': 'Numero azioni',
             'operating_margin': 'Margine Operativo (%)',
             'net_margin_ttm': 'Margine Netto (ultimi 12 mesi %)',
             'free_cash_flow_qoq_growth_fq': 'Crescita FCF (QoQ %)'
