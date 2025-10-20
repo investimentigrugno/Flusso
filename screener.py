@@ -558,7 +558,7 @@ def fetch_fundamental_data(symbol: str):
         existing_cols = {k: v for k, v in column_mapping.items() if k in df_filtered.columns}
         df_filtered = df_filtered.rename(columns=existing_cols)
 
-        money_cols = ['Capitalizzazione di mercato', 'Totale Attività', 'Debito Totale', 'Patrimonio Netto']
+        money_cols = ['Capitalizzazione di mercato', 'Totale Attività', 'Debito Totale']
         for col in money_cols:
             if col in df_filtered.columns:
                 df_filtered[col] = df_filtered[col].apply(
@@ -566,7 +566,7 @@ def fetch_fundamental_data(symbol: str):
                 )
 
         percent_cols = [
-            'Crescita ricavi totali (QoQ %)', 'Crescita utile lordo (QoQ %)', 
+            'Crescita ricavi totali quadrimestre (YoY %)', 'Crescita utile lordo (QoQ %)', 
             'Crescita utile netto (QoQ %)', 'Crescita EPS diluito (QoQ %)',
             'Margine Operativo (%)', 'Margine Netto (ultimi 12 mesi %)', 
             'Crescita FCF (QoQ %)'
