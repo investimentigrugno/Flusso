@@ -387,12 +387,14 @@ def calculate_investment_score(df):
     return scored_df
 
 def get_tradingview_url(symbol):
-    """Generate TradingView URL for a given symbol"""
+    """Generate TradingView URL for a given symbol with clickable link"""
     if ':' in symbol:
-        clean_symbol = symbol.split(':')[1]
+        url = f"https://www.tradingview.com/chart/?symbol={symbol}"
     else:
-        clean_symbol = symbol
-    return f"https://www.tradingview.com/chart/?symbol={symbol}"
+        url = f"https://www.tradingview.com/chart/?symbol={symbol}"
+    
+    # Restituisce il link cliccabile in markdown
+    return f"[📈 Grafico]({url})"
 
 def fetch_screener_data():
     """Fetch data from TradingView screener with enhanced columns for scoring"""
