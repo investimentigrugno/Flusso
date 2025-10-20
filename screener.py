@@ -989,12 +989,12 @@ def stock_screener_app():
             
                 if 'Chart' in display_df.columns:
                     st.markdown(display_df.to_html(escape=False, index=False), unsafe_allow_html=True)
-                else:
-                    st.dataframe(
-                        styled_df,
-                        use_container_width=True,
-                        height=400
-                    )
+                
+                st.dataframe(
+                    styled_df,
+                    use_container_width=True,
+                    height=400
+                )
                 
                 csv = display_df.to_csv(index=False)
                 st.download_button(
