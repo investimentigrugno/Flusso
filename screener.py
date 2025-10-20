@@ -990,9 +990,16 @@ def stock_screener_app():
                     styled_df = styled_df.applymap(color_rating, subset=['Rating'])
                 
                 st.dataframe(
-                    styled_df,
+                    display_df,
+                    column_config={
+                        "Chart": st.column_config.LinkColumn(
+                            "Chart",
+                            display_text="📊 View"
+                        )
+                    },
                     use_container_width=True,
-                    height=400
+                    height=400,
+                    hide_index=True
                 )
                 
                 csv = display_df.to_csv(index=False)
