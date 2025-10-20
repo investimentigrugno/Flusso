@@ -392,7 +392,9 @@ def get_tradingview_url(symbol):
         clean_symbol = symbol.split(':')[1]
     else:
         clean_symbol = symbol
-    return f"https://www.tradingview.com/chart/?symbol={symbol}"
+    url = f"https://www.tradingview.com/chart/?symbol={symbol}"
+    # Link HTML per Streamlit
+    return f'<a href="{url}" target="_blank">📊View Chart</a>'
 
 def fetch_screener_data():
     """Fetch data from TradingView screener with enhanced columns for scoring"""
@@ -986,9 +988,6 @@ def stock_screener_app():
                 
                 if 'Rating' in display_df.columns:
                     styled_df = styled_df.applymap(color_rating, subset=['Rating'])
-            
-                if 'Chart' in display_df.columns:
-                    st.markdown(display_df.to_html(escape=False, index=False), unsafe_allow_html=True)
                 
                 st.dataframe(
                     styled_df,
