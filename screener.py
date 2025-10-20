@@ -510,10 +510,10 @@ def fetch_fundamental_data(symbol: str):
 
     expected_columns = [
         'name', 'description', 'country', 'sector', 'close',
-        'market_cap_basic', 'total_revenue_qoq_growth_fy', 'gross_profit_qoq_growth_fq',
+        'market_cap_basic', 'total_revenue_yoy_growth_fy', 'gross_profit_qoq_growth_fq',
         'net_income_qoq_growth_fq', 'earnings_per_share_diluted_qoq_growth_fq',
         'price_earnings_ttm', 'price_free_cash_flow_ttm', 'total_assets',
-        'total_debt', 'shrhldr_s_equity_fq', 'operating_margin',
+        'total_debt', 'number_of_shareholders', 'operating_margin',
         'net_margin_ttm', 'free_cash_flow_qoq_growth_fq'
     ]
 
