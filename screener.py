@@ -491,110 +491,96 @@ def get_top_5_investment_picks(df):
 # ============================================================================
 
 def fetch_fundamental_data(symbol: str):
-    """Recupera dati fondamentali per un singolo simbolo usando formato 'EXCHANGE:TICKER'."""
     from tradingview_screener import Query
     import streamlit as st
     import pandas as pd
 
-    symbol = symbol.upper().strip()
-    
-    # Definisce i ticker possibili nel formato corretto 'EXCHANGE:TICKER'
-    possible_tickers = []
-    
-    if ":" in symbol:
-        # Se l'utente ha già inserito il formato exchange:ticker
-        possible_tickers.append(symbol)
-    else:
-        # Prova con i principali exchange USA nel formato richiesto
-        for exchange in ["NASDAQ", "NYSE", "AMEX"]:
-            possible_tickers.append(f"{exchange}:{symbol}")
-    
-    # Prova ogni formato fino a trovare quello giusto
-    for ticker in possible_tickers:
-        try:
-            st.info(f"🔍 Provo con formato: {ticker}")
-            
-            result = (
-                Query()
-                .set_markets('america', 'australia','belgium','brazil', 'canada', 'chile', 'china','italy',
-                            'czech', 'denmark', 'egypt', 'estonia', 'finland', 'france', 'germany', 'greece',
-                            'hongkong', 'hungary','india', 'indonesia', 'ireland', 'israel', 'japan','korea',
-                            'kuwait', 'lithuania', 'luxembourg', 'malaysia', 'mexico', 'morocco', 'netherlands',
-                            'newzealand', 'norway', 'peru', 'philippines', 'poland', 'portugal', 'qatar', 'russia',
-                            'singapore', 'slovakia', 'spain', 'sweden', 'switzerland', 'taiwan', 'uae', 'uk',
-                            'venezuela', 'vietnam', 'crypto')
-                .set_tickers([ticker])
-                .select(
-                    'name', 'description', 'country', 'sector', 'close',
-                    'market_cap_basic', 'total_revenue_qoq_growth_fy', 'gross_profit_qoq_growth_fq',
-                    'net_income_qoq_growth_fq', 'earnings_per_share_diluted_qoq_growth_fq',
-                    'price_earnings_ttm', 'price_free_cash_flow_ttm', 'total_assets',
-                    'total_debt', 'shrhldr_s_equity_fq', 'operating_margin',
-                    'net_margin_ttm', 'free_cash_flow_qoq_growth_fq'
-                )
-                .get_scanner_data()
+    markets_list = [
+        'america', 'australia', 'belgium', 'brazil', 'canada', 'chile', 'china', 'italy',
+        'czech', 'denmark', 'egypt', 'estonia', 'finland', 'france', 'germany', 'greece',
+        'hongkong', 'hungary', 'india', 'indonesia', 'ireland', 'israel', 'japan', 'korea',
+        'kuwait', 'lithuania', 'luxembourg', 'malaysia', 'mexico', 'morocco', 'netherlands',
+        'newzealand', 'norway', 'peru', 'philippines', 'poland', 'portugal', 'qatar', 'russia',
+        'singapore', 'slovakia', 'spain', 'sweden', 'switzerland', 'taiwan', 'uae', 'uk',
+        'venezuela', 'vietnam', 'crypto'
+    ]
+
+    symbol_core = symbol.upper().split(":")[-1]
+
+    try:
+        result = (
+            Query()
+            .set_markets(markets_list)
+            .set_tickers([symbol_core])
+            .select(
+                'name', 'description', 'country', 'sector', 'close',
+                'market_cap_basic', 'total_revenue_qoq_growth_fy', 'gross_profit_qoq_growth_fq',
+                'net_income_qoq_growth_fq', 'earnings_per_share_diluted_qoq_growth_fq',
+                'price_earnings_ttm', 'price_free_cash_flow_ttm', 'total_assets',
+                'total_debt', 'shrhldr_s_equity_fq', 'operating_margin',
+                'net_margin_ttm', 'free_cash_flow_qoq_growth_fq'
             )
-            
-            total_count, df = result
-            
-            if not df.empty:
-                st.success(f"✅ Trovato: {ticker}")
-                df_filtered = df.head(1).copy()
+            .get_scanner_data()
+        )
 
-                # Usa le tue column mappings esistenti
-                column_mapping = {
-                    'close': 'Prezzo attuale',
-                    'market_cap_basic': 'Capitalizzazione di mercato',
-                    'total_revenue_qoq_growth_fy': 'Crescita ricavi totali (QoQ %)',
-                    'gross_profit_qoq_growth_fq': 'Crescita utile lordo (QoQ %)', 
-                    'net_income_qoq_growth_fq': 'Crescita utile netto (QoQ %)',
-                    'earnings_per_share_diluted_qoq_growth_fq': 'Crescita EPS diluito (QoQ %)',
-                    'price_earnings_ttm': 'P/E (ultimi 12 mesi)',
-                    'price_free_cash_flow_ttm': 'P/FCF (ultimi 12 mesi)',
-                    'total_assets': 'Totale Attività',
-                    'total_debt': 'Debito Totale',
-                    'shrhldr_s_equity_fq': 'Patrimonio Netto',
-                    'operating_margin': 'Margine Operativo (%)',
-                    'net_margin_ttm': 'Margine Netto (ultimi 12 mesi %)',
-                    'free_cash_flow_qoq_growth_fq': 'Crescita FCF (QoQ %)'
-                }
+        total, df = result
+        if df.empty:
+            st.warning(f"Nessun dato trovato per '{symbol}'.")
+            return pd.DataFrame()
 
-                # Applica rinominazione solo per colonne esistenti
-                existing_cols = {k: v for k, v in column_mapping.items() if k in df_filtered.columns}
-                df_filtered = df_filtered.rename(columns=existing_cols)
+        df_filtered = df.head(1).copy()
 
-                # Formattazione usando le tue funzioni esistenti
-                money_cols = ['Capitalizzazione di mercato', 'Totale Attività', 'Debito Totale', 'Patrimonio Netto']
-                for col in money_cols:
-                    if col in df_filtered.columns:
-                        df_filtered[col] = df_filtered[col].apply(
-                            lambda x: format_currency(x, "$") if pd.notnull(x) else "N/A"
-                        )
+        column_mapping = {
+            'close': 'Prezzo attuale',
+            'market_cap_basic': 'Capitalizzazione di mercato',
+            'total_revenue_qoq_growth_fy': 'Crescita ricavi totali (QoQ %)',
+            'gross_profit_qoq_growth_fq': 'Crescita utile lordo (QoQ %)', 
+            'net_income_qoq_growth_fq': 'Crescita utile netto (QoQ %)',
+            'earnings_per_share_diluted_qoq_growth_fq': 'Crescita EPS diluito (QoQ %)',
+            'price_earnings_ttm': 'P/E (ultimi 12 mesi)',
+            'price_free_cash_flow_ttm': 'P/FCF (ultimi 12 mesi)',
+            'total_assets': 'Totale Attività',
+            'total_debt': 'Debito Totale',
+            'shrhldr_s_equity_fq': 'Patrimonio Netto',
+            'operating_margin': 'Margine Operativo (%)',
+            'net_margin_ttm': 'Margine Netto (ultimi 12 mesi %)',
+            'free_cash_flow_qoq_growth_fq': 'Crescita FCF (QoQ %)'
+        }
 
-                # Percentuali
-                percent_cols = [
-                    'Crescita ricavi totali (QoQ %)', 'Crescita utile lordo (QoQ %)', 
-                    'Crescita utile netto (QoQ %)', 'Crescita EPS diluito (QoQ %)',
-                    'Margine Operativo (%)', 'Margine Netto (ultimi 12 mesi %)', 
-                    'Crescita FCF (QoQ %)'
-                ]
-                for col in percent_cols:
-                    if col in df_filtered.columns:
-                        df_filtered[col] = df_filtered[col].apply(format_percentage)
+        existing_cols = {k: v for k, v in column_mapping.items() if k in df_filtered.columns}
+        df_filtered = df_filtered.rename(columns=existing_cols)
 
-                # Ratios
-                ratio_cols = ['P/E (ultimi 12 mesi)', 'P/FCF (ultimi 12 mesi)', 'Prezzo attuale']
-                for col in ratio_cols:
-                    if col in df_filtered.columns:
-                        df_filtered[col] = df_filtered[col].apply(
-                            lambda x: f"{x:.2f}" if pd.notnull(x) else "N/A"
-                        )
+        # Utilizza le funzioni di formattazione nel file per i valori delle colonne specifiche
+        money_cols = ['Capitalizzazione di mercato', 'Totale Attività', 'Debito Totale', 'Patrimonio Netto']
+        for col in money_cols:
+            if col in df_filtered.columns:
+                df_filtered[col] = df_filtered[col].apply(
+                    lambda x: format_currency(x, "$") if pd.notnull(x) else "N/A"
+                )
 
-                return df_filtered
-                
-        except Exception as e:
-            st.warning(f"❌ Formato {ticker} non funziona: {str(e)}")
-            continue
+        percent_cols = [
+            'Crescita ricavi totali (QoQ %)', 'Crescita utile lordo (QoQ %)', 
+            'Crescita utile netto (QoQ %)', 'Crescita EPS diluito (QoQ %)',
+            'Margine Operativo (%)', 'Margine Netto (ultimi 12 mesi %)', 
+            'Crescita FCF (QoQ %)'
+        ]
+        for col in percent_cols:
+            if col in df_filtered.columns:
+                df_filtered[col] = df_filtered[col].apply(format_percentage)
+
+        ratio_cols = ['P/E (ultimi 12 mesi)', 'P/FCF (ultimi 12 mesi)', 'Prezzo attuale']
+        for col in ratio_cols:
+            if col in df_filtered.columns:
+                df_filtered[col] = df_filtered[col].apply(
+                    lambda x: f"{x:.2f}" if pd.notnull(x) else "N/A"
+                )
+
+        return df_filtered
+        
+    except Exception as exc:
+        st.error(f"Errore nel caricamento dati fondamentali: {exc}")
+        return pd.DataFrame()
+
     
     # Se nessun formato ha funzionato
     st.error(f"❌ Nessun dato trovato per '{symbol}' nei formati NASDAQ:{symbol}, NYSE:{symbol}, AMEX:{symbol}")
