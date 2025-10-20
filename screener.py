@@ -1133,20 +1133,18 @@ Questa app utilizza un **algoritmo di scoring intelligente** e **notizie tradott
                 st.header("📊 Analisi Fondamentale Azienda")
                 st.markdown("Cerca un'azienda specifica e ottieni un'analisi AI completa dei suoi bilanci")
                 
-                # Input ricerca
                 col1, col2 = st.columns([3, 1])
                 
                 with col1:
                     symbol = st.text_input(
-                        "Inserisci Simbolo:", 
+                        "Inserisci Simbolo (es. AAPL, TSLA, GOOGL):", 
                         "", 
                         key="fundamental_search_input",
-                        help="Esempi: AAPL, TSLA, NASDAQ:GOOGL, NYSE:JPM",
-                        placeholder="Es. AAPL oppure NASDAQ:AAPL"
+                        help="Esempio di simbolo senza prefisso exchange",
+                        placeholder="Es. AAPL oppure TSLA"
                     )
                 
                 with col2:
-                    st.markdown("") # Spacing
                     analyze_btn = st.button(
                         "📊 Analizza", 
                         key="analyze_fundamentals_btn",
@@ -1154,41 +1152,42 @@ Questa app utilizza un **algoritmo di scoring intelligente** e **notizie tradott
                         use_container_width=True
                     )
                 
-                # Esempi veloci SENZA modifica session_state
+                # Esempi rapidi senza modificare session_state  
                 st.markdown("**Esempi rapidi:**")
                 col_ex1, col_ex2, col_ex3, col_ex4 = st.columns(4)
                 
                 with col_ex1:
-                    if st.button("🍎 AAPL", key="ex_aapl", help="Apple"):
-                        # Usa una variabile temporanea invece di session_state
-                        symbol = "AAPL"
-                        st.info("Selezionato: AAPL - Clicca 'Analizza' per procedere")
+                    if st.button("🍎 AAPL", key="ex_aapl"):
+                        st.session_state["fundamental_search_input"] = "AAPL"
+                        st.experimental_rerun()
                 
                 with col_ex2:
-                    if st.button("🚗 TSLA", key="ex_tsla", help="Tesla"):
-                        symbol = "TSLA"
-                        st.info("Selezionato: TSLA - Clicca 'Analizza' per procedere")
+                    if st.button("🚗 TSLA", key="ex_tsla"):
+                        st.session_state["fundamental_search_input"] = "TSLA"
+                        st.experimental_rerun()
                 
                 with col_ex3:
-                    if st.button("🏢 MSFT", key="ex_msft", help="Microsoft"):
-                        symbol = "MSFT"
-                        st.info("Selezionato: MSFT - Clicca 'Analizza' per procedere")
+                    if st.button("🏢 MSFT", key="ex_msft"):
+                        st.session_state["fundamental_search_input"] = "MSFT"
+                        st.experimental_rerun()
                 
                 with col_ex4:
-                    if st.button("🔍 GOOGL", key="ex_googl", help="Google"):
-                        symbol = "GOOGL"
-                        st.info("Selezionato: GOOGL - Clicca 'Analizza' per procedere")
+                    if st.button("🔍 GOOGL", key="ex_googl"):
+                        st.session_state["fundamental_search_input"] = "GOOGL"
+                        st.experimental_rerun()
                 
-                # Analisi
+                # Quando l'utente inserisce un simbolo e preme "Analizza"
                 if symbol and analyze_btn:
-                    with st.spinner(f"🔍 Ricerca dati fondamentali per {symbol.upper()}..."):
+                    with st.spinner(f"🔍 Ricerca dati fondamentali per '{symbol}'..."):
                         df_result = fetch_fundamental_data(symbol)
                         
                         if not df_result.empty:
                             process_fundamental_results(df_result, symbol)
-
-
+                        else:
+                            st.error(f"❌ Nessun dato trovato per '{symbol}'")
+                            st.info("💡 Suggerimenti:\n- Usa simboli validi per i mercati supportati\n- Riprova con un ticker diverso")
                 
+            
                 # Info box (il tuo expander esistente)
                 with st.expander("ℹ️ Come funziona l'Analisi Fondamentale"):
                     st.markdown("""
