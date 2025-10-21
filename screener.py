@@ -491,12 +491,11 @@ def get_top_5_investment_picks(df):
 # ============================================================================
 
 def fetch_fundamental_data(symbol: str):
+    """Recupera dati fondamentali per un ticker specifico da tutti i mercati."""
     from tradingview_screener import Query
-    import streamlit as st
-    import pandas as pd
     import numpy as np
-
-    markets_list = [
+    
+    markets = [
         'america', 'australia', 'belgium', 'brazil', 'canada', 'chile', 'china', 'italy',
         'czech', 'denmark', 'egypt', 'estonia', 'finland', 'france', 'germany', 'greece',
         'hongkong', 'hungary', 'india', 'indonesia', 'ireland', 'israel', 'japan', 'korea',
@@ -505,87 +504,40 @@ def fetch_fundamental_data(symbol: str):
         'singapore', 'slovakia', 'spain', 'sweden', 'switzerland', 'taiwan', 'uae', 'uk',
         'venezuela', 'vietnam', 'crypto'
     ]
-
-    symbol_core = symbol.upper().strip().split(":")[-1]
-
-    expected_columns = [
+    
+    columns = [
         'name', 'description', 'country', 'sector', 'close',
-        'market_cap_basic', 'total_revenue_yoy_growth_fy', 'gross_profit_qoq_growth_fq',
-        'net_income_qoq_growth_fq', 'earnings_per_share_diluted_qoq_growth_fq',
+        'market_cap_basic', 'total_revenue_yoy_growth_fy', 'gross_profit_yoy_growth_fy',
+        'net_income_yoy_growth_fy', 'earnings_per_share_diluted_yoy_growth_fy',
         'price_earnings_ttm', 'price_free_cash_flow_ttm', 'total_assets',
-        'total_debt', 'number_of_shareholders', 'operating_margin',
-        'net_margin_ttm', 'free_cash_flow_qoq_growth_fq'
+        'total_debt', 'operating_margin', 'ebitda_yoy_growth_fy',
+        'net_margin_ttm', 'free_cash_flow_yoy_growth_fy', 'price_sales_ratio',
+        'capex_per_share_ttm', 'capital_expenditures_yoy_growth_ttm', 
+        'enterprise_value_to_free_cash_flow_ttm', 'free_cash_flow_cagr_5y', 
+        'invent_turnover_current', 'price_target_low', 'price_target_high', 
+        'price_target_median', 'revenue_forecast_fq', 'earnings_per_share_forecast_fq',
+        'SMA50', 'SMA200'
     ]
-
+    
     try:
-        result = (
-            Query()
-            .set_markets(*markets_list)
-            .set_tickers(symbol_core)
-            .select(*expected_columns)
-            .get_scanner_data()
-        )
-
-        total, df = result
-
-        # Normalizza aggiungendo colonne mancanti con NaN
-        for col in expected_columns:
-            if col not in df.columns:
-                df[col] = np.nan
-
+        query = Query().set_markets(*markets).set_tickers(symbol).select(*columns)
+        total, df = query.get_scanner_data()
+        
         if df.empty:
-            st.warning(f"Nessun dato trovato per '{symbol}'.")
+            st.warning(f"❌ Nessun dato trovato per {symbol}")
             return pd.DataFrame()
-
+        
         df_filtered = df.head(1).copy()
-
-        column_mapping = {
-            'close': 'Prezzo attuale',
-            'market_cap_basic': 'Capitalizzazione di mercato',
-            'total_revenue_yoy_growth_fy': 'Crescita ricavi totali quadrimestre (YoY %)',
-            'gross_profit_qoq_growth_fq': 'Crescita utile lordo (QoQ %)', 
-            'net_income_qoq_growth_fq': 'Crescita utile netto (QoQ %)',
-            'earnings_per_share_diluted_qoq_growth_fq': 'Crescita EPS diluito (QoQ %)',
-            'price_earnings_ttm': 'P/E (ultimi 12 mesi)',
-            'price_free_cash_flow_ttm': 'P/FCF (ultimi 12 mesi)',
-            'total_assets': 'Totale Attività',
-            'total_debt': 'Debito Totale',
-            'number_of_shareholders': 'Numero azioni',
-            'operating_margin': 'Margine Operativo (%)',
-            'net_margin_ttm': 'Margine Netto (ultimi 12 mesi %)',
-            'free_cash_flow_qoq_growth_fq': 'Crescita FCF (QoQ %)'
-        }
-        existing_cols = {k: v for k, v in column_mapping.items() if k in df_filtered.columns}
-        df_filtered = df_filtered.rename(columns=existing_cols)
-
-        money_cols = ['Capitalizzazione di mercato', 'Totale Attività', 'Debito Totale']
-        for col in money_cols:
-            if col in df_filtered.columns:
-                df_filtered[col] = df_filtered[col].apply(
-                    lambda x: format_currency(x, "$") if pd.notnull(x) else "N/A"
-                )
-
-        percent_cols = [
-            'Crescita ricavi totali quadrimestre (YoY %)', 'Crescita utile lordo (QoQ %)', 
-            'Crescita utile netto (QoQ %)', 'Crescita EPS diluito (QoQ %)',
-            'Margine Operativo (%)', 'Margine Netto (ultimi 12 mesi %)', 
-            'Crescita FCF (QoQ %)'
-        ]
-        for col in percent_cols:
-            if col in df_filtered.columns:
-                df_filtered[col] = df_filtered[col].apply(format_percentage)
-
-        ratio_cols = ['P/E (ultimi 12 mesi)', 'P/FCF (ultimi 12 mesi)', 'Prezzo attuale']
-        for col in ratio_cols:
-            if col in df_filtered.columns:
-                df_filtered[col] = df_filtered[col].apply(
-                    lambda x: f"{x:.2f}" if pd.notnull(x) else "N/A"
-                )
-
+        
+        # Normalizza colonne mancanti
+        for col in columns:
+            if col not in df_filtered.columns:
+                df_filtered[col] = np.nan
+        
         return df_filtered
-
-    except Exception as exc:
-        st.error(f"Errore nel caricamento dati fondamentali: {exc}")
+        
+    except Exception as e:
+        st.error(f"Errore nel caricamento dati fondamentali: {e}")
         return pd.DataFrame()
 
 
@@ -601,9 +553,6 @@ def fetch_fundamental_data(symbol: str):
     """)
     
     return pd.DataFrame()
-
-
-
 
 def generate_fundamental_ai_report(company_name: str, fundamentals: dict):
     """Genera report AI specifico per analisi fondamentale usando le colonne corrette."""
@@ -1131,14 +1080,15 @@ Questa app utilizza un **algoritmo di scoring intelligente** e **notizie tradott
                 
                 with col1:
                     symbol = st.text_input(
-                        "Inserisci Simbolo (es. AAPL, TSLA, GOOGL):", 
+                        "Inserisci Simbolo con prefisso (es. NASDAQ:AAPL, MIL:ENEL):", 
                         "", 
                         key="fundamental_search_input",
-                        help="Esempio di simbolo senza prefisso exchange",
-                        placeholder="Es. AAPL oppure TSLA"
+                        help="Formato richiesto: EXCHANGE:TICKER",
+                        placeholder="Es. NASDAQ:AAPL"
                     )
                 
                 with col2:
+                    st.markdown("")
                     analyze_btn = st.button(
                         "📊 Analizza", 
                         key="analyze_fundamentals_btn",
@@ -1146,45 +1096,75 @@ Questa app utilizza un **algoritmo di scoring intelligente** e **notizie tradott
                         use_container_width=True
                     )
                 
-                # Quando l'utente inserisce un simbolo e preme "Analizza"
+                # Esempi rapidi
+                st.markdown("**📈 Esempi rapidi:**")
+                col_ex1, col_ex2, col_ex3, col_ex4 = st.columns(4)
+                
+                examples = [
+                    ("🍎 NASDAQ:AAPL", "NASDAQ:AAPL"),
+                    ("🚗 NASDAQ:TSLA", "NASDAQ:TSLA"),
+                    ("🏢 NYSE:JPM", "NYSE:JPM"),
+                    ("🇮🇹 MIL:ENEL", "MIL:ENEL")
+                ]
+                
+                for i, (label, ticker_val) in enumerate(examples):
+                    with [col_ex1, col_ex2, col_ex3, col_ex4][i]:
+                        if st.button(label, key=f"ex_{i}", use_container_width=True):
+                            symbol = ticker_val
+                            analyze_btn = True
+                
                 if symbol and analyze_btn:
-                    with st.spinner(f"🔍 Ricerca dati fondamentali per '{symbol}'..."):
-                        df_result = fetch_fundamental_data(symbol)
+                    with st.spinner(f"🔍 Ricerca dati fondamentali per {symbol.upper()}..."):
+                        df_result = fetch_fundamental_data(symbol.upper())
                         
                         if not df_result.empty:
-                            process_fundamental_results(df_result, symbol)
-                        else:
-                            st.error(f"❌ Nessun dato trovato per '{symbol}'")
-                            st.info("💡 Suggerimenti:\n- Usa simboli validi per i mercati supportati\n- Riprova con un ticker diverso")
-                
-            
-                # Info box (il tuo expander esistente)
-                with st.expander("ℹ️ Come funziona l'Analisi Fondamentale"):
-                    st.markdown("""
-                    ### 🔍 Cosa Analizza
-                    
-                    **Dati Finanziari Estratti:**
-                    - 💰 Ricavi e crescita trimestrale
-                    - 📈 Utili per azione (EPS) e crescita
-                    - 💵 Free Cash Flow e crescita
-                    - 🏦 Bilancio: attività, debiti, patrimonio
-                    - 📊 Margini operativi e netti
-                    - 💎 Multipli di valutazione (P/E, P/FCF)
-                    
-                    **Report AI Generato:**
-                    - Sintesi esecutiva dei risultati
-                    - Analisi della redditività
-                    - Solidità patrimoniale
-                    - Valutazione e dividendi
-                    - Prospettive e raccomandazioni
-                    
-                    ### 🎯 Esempio di Utilizzo
-                    1. Digita `AAPL` nell'input
-                    2. Clicca **"📊 Analizza"**
-                    3. Visualizza i dati fondamentali
-                    4. Clicca **"🤖 Genera Report AI"** per l'analisi completa
-                    5. Scarica il report con **"📥 Scarica Report AI"**
-                    """)
+                            st.success(f"✅ Dati trovati per {symbol}")
+                            
+                            # Mostra dati completi
+                            st.subheader("📊 Dati Completi")
+                            st.dataframe(df_result, use_container_width=True)
+                            
+                            # Tabella presenza dati
+                            st.subheader("📋 Presenza Dati per Colonna")
+                            data_info = []
+                            for col in df_result.columns:
+                                if col != 'ticker':
+                                    value = df_result.iloc[0].get(col, None)
+                                    is_present = not pd.isna(value) and value != ""
+                                    stato = "✅ Presente" if is_present else "❌ Assente"
+                                    valore = value if is_present else "N/A"
+                                    data_info.append({
+                                        'Colonna': col,
+                                        'Stato': stato,
+                                        'Valore': valore
+                                    })
+                            
+                            presence_df = pd.DataFrame(data_info)
+                            st.dataframe(presence_df, use_container_width=True)
+                            
+                            # Genera report AI usando i dati disponibili
+                            st.subheader("🤖 Report AI Fondamentale")
+                            
+                            with st.spinner("🧠 Generazione analisi AI..."):
+                                # Prepara dati per AI
+                                fundamental_dict = df_result.iloc[0].to_dict()
+                                
+                                # Genera report AI
+                                ai_report = generate_fundamental_ai_report(
+                                    company_name=fundamental_dict.get('name', symbol),
+                                    fundamentals=fundamental_dict
+                                )
+                                
+                                st.markdown(escape_markdown_latex(ai_report))
+                            
+                            # Pulsante download
+                            st.download_button(
+                                label="📥 Scarica Report Completo",
+                                data=ai_report,
+                                file_name=f"report_fondamentale_{symbol}.txt",
+                                mime="text/plain"
+                            )
+
 
             # Summary
             current_date = datetime.now()
