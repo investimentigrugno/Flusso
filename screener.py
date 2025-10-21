@@ -582,6 +582,7 @@ Commenta attività totali, debito, cash flow (100 parole)
 
 ## 5. TARGET PRICE E PREVISIONI
 Analizza price target e forecast degli analisti (100 parole)
+Utilizza analisi DCF (discounted cash flow) per stimare target price e delta dal prezzo attuale.
 
 ## 6. PROSPETTIVE E RACCOMANDAZIONI
 Outlook complessivo e raccomandazione di investimento (130 parole)
