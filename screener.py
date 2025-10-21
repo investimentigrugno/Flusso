@@ -555,16 +555,11 @@ def fetch_fundamental_data(symbol: str):
     return pd.DataFrame()
 
 def generate_fundamental_ai_report(company_name: str, fundamentals: dict):
-    """Genera report AI specifico per analisi fondamentale usando le colonne corrette."""
+    """Genera report AI usando i dati fondamentali disponibili."""
     try:
-        # Filtra solo i dati rilevanti con i nuovi nomi delle colonne
+        # Filtra solo dati validi
         relevant_data = {k: v for k, v in fundamentals.items() 
-                        if k in ['description', 'sector', 'country', 'Prezzo attuale', 
-                                'Capitalizzazione di mercato', 'Crescita ricavi totali (QoQ %)', 
-                                'Crescita utile netto (QoQ %)', 'P/E (ultimi 12 mesi)', 
-                                'P/FCF (ultimi 12 mesi)', 'Margine Operativo (%)',
-                                'Margine Netto (ultimi 12 mesi %)', 'Totale Attività',
-                                'Debito Totale', 'Patrimonio Netto']}
+                        if not pd.isna(v) and v != "" and k != 'ticker'}
         
         prompt = f"""
 Sei un analista finanziario esperto. Analizza l'azienda '{company_name}' basandoti sui seguenti dati fondamentali:
@@ -574,36 +569,36 @@ Sei un analista finanziario esperto. Analizza l'azienda '{company_name}' basando
 Scrivi un REPORT PROFESSIONALE strutturato con:
 
 ## 1. SINTESI ESECUTIVA
-Panoramica generale dei risultati finanziari dell'azienda (80 parole)
+Panoramica generale dell'azienda e posizionamento di mercato (100 parole)
 
-## 2. ANALISI DELLA REDDITIVITÀ  
-Valuta margini operativi, netti, P/E e crescita utili (100 parole)
+## 2. ANALISI FINANZIARIA
+Valuta ricavi, profitti, margini, crescita YoY (150 parole)
 
-## 3. SOLIDITÀ PATRIMONIALE
-Analizza attività, debiti, patrimonio netto e sostenibilità (100 parole)
+## 3. VALUTAZIONE E MULTIPLI
+Analizza P/E, P/FCF, Price/Sales e altri multipli (120 parole)
 
-## 4. CRESCITA E DINAMICHE
-Commenta crescita ricavi, utili e cash flow trimestrale (80 parole)
+## 4. SOLIDITÀ PATRIMONIALE
+Commenta attività totali, debito, cash flow (100 parole)
 
-## 5. PROSPETTIVE E RACCOMANDAZIONI
-Outlook futuro e raccomandazione di investimento (100 parole)
+## 5. TARGET PRICE E PREVISIONI
+Analizza price target e forecast degli analisti (100 parole)
+
+## 6. PROSPETTIVE E RACCOMANDAZIONI
+Outlook complessivo e raccomandazione di investimento (130 parole)
 
 IMPORTANTE:
 - Usa "USD" invece del simbolo dollaro
 - Scrivi "miliardi" o "milioni" per i grandi numeri
 - Evita underscore nei termini tecnici
-- Mantieni tono professionale e basato sui dati
-- Commenta le crescite QoQ (quarter-over-quarter)
+- Mantieni tono professionale e basato sui dati disponibili
+- Se un dato manca, NON inventare, concentrati su quelli disponibili
 """
         
-        # Usa la funzione esistente dall'ai_agent
-        ai_report = call_groq_api(prompt, max_tokens=1500)
+        ai_report = call_groq_api(prompt, max_tokens=2000)
         return ai_report
         
     except Exception as e:
         return f"❌ Errore nella generazione del report AI: {str(e)}"
-
-
 
 
 def process_fundamental_results(df_result, symbol):
