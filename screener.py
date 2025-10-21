@@ -506,7 +506,7 @@ def fetch_fundamental_data(symbol: str):
     ]
     
     columns = [
-        'name', 'description', 'country', 'sector', 'close',
+        'name', 'description', 'country', 'sector', 'close','currency',
         'market_cap_basic', 'total_revenue_yoy_growth_fy', 'gross_profit_yoy_growth_fy',
         'net_income_yoy_growth_fy', 'earnings_per_share_diluted_yoy_growth_fy',
         'price_earnings_ttm', 'price_free_cash_flow_ttm', 'total_assets',
@@ -588,7 +588,7 @@ Utilizza analisi DCF (discounted cash flow) per stimare target price e delta dal
 Outlook complessivo e raccomandazione di investimento (130 parole)
 
 IMPORTANTE:
-- Usa "USD" invece del simbolo dollaro
+- Usa le tre cifre corrispondenti alla valuta invece del simbolo
 - Scrivi "miliardi" o "milioni" per i grandi numeri
 - Evita underscore nei termini tecnici
 - Mantieni tono professionale e basato sui dati disponibili
