@@ -512,11 +512,11 @@ def fetch_fundamental_data(symbol: str):
         'price_earnings_ttm', 'price_free_cash_flow_ttm', 'total_assets',
         'total_debt', 'operating_margin', 'ebitda_yoy_growth_fy',
         'net_margin_ttm', 'free_cash_flow_yoy_growth_fy', 'price_sales_ratio',
-        'capex_per_share_ttm', 'capital_expenditures_yoy_growth_ttm', 
+        'capex_per_share_ttm','ebitda', 'capital_expenditures_yoy_growth_ttm', 
         'enterprise_value_to_free_cash_flow_ttm', 'free_cash_flow_cagr_5y', 
         'invent_turnover_current', 'price_target_low', 'price_target_high', 
         'price_target_median', 'revenue_forecast_fq', 'earnings_per_share_forecast_fq',
-        'SMA50', 'SMA200'
+        'SMA50', 'SMA200','beta_1_year','beta_2_year'
     ]
     
     try:
