@@ -588,7 +588,7 @@ Utilizza analisi DCF (discounted cash flow) per stimare target price e delta dal
 Outlook complessivo e raccomandazione di investimento (130 parole)
 
 IMPORTANTE:
-- Usa le tre cifre corrispondenti alla valuta invece del simbolo
+- Usa il nome della valuta invece del simbolo
 - Scrivi "miliardi" o "milioni" per i grandi numeri
 - Evita underscore nei termini tecnici
 - Mantieni tono professionale e basato sui dati disponibili
