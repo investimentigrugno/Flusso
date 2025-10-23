@@ -33,13 +33,14 @@ def portfolio_tracker_app():
     
     # ID del foglio Google Sheets
     spreadsheet_id = "1mD9jxDJv26aZwCdIbvQVjlJGBhRwKWwQnPpPPq0ON5Y"
-    gid_portfolio = 0
+    gid_portfolio = 0  # GID del foglio Portfolio
     gid_portfolio_status = 1033121372
     gid_dati = 1009022145
     
     # Opzioni nella sidebar
     st.sidebar.markdown("### ⚙️ Opzioni Portfolio")
     show_metrics = st.sidebar.checkbox("Mostra metriche", value=False)
+    show_empty_rows_debug = st.sidebar.checkbox("🔍 Debug: Mostra righe vuote", value=False)
     
     # Bottone refresh
     if st.sidebar.button("🔄 Aggiorna Dati", type="primary"):
@@ -65,52 +66,78 @@ def portfolio_tracker_app():
             st.info("💡 Verifica che il foglio sia pubblico")
             st.stop()
         
+        # ⭐ DEBUG: Mostra dati grezzi prima del filtro ⭐
+        if show_empty_rows_debug:
+            st.markdown("### 🔍 Debug: Dati Grezzi")
+            st.write(f"Righe totali caricate: {len(df)}")
+            st.dataframe(df.head(20), use_container_width=True)
+        
+        # ⭐ FILTRA RIGHE VUOTE ⭐
+        
+        # Step 1: Rimuovi righe completamente vuote
+        df_original_len = len(df)
+        df_filtered = df.dropna(how='all')
+        removed_empty = df_original_len - len(df_filtered)
+        
+        # Step 2: Rimuovi righe dove ticker (colonna C) è vuoto
+        if len(df_filtered.columns) >= 3:
+            ticker_col_idx = 2  # Colonna C
+            
+            df_filtered = df_filtered[
+                df_filtered.iloc[:, ticker_col_idx].notna() & 
+                (df_filtered.iloc[:, ticker_col_idx].astype(str).str.strip() != '')
+            ]
+        
+        removed_no_ticker = df_original_len - removed_empty - len(df_filtered)
+        
+        # Step 3: Rimuovi righe dove QTY (colonna F) = 0 o vuota
+        if len(df_filtered.columns) >= 6:
+            qty_col_idx = 5  # Colonna F
+            
+            def is_valid_qty(val):
+                if pd.isna(val):
+                    return False
+                try:
+                    qty = float(str(val).replace(',', '.'))
+                    return qty > 0.0001
+                except:
+                    return False
+            
+            df_filtered = df_filtered[df_filtered.iloc[:, qty_col_idx].apply(is_valid_qty)]
+        
+        removed_zero_qty = df_original_len - removed_empty - removed_no_ticker - len(df_filtered)
+        
+        # Reset index
+        df_filtered = df_filtered.reset_index(drop=True)
+        
+        # ⭐ MESSAGGIO DI DEBUG ⭐
+        if removed_empty > 0 or removed_no_ticker > 0 or removed_zero_qty > 0:
+            with st.expander(f"🔍 Righe filtrate: {removed_empty + removed_no_ticker + removed_zero_qty}"):
+                st.write(f"• Righe completamente vuote: {removed_empty}")
+                st.write(f"• Righe senza ticker: {removed_no_ticker}")
+                st.write(f"• Righe con QTY = 0: {removed_zero_qty}")
+                st.write(f"• **Righe valide finali: {len(df_filtered)}**")
+        
         # Carica Portfolio Status
         df_summary = df_status.iloc[0:1, :].copy()
         df_summary = df_summary.reset_index(drop=True)
-
-        #Carica gestione liquidità
-        df_liquidita = df_status.iloc[3:4,:4].copy()
-        df_liquidita.columns = ['COMMISSION & TAXES', 'COMMISSION & TAXES %', 'CASH DISPONIBILE', 'CASH NON DISPONIBILE']
-        df_liquidita = df_liquidita.reset_index(drop=True)
         
-        # Carica Portfolio completo fino alla prima riga vuota
-        df_filtered = df.iloc[:, :13].copy()
-        
-        prima_riga_vuota = None
-        for i in range(len(df_filtered)):
-            riga = df_filtered.iloc[i]
-            tutte_vuote = True
-            
-            for valore in riga:
-                if pd.notna(valore) and str(valore).strip() != '':
-                    tutte_vuote = False
-                    break
-            
-            if tutte_vuote:
-                prima_riga_vuota = i
-                break
-        
-        if prima_riga_vuota is not None and prima_riga_vuota > 0:
-            df_filtered = df_filtered.iloc[:prima_riga_vuota]
-        
-        df_filtered = df_filtered.reset_index(drop=True)
-        
-        st.success("✅ Dati caricati con successo!")
+        st.success(f"✅ Dati caricati con successo! ({len(df_filtered)} posizioni attive)")
         
         # ==================== SEZIONE TABELLE ====================
         st.markdown("---")
         st.subheader("💼 Portfolio Status")
         st.dataframe(df_summary, use_container_width=True, hide_index=True)
-
-        st.markdown("---")
-        st.subheader("💰 Gestione Liquidità")
-        st.dataframe(df_liquidita, use_container_width=True, hide_index=True)
         
         st.subheader("Portfolio Completo")
         st.caption(f"📊 {len(df_filtered)} strumenti in portafoglio")
-        st.dataframe(df_filtered, use_container_width=True, height=600, hide_index=True)
         
+        # ⭐ MOSTRA SOLO RIGHE FILTRATE ⭐
+        if len(df_filtered) > 0:
+            st.dataframe(df_filtered, use_container_width=True, height=600, hide_index=True)
+        else:
+            st.info("📭 Nessuna posizione attiva nel portfolio")
+    
         # ==================== GRAFICO 1: DISTRIBUZIONE VALORE ====================
         df_chart = df_filtered[['NAME', 'VALUE']].copy()
         df_chart['VALUE_CLEAN'] = df_chart['VALUE'].str.replace('€', '').str.replace('.', '').str.replace(',', '.').str.strip()
