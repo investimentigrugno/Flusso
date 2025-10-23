@@ -7,7 +7,7 @@ import time
 
 @st.cache_data(ttl=120)
 def load_sheet_csv(spreadsheet_id, gid):
-    """Carica foglio pubblico via CSV export e rimuove righe vuote"""
+    """Carica foglio pubblico via CSV export"""
     url = f"https://docs.google.com/spreadsheets/d/{spreadsheet_id}/export?format=csv&gid={gid}"
     
     max_retries = 3
@@ -15,15 +15,6 @@ def load_sheet_csv(spreadsheet_id, gid):
         try:
             df = pd.read_csv(url)
             if not df.empty:
-                # ⭐ RIMUOVI TUTTE LE RIGHE COMPLETAMENTE VUOTE (ANCHE FINALI) ⭐
-                df = df.dropna(how='all')
-                
-                # ⭐ RIMUOVI RIGHE DOVE TUTTE LE COLONNE SONO STRINGHE VUOTE ⭐
-                df = df[~df.apply(lambda row: all(str(val).strip() == '' for val in row), axis=1)]
-                
-                # ⭐ RESET INDEX DOPO PULIZIA ⭐
-                df = df.reset_index(drop=True)
-                
                 return df
             time.sleep(1)
         except Exception as e:
