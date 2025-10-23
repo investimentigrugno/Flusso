@@ -160,8 +160,11 @@ def portfolio_tracker_app():
         
         if len(df_filtered) > 0:
             # ⭐ ALTERNATIVA - st.data_editor con num_rows="fixed" ⭐
+            
+            df_display=df_filtered.iloc[:,:13]
+            
             st.data_editor(
-                df_filtered,
+                df_display,
                 use_container_width=True,
                 disabled=True,  # Read-only (non modificabile)
                 hide_index=True,
