@@ -137,6 +137,27 @@ def portfolio_tracker_app():
         st.subheader("Portfolio Completo")
         st.caption(f"📊 {len(df_filtered)} strumenti in portafoglio")
         
+        # ⭐ DEBUG COMPLETO ⭐
+        st.write("### 🔍 DEBUG - Analisi df_filtered")
+        st.write(f"Numero righe: {len(df_filtered)}")
+        st.write(f"Numero colonne: {len(df_filtered.columns)}")
+        
+        # Mostra info su ogni riga
+        for idx in range(len(df_filtered)):
+            riga = df_filtered.iloc[idx]
+            ticker = riga.iloc[2] if len(riga) > 2 else None
+            qty = riga.iloc[5] if len(riga) > 5 else None
+            
+            is_empty = riga.isna().all()
+            st.write(f"Riga {idx}: Ticker='{ticker}', QTY='{qty}', Vuota={is_empty}")
+        
+        # ⭐ MOSTRA SOLO RIGHE FILTRATE ⭐
+        if len(df_filtered) > 0:
+            st.dataframe(df_filtered, use_container_width=True, height=600, hide_index=True)
+        else:
+            st.info("📭 Nessuna posizione attiva nel portfolio")
+        
+                
         # ⭐ MOSTRA SOLO RIGHE FILTRATE ⭐
         if len(df_filtered) > 0:
             st.dataframe(df_filtered, use_container_width=True, height=600, hide_index=True)
