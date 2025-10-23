@@ -7,6 +7,7 @@ import time
 
 
 @st.cache_data(ttl=120)
+@st.cache_data(ttl=120)
 def load_sheet_csv(spreadsheet_id, gid):
     """Carica foglio pubblico via CSV export e rimuove righe vuote"""
     url = f"https://docs.google.com/spreadsheets/d/{spreadsheet_id}/export?format=csv&gid={gid}"
@@ -14,25 +15,45 @@ def load_sheet_csv(spreadsheet_id, gid):
     max_retries = 3
     for attempt in range(max_retries):
         try:
-            df = pd.read_csv(url)
+            # ⭐ HEADER=0 è il default (usa prima riga come intestazioni) ⭐
+            df = pd.read_csv(url, header=0)
+            
             if not df.empty:
-                # Rimuovi righe completamente vuote
+                # ⭐ RIMUOVI IMMEDIATAMENTE ULTIMA RIGA SE VUOTA ⭐
+                # Questo risolve il problema della riga vuota finale nel CSV di Google
+                while len(df) > 0:
+                    ultima_riga = df.iloc[-1]
+                    
+                    # Controlla se TUTTI i valori nell'ultima riga sono NaN o stringa vuota
+                    is_empty = all(
+                        pd.isna(val) or (isinstance(val, str) and val.strip() == '')
+                        for val in ultima_riga
+                    )
+                    
+                    if is_empty:
+                        # Ultima riga vuota, eliminala
+                        df = df.iloc[:-1]
+                    else:
+                        # Ultima riga valida, esci dal loop
+                        break
+                
+                # ⭐ PULIZIA AGGIUNTIVA: Rimuovi tutte le righe completamente vuote ⭐
                 df = df.dropna(how='all')
                 
-                # Rimuovi righe dove tutte le colonne sono stringhe vuote
-                df = df[~df.apply(lambda row: all(str(val).strip() == '' for val in row if pd.notna(val)), axis=1)]
-                
-                # Reset index
+                # Reset index finale
                 df = df.reset_index(drop=True)
                 
                 return df
+                
             time.sleep(1)
+            
         except Exception as e:
             if attempt == max_retries - 1:
                 raise e
             time.sleep(2)
     
     return None
+
 
 
 def portfolio_tracker_app():
