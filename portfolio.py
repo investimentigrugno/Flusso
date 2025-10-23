@@ -140,7 +140,7 @@ def portfolio_tracker_app():
         st.caption(f"📊 {len(df_filtered)} strumenti in portafoglio")
         
         if len(df_filtered) > 0:
-            st.dataframe(df_filtered, use_container_width=True, height=600, hide_index=True)
+            st.dataframe(df_filtered, use_container_width=True, hide_index=True)
         else:
             st.info("📭 Nessuna posizione nel portfolio")
         
