@@ -6,8 +6,9 @@ import time
 
 
 @st.cache_data(ttl=120)
+@st.cache_data(ttl=120)
 def load_sheet_csv(spreadsheet_id, gid):
-    """Carica foglio pubblico via CSV export"""
+    """Carica foglio pubblico via CSV export e rimuove ultima riga vuota"""
     url = f"https://docs.google.com/spreadsheets/d/{spreadsheet_id}/export?format=csv&gid={gid}"
     
     max_retries = 3
@@ -15,6 +16,10 @@ def load_sheet_csv(spreadsheet_id, gid):
         try:
             df = pd.read_csv(url)
             if not df.empty:
+                # ⭐ RIMUOVI ULTIMA RIGA SE COMPLETAMENTE VUOTA ⭐
+                if df.iloc[-1].isna().all():
+                    df = df.iloc[:-1]
+                
                 return df
             time.sleep(1)
         except Exception as e:
