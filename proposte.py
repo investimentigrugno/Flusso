@@ -421,7 +421,7 @@ def proposte_app():
             with col1:
                 responsabili = st.multiselect(
                     "Responsabile/i Proposta *",
-                    options=["GALLOZ", "STE", "GARGIU", "ALE", "GIACA"]
+                    options=["Galloz", "Ste", "Gargiu", "Ale", "Giaca"]
                 )
                 
                 buy_sell = st.selectbox("Operazione *", options=["Buy", "Sell"])
