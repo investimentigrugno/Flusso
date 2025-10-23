@@ -168,7 +168,8 @@ def portfolio_tracker_app():
                 use_container_width=True,
                 disabled=True,  # Read-only (non modificabile)
                 hide_index=True,
-                num_rows="fixed"  # Mostra ESATTAMENTE le righe del DataFrame
+                num_rows="fixed",  # Mostra ESATTAMENTE le righe del DataFrame
+                height=600
             )
         else:
             st.info("📭 Nessuna posizione nel portfolio")
