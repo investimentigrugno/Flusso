@@ -92,213 +92,404 @@ def append_transaction_via_webhook(transaction_data, webhook_url):
 def transaction_tracker_app():
     """Applicazione Transaction Tracker"""
     
-    st.title("💼 Transaction Tracker")
+    st.title("💳 Transaction Tracker")
     st.markdown("---")
     
-    # URL del webhook
-    WEBHOOK_URL = "https://script.google.com/macros/s/TUO_WEBHOOK_URL/exec"
+    # ID del foglio Google Sheets
+    spreadsheet_id = "1mD9jxDJv26aZwCdIbvQVjlJGBhRwKWwQnPpPPq0ON5Y"
+    gid_transactions = 1594640549
     
-    # ==================== FORM ====================
-    with st.form("transaction_form", clear_on_submit=False):
-        st.markdown("### 📝 Dettagli Transazione")
+    # ==================== CONFIGURAZIONE WEBHOOK ====================
+    # IMPORTANTE: Sostituisci questo URL con quello del tuo Google Apps Script
+    WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbwTQ85a1BifxwZ9Hzihn01Kt_QOwAeUQNaeoSfgEs2YvoBHRLiHcG6KyRvjR0_KpqsQ6w/exec"
+    
+    # Opzioni sidebar
+    st.sidebar.markdown("### ⚙️ Opzioni Transazioni")
+    
+    # Bottone refresh
+    if st.sidebar.button("🔄 Aggiorna Transazioni", type="primary"):
+        st.cache_data.clear()
+        st.rerun()
+    
+    st.sidebar.markdown("---")
+    st.sidebar.caption("💡 I dati vengono aggiornati automaticamente ogni 2 minuti")
+    
+    # ==================== TABS ====================
+    tab1, tab2, tab3 = st.tabs(["📊 Visualizza Transazioni", "➕ Aggiungi Transazione", "⚙️ Configurazione"])
+    
+    # ==================== TAB 1: VISUALIZZA TRANSAZIONI ====================
+    with tab1:
+        try:
+            with st.spinner("Caricamento transazioni dal Google Sheet..."):
+                df_transactions = load_sheet_csv_transactions(spreadsheet_id, gid_transactions)
+            
+            if df_transactions is None or df_transactions.empty:
+                st.error("❌ Impossibile caricare il foglio 'Transaction'")
+                st.info("💡 Verifica che il foglio sia pubblico: Condividi → Chiunque con il link → Visualizzatore")
+                st.stop()
+            
+            # Definisci le intestazioni attese
+            expected_columns = [
+                'Data', 'Operazione', 'Strumento', 'PMC', 'Quantità', 
+                'Totale', 'Valuta', 'Tasso di cambio', 'Commissioni', 'Controvalore €'
+            ]
+            
+            # Se le colonne non corrispondono, usa le prime 10 colonne
+            if len(df_transactions.columns) >= 10:
+                df_transactions = df_transactions.iloc[:, :10]
+                df_transactions.columns = expected_columns
+            else:
+                st.error(f"❌ Il foglio ha solo {len(df_transactions.columns)} colonne, ne servono almeno 10")
+                st.stop()
         
-        col1, col2 = st.columns(2)
+            # Converti la colonna Data con formato italiano dd/mm/yyyy
+            df_transactions['Data'] = pd.to_datetime(df_transactions['Data'], format='%d/%m/%Y', errors='coerce')
+
+            # Rimuovi righe senza data valida
+            df_transactions = df_transactions.dropna(subset=['Data'])
+            
+            # Ordina per data decrescente (più recenti prima)
+            df_transactions = df_transactions.sort_values('Data', ascending=False).reset_index(drop=True)
+            
+            st.success(f"✅ {len(df_transactions)} transazioni caricate con successo!")
+            
+            # ==================== FILTRI SIDEBAR ====================
+            st.sidebar.markdown("---")
+            st.sidebar.markdown("### 🔍 Filtri")
+            
+            # Filtro per tipo di operazione
+            operazioni_uniche = df_transactions['Operazione'].dropna().unique().tolist()
+            operazione_filter = st.sidebar.multiselect(
+                "Tipo Operazione",
+                options=operazioni_uniche,
+                default=operazioni_uniche
+            )
+            
+            # Filtro per strumento
+            strumenti_unici = sorted(df_transactions['Strumento'].dropna().unique().tolist())
+            strumento_filter = st.sidebar.multiselect(
+                "Strumento",
+                options=strumenti_unici,
+                default=[]
+            )
+            
+            # Filtro per valuta
+            valute_uniche = sorted(df_transactions['Valuta'].dropna().unique().tolist())
+            valuta_filter = st.sidebar.multiselect(
+                "Valuta",
+                options=valute_uniche,
+                default=[]
+            )
+            
+            # Filtro per data
+            min_date = df_transactions['Data'].min().date()
+            max_date = df_transactions['Data'].max().date()
+            
+            date_range = st.sidebar.date_input(
+                "Intervallo Date",
+                value=(min_date, max_date),
+                min_value=min_date,
+                max_value=max_date
+            )
+            
+            # Applica filtri
+            df_filtered_trans = df_transactions.copy()
+            
+            if operazione_filter:
+                df_filtered_trans = df_filtered_trans[df_filtered_trans['Operazione'].isin(operazione_filter)]
+            
+            if strumento_filter:
+                df_filtered_trans = df_filtered_trans[df_filtered_trans['Strumento'].isin(strumento_filter)]
+            
+            if valuta_filter:
+                df_filtered_trans = df_filtered_trans[df_filtered_trans['Valuta'].isin(valuta_filter)]
+            
+            if len(date_range) == 2:
+                start_date, end_date = date_range
+                df_filtered_trans = df_filtered_trans[
+                    (df_filtered_trans['Data'].dt.date >= start_date) & 
+                    (df_filtered_trans['Data'].dt.date <= end_date)
+                ]
+            
+            df_filtered_trans = df_filtered_trans.sort_values('Data', ascending=False).reset_index(drop=True)
+            
+            # ==================== TABELLA TRANSAZIONI ====================
+            st.markdown("---")
+            st.subheader("📋 DETTAGLIO TRANSAZIONI")
+            
+            # Formatta la data per visualizzazione
+            df_display = df_filtered_trans.copy()
+            df_display['Data'] = df_display['Data'].dt.strftime('%d/%m/%Y')
+            
+            # Mostra tabella
+            st.dataframe(
+                df_display[expected_columns],
+                use_container_width=True,
+                height=500,
+                hide_index=True
+            )
+            
+            # ==================== EXPORT CSV ====================
+            st.markdown("---")
+            
+            csv = df_display.to_csv(index=False).encode('utf-8')
+            st.download_button(
+                label="📥 Scarica Transazioni Filtrate (CSV)",
+                data=csv,
+                file_name=f"transazioni_portfolio_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                mime="text/csv",
+                use_container_width=True
+            )
+            
+        except Exception as e:
+            st.error(f"❌ Errore nel caricamento delle transazioni: {str(e)}")
+            st.info("💡 Verifica che il foglio Google Sheets sia pubblicamente accessibile.")
+            
+            with st.expander("🔍 Dettagli errore"):
+                st.code(str(e))
+    
+    # ==================== TAB 2: AGGIUNGI TRANSAZIONE ====================
+    with tab2:
+        st.subheader("➕ Aggiungi Nuova Transazione")
+        st.markdown("---")
         
-        with col1:
-            operazioneinput = st.selectbox(
-                "Operazione *",
-                options=["ACQUISTO", "VENDITA"],
-                help="Tipo di operazione"
-            )
-            
-            strumentoinput = st.text_input(
-                "Strumento (Ticker) *",
-                placeholder="Es: AAPL, BTC-USD, BIT:ENI",
-                help="Inserisci il ticker dello strumento"
-            )
-            
-            nomestrumento = st.text_input(
-                "Nome Strumento",
-                placeholder="Es: Apple Inc., Bitcoin",
-                help="Nome leggibile dello strumento (opzionale)"
-            )
-            
-            quantitainput = st.number_input(
-                "Quantità *",
-                min_value=0.0001,
-                value=1.0,
-                step=0.01,
-                format="%.4f",
-                help="Quantità da acquistare/vendere"
-            )
-            
-            pmcinput = st.number_input(
-                "Prezzo (PMC) *",
-                min_value=0.01,
-                value=100.0,
-                step=0.01,
-                format="%.2f",
-                help="Prezzo medio di carico"
-            )
+        # Verifica configurazione webhook
+        if WEBHOOK_URL == "https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec":
+            st.error("⚠️ URL del webhook non configurato!")
+            st.info("Vai al tab 'Configurazione' per impostare l'URL del webhook Google Apps Script.")
+            st.stop()
         
-        with col2:
-            lungobreve = st.selectbox(
+        # Carica dati per suggerimenti
+        try:
+            df_existing = load_sheet_csv_transactions(spreadsheet_id, gid_transactions)
+            if df_existing is not None and not df_existing.empty:
+                existing_operazioni = df_existing.iloc[:, 1].dropna().unique().tolist() if len(df_existing.columns) > 1 else []
+                existing_strumenti = df_existing.iloc[:, 2].dropna().unique().tolist() if len(df_existing.columns) > 2 else []
+                existing_valute = df_existing.iloc[:, 6].dropna().unique().tolist() if len(df_existing.columns) > 6 else []
+            else:
+                existing_operazioni = []
+                existing_strumenti = []
+                existing_valute = []
+        except:
+            existing_operazioni = []
+            existing_strumenti = []
+            existing_valute = []
+        
+        # Valori di default comuni
+        default_operazioni = ["Buy", "Sell", "Bonifico", "Prelievo"]
+        default_valute = ["EUR", "USD", "GBP", "CHF","JPY","CNH","AUD","CAD","NZD","SEK"]
+        
+        # Combina valori esistenti con defaults
+        operazioni_options = list(set(existing_operazioni + default_operazioni))
+        valute_options = list(set(existing_valute + default_valute))
+        
+        with st.form("new_transaction_form", clear_on_submit=True):
+            st.markdown("### 📝 Dettagli Transazione")
+            
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                # 1. Data
+                data_input = st.date_input(
+                    "Data *",
+                    value=datetime.now(),
+                    help="Data della transazione"
+                )
+                
+                # 2. Operazione
+                operazione_input = st.selectbox(
+                    "Operazione *",
+                    options=operazioni_options,
+                    help="Tipo di operazione"
+                )
+                
+                # 3. Strumento
+                strumento_input = st.text_input(
+                    "Strumento *",
+                    placeholder="Es: BIT:LDO, NASDAQ:AAPL, BTCEUR",
+                    help="Inserire il ticker corretto presente su Google Finance"
+                )
+
+                # 3b. Nome Strumento (opzionale)
+                nome_strumento = st.text_input(
+                    "Nome Strumento",
+                    placeholder="Es: Apple Inc., Bitcoin",
+                    help="Nome leggibile dello strumento (opzionale)"
+                )
+                
+                # 4. PMC (Prezzo Medio di Carico)
+                pmc_input = st.number_input(
+                    "PMC (Prezzo Medio) *",
+                    min_value=0.0,
+                    value=0.0,
+                    step=0.01,
+                    format="%.4f",
+                    help="Prezzo medio di carico/vendita"
+                )
+                
+                # 5. Quantità
+                quantita_input = st.number_input(
+                    "Quantità *",
+                    min_value=0.0,
+                    value=0.0,
+                    step=0.01,
+                    format="%.4f",
+                    help="Quantità acquistata/venduta"
+                )
+            
+            with col2:
+                
+                # 6. Lungo/Breve Termine
+                lungo_breve = st.selectbox(
                 "Posizione",
-                options=["", "L", "B"],
+                options=["", "L", "B", "P"],
                 format_func=lambda x: {
                     "": "Non specificato",
                     "L": "L - Lungo termine",
-                    "B": "B - Breve termine"
+                    "B": "B - Breve termine",
+                    "P": "P - Passività",
                 }[x],
                 help="Orizzonte temporale della posizione"
-            )
-            
-            valutainput = st.selectbox(
-                "Valuta *",
-                options=["EUR", "USD", "GBP", "JPY", "CHF"],
-                help="Valuta dello strumento"
-            )
-            
-            tassocambioinput = st.number_input(
-                "Tasso di Cambio",
-                min_value=0.01,
-                value=1.0,
-                step=0.01,
-                format="%.4f",
-                help="Tasso di cambio vs EUR (1.0 se EUR)"
-            )
-            
-            commissioniinput = st.number_input(
-                "Commissioni",
-                min_value=0.0,
-                value=0.0,
-                step=0.01,
-                format="%.2f",
-                help="Commissioni della transazione"
-            )
-            
-            datainput = st.date_input(
-                "Data",
-                value=datetime.now(),
-                help="Data della transazione"
-            )
-        
-        st.markdown("---")
-        
-        # Bottone submit
-        submitted = st.form_submit_button("💾 Salva Transazione", type="primary", use_container_width=True)
-    
-    # ⭐ ELABORAZIONE FUORI DAL FORM (dopo il submit) ⭐
-    if submitted:
-        # ==================== VALIDAZIONE ====================
-        errors = []
-        
-        if not strumentoinput or strumentoinput.strip() == "":
-            errors.append("⚠️ Il campo 'Strumento' è obbligatorio")
-        if pmcinput <= 0:
-            errors.append("⚠️ Il PMC deve essere maggiore di 0")
-        if quantitainput <= 0:
-            errors.append("⚠️ La Quantità deve essere maggiore di 0")
-        if tassocambioinput <= 0:
-            errors.append("⚠️ Il Tasso di Cambio deve essere maggiore di 0")
-        
-        if errors:
-            for error in errors:
-                st.error(error)
-        else:
-            # ==================== CALCOLI ====================
-            totalecalcolato = pmcinput * quantitainput
-            controvalorecalcolato = totalecalcolato / tassocambioinput
-            
-            # Mostra calcoli
-            st.markdown("### 📊 Riepilogo Calcoli")
-            colcalc1, colcalc2 = st.columns(2)
-            with colcalc1:
-                st.metric(
-                    label=f"Totale (in {valutainput})", 
-                    value=f"{totalecalcolato:,.2f}"
                 )
-            with colcalc2:
+                
+                # 7. Valuta
+                valuta_input = st.selectbox(
+                    "Valuta *",
+                    options=valute_options,
+                    help="Valuta della transazione"
+                )
+                
+                # 8. Tasso di cambio
+                tasso_cambio_input = st.number_input(
+                    "Tasso di Cambio *",
+                    min_value=0.0,
+                    value=1.0,
+                    step=0.0001,
+                    format="%.4f",
+                    help="Tasso di cambio verso EUR (1.0 se già in EUR)"
+                )
+                
+                # 9. Commissioni
+                commissioni_input = st.number_input(
+                    "Commissioni",
+                    min_value=0.0,
+                    value=0.0,
+                    step=0.01,
+                    format="%.2f",
+                    help="Commissioni applicate alla transazione"
+                )
+            
+            st.markdown("---")
+            st.markdown("### 📊 Riepilogo Calcoli Automatici")
+            
+            # Calcoli automatici
+            totale_calcolato = pmc_input * quantita_input
+            controvalore_calcolato = totale_calcolato / tasso_cambio_input
+            
+            col_calc1, col_calc2 = st.columns(2)
+            
+            with col_calc1:
                 st.metric(
-                    label="Controvalore (EUR)", 
-                    value=f"€{controvalorecalcolato:,.2f}"
+                    label=f"Totale (calcolato in {valuta_input})",
+                    value=f"{totale_calcolato:,.2f}",
+                    help="PMC × Quantità"
+                )
+            
+            with col_calc2:
+                st.metric(
+                    label="Controvalore € (calcolato)",
+                    value=f"€{controvalore_calcolato:,.2f}",
+                    help="Totale × Tasso di Cambio"
                 )
             
             st.markdown("---")
             
-            # ⭐ PREPARA PAYLOAD ⭐
-            payload = {
-                "data": datainput.strftime('%d/%m/%Y %H.%M.%S'),
-                "operazione": operazioneinput,
-                "strumento": strumentoinput.upper().strip(),
-                "pmc": pmcinput,
-                "quantita": quantitainput,
-                "totale": totalecalcolato,
-                "valuta": valutainput,
-                "tasso_cambio": tassocambioinput,
-                "commissioni": commissioniinput,
-                "controvalore": controvalorecalcolato,
-                "lungo_breve": lungobreve,
-                "nome_strumento": nomestrumento if nomestrumento else strumentoinput.upper()
-            }
+            # Bottoni form
+            col_btn1, col_btn2 = st.columns([3, 1])
             
-            # ⭐ INVIA AL WEBHOOK ⭐
-            with st.spinner("💾 Salvataggio transazione in corso..."):
-                try:
-                    response = requests.post(
-                        WEBHOOK_URL,
-                        json=payload,
-                        headers={'Content-Type': 'application/json'},
-                        timeout=30
-                    )
-                    
-                    if response.status_code == 200:
-                        try:
-                            result = response.json()
-                            
-                            if result.get('success'):
-                                st.success(f"✅ {result.get('message')}")
-                                st.balloons()
-                                
-                                # Mostra riepilogo
-                                st.markdown("### 👀 Transazione Salvata")
-                                
-                                col_recap1, col_recap2, col_recap3 = st.columns(3)
-                                
-                                with col_recap1:
-                                    st.write(f"**Operazione:** {operazioneinput}")
-                                    st.write(f"**Strumento:** {strumentoinput.upper()}")
-                                    st.write(f"**Nome:** {nomestrumento if nomestrumento else '-'}")
-                                
-                                with col_recap2:
-                                    st.write(f"**Quantità:** {quantitainput}")
-                                    st.write(f"**Prezzo:** {pmcinput} {valutainput}")
-                                    st.write(f"**Posizione:** {lungobreve if lungobreve else '-'}")
-                                
-                                with col_recap3:
-                                    st.write(f"**Totale:** {totalecalcolato:,.2f} {valutainput}")
-                                    st.write(f"**Controvalore:** €{controvalorecalcolato:,.2f}")
-                                    st.write(f"**Commissioni:** €{commissioniinput:,.2f}")
-                            else:
-                                st.error(f"❌ {result.get('message')}")
-                        
-                        except Exception as json_error:
-                            st.warning("⚠️ Risposta non standard, ma transazione probabilmente salvata")
-                            st.info("🔍 Controlla il foglio Google Sheets")
-                    
-                    else:
-                        st.error(f"❌ Errore HTTP {response.status_code}")
-                
-                except requests.exceptions.Timeout:
-                    st.error("❌ Timeout: il server non ha risposto entro 30 secondi")
-                    st.warning("⚠️ La transazione potrebbe essere stata salvata comunque")
-                
-                except requests.exceptions.ConnectionError:
-                    st.error("❌ Errore di connessione: verifica l'URL del webhook")
-                
-                except Exception as e:
-                    st.error(f"❌ Errore imprevisto: {str(e)}")
+            with col_btn1:
+                submitted = st.form_submit_button(
+                    "💾 Salva Transazione",
+                    type="primary",
+                    use_container_width=True
+                )
+            
+            with col_btn2:
+                reset = st.form_submit_button(
+                    "🔄 Reset",
+                    use_container_width=True
+                )
+        
+        # Gestione submit
+        if submitted:
+            # Validazione
+            errors = []
+            
+            if not strumento_input:
+                errors.append("⚠️ Il campo 'Strumento' è obbligatorio")
+            
+            if pmc_input <= 0:
+                errors.append("⚠️ Il 'PMC' deve essere maggiore di 0")
+            
+            if quantita_input <= 0:
+                errors.append("⚠️ La 'Quantità' deve essere maggiore di 0")
+            
+            if tasso_cambio_input <= 0:
+                errors.append("⚠️ Il 'Tasso di Cambio' deve essere maggiore di 0")
+            
+            if errors:
+                for error in errors:
+                    st.error(error)
+            else:
+                # Crea nuova transazione
+                new_transaction = {
+                    'Data': data_input.strftime('%d/%m/%Y'),
+                    'Operazione': operazione_input,
+                    'Strumento': strumento_input,
+                    'PMC': f"{pmc_input:.4f}",
+                    'Quantità': f"{quantita_input:.4f}",
+                    'Totale': f"{totale_calcolato:.2f}",
+                    'Valuta': valuta_input,
+                    'Tasso di cambio': f"{tasso_cambio_input:.4f}",
+                    'Commissioni': f"{commissioni_input:.2f}",
+                    'Controvalore €': f"{controvalore_calcolato:.2f}",
+                    'Lungo/Breve Termine': lungo_breve,
+                    'Nome Strumento': nome_strumento
 
+                }
+                
+                # Invia al webhook
+                with st.spinner("💾 Salvataggio transazione in corso..."):
+                    success, message = append_transaction_via_webhook(new_transaction, WEBHOOK_URL)
+                
+                if success:
+                    st.success(f"✅ {message}")
+                    st.balloons()
+                    
+                    # Mostra anteprima
+                    st.markdown("### 👀 Transazione Salvata")
+                    df_preview = pd.DataFrame([new_transaction])
+                    st.dataframe(df_preview, use_container_width=True, hide_index=True)
+                    
+                    # Pulisci cache
+                    st.cache_data.clear()
+                    
+                    st.info("🔄 Torna al tab 'Visualizza Transazioni' e clicca 'Aggiorna' per vedere la nuova transazione.")
+                else:
+                    st.error(f"❌ {message}")
+                    st.warning("Verifica che l'URL del webhook sia corretto nel tab 'Configurazione'.")
+                    
+                    # Offri download CSV come fallback
+                    df_preview = pd.DataFrame([new_transaction])
+                    csv_new = df_preview.to_csv(index=False).encode('utf-8')
+                    st.download_button(
+                        label="📥 Scarica Transazione (CSV Backup)",
+                        data=csv_new,
+                        file_name=f"transazione_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                        mime="text/csv",
+                        use_container_width=True
+                    )
+        
         # Suggerimenti
         with st.expander("💡 Suggerimenti per compilare il form"):
             st.markdown("""
