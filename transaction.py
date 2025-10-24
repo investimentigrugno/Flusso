@@ -457,38 +457,57 @@ def transaction_tracker_app():
                     'Nome Strumento': nome_strumento
 
                 }
-                
+
                 # Invia al webhook
                 with st.spinner("💾 Salvataggio transazione in corso..."):
-                    success, message = append_transaction_via_webhook(new_transaction, WEBHOOK_URL)
-                
-                if success:
-                    st.success(f"✅ {message}")
-                    st.balloons()
+                    try:
+                        response = requests.post(
+                            WEBHOOK_URL,
+                            json=payload,
+                            headers={'Content-Type': 'application/json'},
+                            timeout=30  # ⭐ AUMENTA TIMEOUT A 30 SECONDI
+                        )
+                        
+                        # ⭐ DEBUG: Mostra status code ⭐
+                        st.write(f"Debug - Status Code: {response.status_code}")
+                        
+                        if response.status_code == 200:
+                            try:
+                                result = response.json()
+                                
+                                if result.get('success'):
+                                    st.success(f"✅ {result.get('message')}")
+                                    st.balloons()
+                                else:
+                                    st.error(f"❌ {result.get('message')}")
+                            
+                            except Exception as json_error:
+                                # ⭐ Se JSON non parsabile ma status 200, assume successo ⭐
+                                st.warning(f"⚠️ Risposta non standard, ma transazione probabilmente salvata")
+                                st.info("🔍 Controlla il foglio Google Sheets per verificare")
+                                st.code(response.text[:500])  # Mostra primi 500 caratteri
+                        
+                        elif response.status_code == 302:
+                            # ⭐ REDIRECT (comune con Google Apps Script) ⭐
+                            st.warning("⚠️ Il server ha effettuato un redirect. Transazione probabilmente salvata.")
+                            st.info("🔍 Controlla il foglio Google Sheets per verificare")
+                        
+                        else:
+                            st.error(f"❌ Errore HTTP {response.status_code}")
+                            st.code(response.text[:500])
                     
-                    # Mostra anteprima
-                    st.markdown("### 👀 Transazione Salvata")
-                    df_preview = pd.DataFrame([new_transaction])
-                    st.dataframe(df_preview, use_container_width=True, hide_index=True)
+                    except requests.exceptions.Timeout:
+                        st.error("❌ Timeout: il server non ha risposto entro 30 secondi")
+                        st.warning("⚠️ La transazione potrebbe essere stata salvata comunque")
+                        st.info("🔍 Controlla il foglio Google Sheets")
                     
-                    # Pulisci cache
-                    st.cache_data.clear()
+                    except requests.exceptions.ConnectionError:
+                        st.error("❌ Errore di connessione: verifica l'URL del webhook")
                     
-                    st.info("🔄 Torna al tab 'Visualizza Transazioni' e clicca 'Aggiorna' per vedere la nuova transazione.")
-                else:
-                    st.error(f"❌ {message}")
-                    st.warning("Verifica che l'URL del webhook sia corretto nel tab 'Configurazione'.")
-                    
-                    # Offri download CSV come fallback
-                    df_preview = pd.DataFrame([new_transaction])
-                    csv_new = df_preview.to_csv(index=False).encode('utf-8')
-                    st.download_button(
-                        label="📥 Scarica Transazione (CSV Backup)",
-                        data=csv_new,
-                        file_name=f"transazione_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                        mime="text/csv",
-                        use_container_width=True
-                    )
+                    except Exception as e:
+                        st.error(f"❌ Errore imprevisto: {str(e)}")
+                        st.info("🔍 Se il foglio Google Sheets è stato aggiornato, la transazione è andata a buon fine")
+
         
         # Suggerimenti
         with st.expander("💡 Suggerimenti per compilare il form"):
