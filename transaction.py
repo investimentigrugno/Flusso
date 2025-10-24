@@ -446,15 +446,13 @@ def transaction_tracker_app():
                     'Data': data_input.strftime('%d/%m/%Y'),
                     'Operazione': operazione_input,
                     'Strumento': strumento_input,
-                    'PMC': f"{pmc_input:.4f}",
-                    'Quantità': f"{quantita_input:.4f}",
-                    'Totale': f"{totale_calcolato:.2f}",
+                    'PMC': float(pmc_input),
+                    'Quantità': float(quantita_input),
+                    'Totale': float(totale_calcolato),
                     'Valuta': valuta_input,
-                    'Tasso di cambio': f"{tasso_cambio_input:.4f}",
-                    'Commissioni': f"{commissioni_input:.2f}",
-                    'Controvalore €': f"{controvalore_calcolato:.2f}",
-                    'Lungo/Breve Termine': lungo_breve,
-                    'Nome Strumento': nome_strumento
+                    'Tasso di cambio': float(tasso_cambio_input),
+                    'Commissioni': float(commissioni_input),
+                    'Controvalore €': float(controvalore_calcolato),
 
                 }
                 
