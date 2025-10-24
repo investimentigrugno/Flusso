@@ -384,7 +384,7 @@ def transaction_tracker_app():
             
             # Calcoli automatici
             totale_calcolato = pmc_input * quantita_input
-            controvalore_calcolato = totale_calcolato * tasso_cambio_input
+            controvalore_calcolato = totale_calcolato / tasso_cambio_input
             
             col_calc1, col_calc2 = st.columns(2)
             
