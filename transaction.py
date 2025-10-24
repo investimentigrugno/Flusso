@@ -422,54 +422,71 @@ def transaction_tracker_app():
         
         # Gestione submit
         if submitted:
-            # Validazione
+            # ==================== VALIDAZIONE ====================
             errors = []
             
-            if not strumento_input:
+            if not strumentoinput:
                 errors.append("⚠️ Il campo 'Strumento' è obbligatorio")
-            
-            if pmc_input <= 0:
-                errors.append("⚠️ Il 'PMC' deve essere maggiore di 0")
-            
-            if quantita_input <= 0:
-                errors.append("⚠️ La 'Quantità' deve essere maggiore di 0")
-            
-            if tasso_cambio_input <= 0:
-                errors.append("⚠️ Il 'Tasso di Cambio' deve essere maggiore di 0")
+            if pmcinput <= 0:
+                errors.append("⚠️ Il PMC deve essere maggiore di 0")
+            if quantitainput <= 0:
+                errors.append("⚠️ La Quantità deve essere maggiore di 0")
+            if tassocambioinput <= 0:
+                errors.append("⚠️ Il Tasso di Cambio deve essere maggiore di 0")
             
             if errors:
                 for error in errors:
                     st.error(error)
             else:
-                # Crea nuova transazione
-                new_transaction = {
-                    'Data': data_input.strftime('%d/%m/%Y'),
-                    'Operazione': operazione_input,
-                    'Strumento': strumento_input,
-                    'PMC': f"{pmc_input:.4f}",
-                    'Quantità': f"{quantita_input:.4f}",
-                    'Totale': f"{totale_calcolato:.2f}",
-                    'Valuta': valuta_input,
-                    'Tasso di cambio': f"{tasso_cambio_input:.4f}",
-                    'Commissioni': f"{commissioni_input:.2f}",
-                    'Controvalore €': f"{controvalore_calcolato:.2f}",
-                    'Lungo/Breve Termine': lungo_breve,
-                    'Nome Strumento': nome_strumento
-
+                # ==================== CALCOLI ====================
+                totalecalcolato = pmcinput * quantitainput
+                controvalorecalcolato = totalecalcolato / tassocambioinput
+                
+                # Mostra calcoli
+                colcalc1, colcalc2 = st.columns(2)
+                with colcalc1:
+                    st.metric(
+                        label=f"Totale calcolato (in {valutainput})", 
+                        value=f"{totalecalcolato:,.2f}",
+                        help="PMC × Quantità"
+                    )
+                with colcalc2:
+                    st.metric(
+                        label="Controvalore calcolato", 
+                        value=f"€{controvalorecalcolato:,.2f}",
+                        help="Totale / Tasso di Cambio"
+                    )
+                
+                st.markdown("---")
+                
+                # ⭐ PREPARA PAYLOAD PRIMA DI INVIARLO ⭐
+                payload = {
+                    "data": datainput.strftime('%d/%m/%Y %H.%M.%S'),
+                    "operazione": operazioneinput,
+                    "strumento": strumentoinput.upper().strip(),
+                    "pmc": pmcinput,
+                    "quantita": quantitainput,
+                    "totale": totalecalcolato,
+                    "valuta": valutainput,
+                    "tasso_cambio": tassocambioinput,
+                    "commissioni": commissioniinput,
+                    "controvalore": controvalorecalcolato,
+                    "lungo_breve": lungobreve,
+                    "nome_strumento": nomestrumento if nomestrumento else strumentoinput.upper()
                 }
-
-                # Invia al webhook
+                
+                # ⭐ INVIA AL WEBHOOK ⭐
                 with st.spinner("💾 Salvataggio transazione in corso..."):
                     try:
                         response = requests.post(
                             WEBHOOK_URL,
                             json=payload,
                             headers={'Content-Type': 'application/json'},
-                            timeout=30  # ⭐ AUMENTA TIMEOUT A 30 SECONDI
+                            timeout=30
                         )
                         
-                        # ⭐ DEBUG: Mostra status code ⭐
-                        st.write(f"Debug - Status Code: {response.status_code}")
+                        # Debug
+                        st.write(f"**Debug - Status Code:** {response.status_code}")
                         
                         if response.status_code == 200:
                             try:
@@ -478,17 +495,50 @@ def transaction_tracker_app():
                                 if result.get('success'):
                                     st.success(f"✅ {result.get('message')}")
                                     st.balloons()
+                                    
+                                    # Mostra riepilogo transazione
+                                    st.markdown("### 👀 Transazione Salvata")
+                                    
+                                    newtransaction = {
+                                        "Data": datainput.strftime('%d/%m/%Y'),
+                                        "Operazione": operazioneinput,
+                                        "Strumento": strumentoinput,
+                                        "PMC": f"{pmcinput:.4f}",
+                                        "Quantità": f"{quantitainput:.4f}",
+                                        "Totale": f"{totalecalcolato:.2f}",
+                                        "Valuta": valutainput,
+                                        "Tasso di cambio": f"{tassocambioinput:.4f}",
+                                        "Commissioni": f"{commissioniinput:.2f}",
+                                        "Controvalore": f"{controvalorecalcolato:.2f}",
+                                        "Lungo/Breve Termine": lungobreve,
+                                        "Nome Strumento": nomestrumento
+                                    }
+                                    
+                                    col_recap1, col_recap2, col_recap3 = st.columns(3)
+                                    
+                                    with col_recap1:
+                                        st.write(f"**Operazione:** {operazioneinput}")
+                                        st.write(f"**Strumento:** {strumentoinput.upper()}")
+                                        st.write(f"**Nome:** {nomestrumento if nomestrumento else '-'}")
+                                    
+                                    with col_recap2:
+                                        st.write(f"**Quantità:** {quantitainput}")
+                                        st.write(f"**Prezzo:** {pmcinput} {valutainput}")
+                                        st.write(f"**Posizione:** {lungobreve if lungobreve else '-'}")
+                                    
+                                    with col_recap3:
+                                        st.write(f"**Totale:** {totalecalcolato:,.2f} {valutainput}")
+                                        st.write(f"**Controvalore:** €{controvalorecalcolato:,.2f}")
+                                        st.write(f"**Commissioni:** €{commissioniinput:,.2f}")
                                 else:
                                     st.error(f"❌ {result.get('message')}")
                             
                             except Exception as json_error:
-                                # ⭐ Se JSON non parsabile ma status 200, assume successo ⭐
                                 st.warning(f"⚠️ Risposta non standard, ma transazione probabilmente salvata")
                                 st.info("🔍 Controlla il foglio Google Sheets per verificare")
-                                st.code(response.text[:500])  # Mostra primi 500 caratteri
+                                st.code(response.text[:500])
                         
                         elif response.status_code == 302:
-                            # ⭐ REDIRECT (comune con Google Apps Script) ⭐
                             st.warning("⚠️ Il server ha effettuato un redirect. Transazione probabilmente salvata.")
                             st.info("🔍 Controlla il foglio Google Sheets per verificare")
                         
@@ -507,6 +557,7 @@ def transaction_tracker_app():
                     except Exception as e:
                         st.error(f"❌ Errore imprevisto: {str(e)}")
                         st.info("🔍 Se il foglio Google Sheets è stato aggiornato, la transazione è andata a buon fine")
+
 
         
         # Suggerimenti
