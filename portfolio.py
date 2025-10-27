@@ -82,6 +82,7 @@ def portfolio_tracker_app():
         with st.spinner("Caricamento dati dal Google Sheet..."):
             df = load_sheet_csv(spreadsheet_id, gid_portfolio)
             df_status = load_sheet_csv(spreadsheet_id, gid_portfolio_status)
+            df_liquidity = load_sheet_csv(spreadsheet_id, gid_portfolio_status)
             df_dati = load_sheet_csv(spreadsheet_id, gid_dati)
         
         if df is None or df.empty:
@@ -90,6 +91,10 @@ def portfolio_tracker_app():
         
         if df_status is None or df_status.empty:
             st.error("❌ Impossibile caricare il foglio 'Portfolio_Status'")
+            st.stop()
+        
+        if df_liquidity is None or df_status.empty:
+            st.error("❌ Impossibile caricare il foglio 'Portfolio_Liquidity'")
             st.stop()
         
         # ==================== FILTRAGGIO BASATO SOLO SU TICKER ====================
@@ -138,8 +143,10 @@ def portfolio_tracker_app():
         
         # Carica Portfolio Status
         df_summary = df_status.iloc[0:1, :].copy().reset_index(drop=True)
-
-        df_liquidity = df_status.iloc[3:4, :].copy().reset_index(drop=True)
+        
+        df_liquidity = pd.DataFrame (
+            df_liquidity.iloc[2:3, 0:4].values,
+            columns=df_liquidity.iloc[1, 0:4].values)
         
         st.success(f"✅ Dati caricati con successo! ({len(df_filtered)} posizioni in portfolio)")
         
