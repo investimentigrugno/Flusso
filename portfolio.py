@@ -138,6 +138,8 @@ def portfolio_tracker_app():
         
         # Carica Portfolio Status
         df_summary = df_status.iloc[0:1, :].copy().reset_index(drop=True)
+
+        df_liquidity = df_status.iloc[3:4, :].copy().reset_index(drop=True)
         
         st.success(f"✅ Dati caricati con successo! ({len(df_filtered)} posizioni in portfolio)")
         
@@ -153,7 +155,10 @@ def portfolio_tracker_app():
         st.markdown("---")
         st.subheader("💼 Portfolio Status")
         st.dataframe(df_summary, use_container_width=True, hide_index=True)
-        
+
+        st.subheader("💰 Gestione liquidità")
+        st.dataframe(df_liquidity, use_container_width=True, hide_index=True)
+
         st.markdown("---")
         st.subheader("📋 Portfolio Completo")
         st.caption(f"📊 {len(df_filtered)} strumenti in portafoglio")
