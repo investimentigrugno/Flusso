@@ -32,82 +32,57 @@ def load_sheet_csv_transactions(spreadsheet_id, gid):
 def append_transaction_via_webhook(transaction_data, webhook_url):
     """
     Invia transazione al Google Apps Script webhook
-    
-    Args:
-        transaction_data: Dizionario con i dati della transazione
-        webhook_url: URL del webhook Google Apps Script
-    
-    Returns:
-        tuple: (success: bool, message: str)
     """
     try:
-        # CORREZIONE: Gestisci campi mancanti con valori di default
-        def get_value(key, default=0):
-            """Estrae valore dal dizionario in modo sicuro"""
-            return transaction_data.get(key, default)
+        # Funzione per convertire numeri con virgola (MANTIENI QUESTA)
+        def format_decimal(value):
+            """Converte numero in stringa con virgola come separatore decimale"""
+            if isinstance(value, str):
+                return value.replace('.', ',')
+            elif isinstance(value, (int, float)):
+                return str(value).replace('.', ',')
+            return value
         
-        # Prepara payload con controlli di esistenza
+        # Prepara i dati per il webhook con virgole come separatore
         payload = {
-            "data": get_value('Data', ''),
-            "operazione": get_value('Operazione', ''),
-            "strumento": str(get_value('Strumento', '')).upper().strip(),
-            "pmc": float(get_value('PMC', 0)),
-            "quantita": float(get_value('Quantità', 0)),
-            "totale": float(get_value('Totale', 0)),
-            "valuta": get_value('Valuta', 'EUR'),
-            "tasso_cambio": float(get_value('Tasso di cambio', 1.0)),
-            "commissioni": float(get_value('Commissioni', 0)),
-            "controvalore": float(get_value('Controvalore', 0)),
-            "lungo_breve": get_value('Lungo/Breve', ''),
-            "nome_strumento": get_value('Nome Strumento', get_value('Strumento', ''))
+            "data": transaction_data['Data'],
+            "operazione": transaction_data['Operazione'],
+            "strumento": transaction_data['Strumento'],
+            "pmc": format_decimal(transaction_data['PMC']),
+            "quantita": format_decimal(transaction_data['Quantità']),
+            "totale": format_decimal(transaction_data['Totale']),
+            "valuta": transaction_data['Valuta'],
+            "tasso_cambio": format_decimal(transaction_data['Tasso di cambio']),
+            "commissioni": format_decimal(transaction_data['Commissioni']),
+            "controvalore": format_decimal(transaction_data.get('Controvalore €', transaction_data.get('Controvalore', 0))),  # FIX: gestisci entrambi i nomi
+            "lungo_breve": transaction_data.get('Lungo/Breve', ''),  # FIX: campi opzionali
+            "nome_strumento": transaction_data.get('Nome Strumento', transaction_data['Strumento'])
         }
         
-        # Validazione base
-        if not payload['strumento']:
-            return False, "❌ Errore: Strumento mancante"
-        if not payload['operazione']:
-            return False, "❌ Errore: Operazione mancante"
-        if payload['pmc'] <= 0:
-            return False, "❌ Errore: PMC deve essere maggiore di 0"
-        if payload['quantita'] <= 0:
-            return False, "❌ Errore: Quantità deve essere maggiore di 0"
-        
-        # Header obbligatorio
-        headers = {
-            'Content-Type': 'application/json'
-        }
-        
-        # Invia richiesta
+        # Invia richiesta POST al webhook
         response = requests.post(
-            webhook_url, 
+            webhook_url,
             json=payload,
-            headers=headers,
-            timeout=30
+            headers={'Content-Type': 'application/json'},
+            timeout=10
         )
         
-        # Gestisci risposta
+        # Verifica la risposta
         if response.status_code == 200:
-            try:
-                result = response.json()
-                if result.get('success'):
-                    return True, result.get('message', '✅ Transazione salvata')
-                else:
-                    return False, result.get('message', '❌ Errore dal server')
-            except json.JSONDecodeError:
-                return False, f"❌ Risposta non valida: {response.text[:200]}"
+            result = response.json()
+            return result.get('success', False), result.get('message', 'Risposta sconosciuta')
         else:
-            return False, f"❌ Errore HTTP {response.status_code}: {response.text[:200]}"
+            return False, f"Errore HTTP {response.status_code}: {response.text}"
             
-    except KeyError as e:
-        return False, f"❌ Campo mancante: {str(e)}"
-    except ValueError as e:
-        return False, f"❌ Valore non valido: {str(e)}"
     except requests.exceptions.Timeout:
-        return False, "⏱️ Timeout: Il server non risponde"
+        return False, "Timeout: il server non ha risposto in tempo"
     except requests.exceptions.ConnectionError:
-        return False, "🔌 Errore di connessione: Verifica l'URL del webhook"
+        return False, "Errore di connessione: verifica l'URL del webhook"
+    except KeyError as e:
+        return False, f"❌ Errore: Campo mancante {str(e)}"  # FIX: gestisci campi mancanti
     except Exception as e:
-        return False, f"❌ Errore imprevisto: {str(e)}"
+        return False, f"Errore imprevisto: {str(e)}"
+
 
 
 
