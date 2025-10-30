@@ -41,7 +41,18 @@ def append_transaction_via_webhook(transaction_data, webhook_url):
         tuple: (success: bool, message: str)
     """
     try:
-        # CORREZIONE 1: Invia numeri veri, non stringhe
+        # Funzione per convertire numeri con virgola
+        def format_decimal(value):
+            """Converte numero in stringa con virgola come separatore decimale"""
+            if isinstance(value, str):
+                # Già stringa, sostituisci punto con virgola
+                return value.replace('.', ',')
+            elif isinstance(value, (int, float)):
+                # Converti numero in stringa con virgola
+                return str(value).replace('.', ',')
+            return value
+        
+        # Prepara i dati per il webhook con virgole come separatore
         payload = {
             "data": transaction_data['Data'],
             "operazione": transaction_data['Operazione'],
@@ -56,6 +67,7 @@ def append_transaction_via_webhook(transaction_data, webhook_url):
             "lungo_breve": transaction_data.get('Lungo/Breve', ''),
             "nome_strumento": transaction_data.get('Nome Strumento', transaction_data['Strumento'])
         }
+
         
         # CORREZIONE 2: Header Content-Type obbligatorio
         headers = {
@@ -448,18 +460,18 @@ def transaction_tracker_app():
             else:
                 # Crea nuova transazione
                 new_transaction = {
-                    'Data': data_input.strftime('%d/%m/%Y'),
-                    'Operazione': operazione_input,
-                    'Strumento': strumento_input,
-                    'PMC': float(pmc_input),
-                    'Quantità': float(quantita_input),
-                    'Totale': float(totale_calcolato),
-                    'Valuta': valuta_input,
-                    'Tasso di cambio': float(tasso_cambio_input),
-                    'Commissioni': float(commissioni_input),
-                    'Controvalore €': float(controvalore_calcolato),
-
+                    'data': data_input.strftime('%d/%m/%Y'),
+                    'operazione': operazione_input.lower(),
+                    'strumento': str(strumento_input).upper().strip(),
+                    'pmc': float(pmc_input),
+                    'quantita': float(quantita_input),
+                    'totale': float(totale_calcolato),
+                    'valuta': valuta_input,
+                    'tasso_cambio': float(tasso_cambio_input),
+                    'commissioni': float(commissioni_input),
+                    'controvalore': float(controvalore_calcolato)
                 }
+
                 
                 # Invia al webhook
                 with st.spinner("💾 Salvataggio transazione in corso..."):
