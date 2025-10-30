@@ -41,52 +41,57 @@ def append_transaction_via_webhook(transaction_data, webhook_url):
         tuple: (success: bool, message: str)
     """
     try:
-        # Funzione per convertire numeri con virgola
-        def format_decimal(value):
-            """Converte numero in stringa con virgola come separatore decimale"""
-            if isinstance(value, str):
-                # Già stringa, sostituisci punto con virgola
-                return value.replace('.', ',')
-            elif isinstance(value, (int, float)):
-                # Converti numero in stringa con virgola
-                return str(value).replace('.', ',')
-            return value
-        
-        # Prepara i dati per il webhook con virgole come separatore
+        # CORREZIONE 1: Invia numeri veri, non stringhe
         payload = {
             "data": transaction_data['Data'],
             "operazione": transaction_data['Operazione'],
-            "strumento": transaction_data['Strumento'],
-            "pmc": format_decimal(transaction_data['PMC']),
-            "quantita": format_decimal(transaction_data['Quantità']),
-            "totale": format_decimal(transaction_data['Totale']),
+            "strumento": transaction_data['Strumento'].upper().strip(),
+            "pmc": float(transaction_data['PMC']),
+            "quantita": float(transaction_data['Quantità']),
+            "totale": float(transaction_data['Totale']),
             "valuta": transaction_data['Valuta'],
-            "tasso_cambio": format_decimal(transaction_data['Tasso di cambio']),
-            "commissioni": format_decimal(transaction_data['Commissioni']),
-            "controvalore": format_decimal(transaction_data['Controvalore €'])
+            "tasso_cambio": float(transaction_data['Tasso di cambio']),
+            "commissioni": float(transaction_data.get('Commissioni', 0)),
+            "controvalore": float(transaction_data['Controvalore']),
+            "lungo_breve": transaction_data.get('Lungo/Breve', ''),
+            "nome_strumento": transaction_data.get('Nome Strumento', transaction_data['Strumento'])
         }
         
-        # Invia richiesta POST al webhook
+        # CORREZIONE 2: Header Content-Type obbligatorio
+        headers = {
+            'Content-Type': 'application/json'
+        }
+        
+        # CORREZIONE 3: Timeout e gestione errori migliore
         response = requests.post(
-            webhook_url,
-            json=payload,
-            headers={'Content-Type': 'application/json'},
-            timeout=10
+            webhook_url, 
+            json=payload,  # Usa json= invece di data=
+            headers=headers,
+            timeout=30
         )
         
-        # Verifica la risposta
+        # Log risposta per debug
+        st.write("Status Code:", response.status_code)
+        st.write("Response:", response.text)
+        
         if response.status_code == 200:
-            result = response.json()
-            return result.get('success', False), result.get('message', 'Risposta sconosciuta')
+            try:
+                result = response.json()
+                if result.get('success'):
+                    return True, result.get('message', 'Transazione salvata')
+                else:
+                    return False, result.get('message', 'Errore sconosciuto dal server')
+            except json.JSONDecodeError:
+                return False, f"Risposta non valida: {response.text}"
         else:
             return False, f"Errore HTTP {response.status_code}: {response.text}"
             
     except requests.exceptions.Timeout:
-        return False, "Timeout: il server non ha risposto in tempo"
+        return False, "⏱️ Timeout: Il server non risponde"
     except requests.exceptions.ConnectionError:
-        return False, "Errore di connessione: verifica l'URL del webhook"
+        return False, "🔌 Errore di connessione: Verifica l'URL del webhook"
     except Exception as e:
-        return False, f"Errore imprevisto: {str(e)}"
+        return False, f"❌ Errore: {str(e)}"
 
 
 def transaction_tracker_app():
