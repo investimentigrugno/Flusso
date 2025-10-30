@@ -41,57 +41,74 @@ def append_transaction_via_webhook(transaction_data, webhook_url):
         tuple: (success: bool, message: str)
     """
     try:
-        # CORREZIONE 1: Invia numeri veri, non stringhe
+        # CORREZIONE: Gestisci campi mancanti con valori di default
+        def get_value(key, default=0):
+            """Estrae valore dal dizionario in modo sicuro"""
+            return transaction_data.get(key, default)
+        
+        # Prepara payload con controlli di esistenza
         payload = {
-            "data": transaction_data['Data'],
-            "operazione": transaction_data['Operazione'],
-            "strumento": transaction_data['Strumento'].upper().strip(),
-            "pmc": float(transaction_data['PMC']),
-            "quantita": float(transaction_data['Quantità']),
-            "totale": float(transaction_data['Totale']),
-            "valuta": transaction_data['Valuta'],
-            "tasso_cambio": float(transaction_data['Tasso di cambio']),
-            "commissioni": float(transaction_data.get('Commissioni', 0)),
-            "controvalore": float(transaction_data['Controvalore']),
-            "lungo_breve": transaction_data.get('Lungo/Breve', ''),
-            "nome_strumento": transaction_data.get('Nome Strumento', transaction_data['Strumento'])
+            "data": get_value('Data', ''),
+            "operazione": get_value('Operazione', ''),
+            "strumento": str(get_value('Strumento', '')).upper().strip(),
+            "pmc": float(get_value('PMC', 0)),
+            "quantita": float(get_value('Quantità', 0)),
+            "totale": float(get_value('Totale', 0)),
+            "valuta": get_value('Valuta', 'EUR'),
+            "tasso_cambio": float(get_value('Tasso di cambio', 1.0)),
+            "commissioni": float(get_value('Commissioni', 0)),
+            "controvalore": float(get_value('Controvalore', 0)),
+            "lungo_breve": get_value('Lungo/Breve', ''),
+            "nome_strumento": get_value('Nome Strumento', get_value('Strumento', ''))
         }
         
-        # CORREZIONE 2: Header Content-Type obbligatorio
+        # Validazione base
+        if not payload['strumento']:
+            return False, "❌ Errore: Strumento mancante"
+        if not payload['operazione']:
+            return False, "❌ Errore: Operazione mancante"
+        if payload['pmc'] <= 0:
+            return False, "❌ Errore: PMC deve essere maggiore di 0"
+        if payload['quantita'] <= 0:
+            return False, "❌ Errore: Quantità deve essere maggiore di 0"
+        
+        # Header obbligatorio
         headers = {
             'Content-Type': 'application/json'
         }
         
-        # CORREZIONE 3: Timeout e gestione errori migliore
+        # Invia richiesta
         response = requests.post(
             webhook_url, 
-            json=payload,  # Usa json= invece di data=
+            json=payload,
             headers=headers,
             timeout=30
         )
         
-        # Log risposta per debug
-        st.write("Status Code:", response.status_code)
-        st.write("Response:", response.text)
-        
+        # Gestisci risposta
         if response.status_code == 200:
             try:
                 result = response.json()
                 if result.get('success'):
-                    return True, result.get('message', 'Transazione salvata')
+                    return True, result.get('message', '✅ Transazione salvata')
                 else:
-                    return False, result.get('message', 'Errore sconosciuto dal server')
+                    return False, result.get('message', '❌ Errore dal server')
             except json.JSONDecodeError:
-                return False, f"Risposta non valida: {response.text}"
+                return False, f"❌ Risposta non valida: {response.text[:200]}"
         else:
-            return False, f"Errore HTTP {response.status_code}: {response.text}"
+            return False, f"❌ Errore HTTP {response.status_code}: {response.text[:200]}"
             
+    except KeyError as e:
+        return False, f"❌ Campo mancante: {str(e)}"
+    except ValueError as e:
+        return False, f"❌ Valore non valido: {str(e)}"
     except requests.exceptions.Timeout:
         return False, "⏱️ Timeout: Il server non risponde"
     except requests.exceptions.ConnectionError:
         return False, "🔌 Errore di connessione: Verifica l'URL del webhook"
     except Exception as e:
-        return False, f"❌ Errore: {str(e)}"
+        return False, f"❌ Errore imprevisto: {str(e)}"
+
 
 
 def transaction_tracker_app():
@@ -448,16 +465,16 @@ def transaction_tracker_app():
             else:
                 # Crea nuova transazione
                 new_transaction = {
-                    'data': data_input.strftime('%d/%m/%Y'),
-                    'operazione': operazione_input.lower(),
-                    'strumento': str(strumento_input).upper().strip(),
-                    'pmc': float(pmc_input),
-                    'quantita': float(quantita_input),
-                    'totale': float(totale_calcolato),
-                    'valuta': valuta_input,
-                    'tasso_cambio': float(tasso_cambio_input),
-                    'commissioni': float(commissioni_input),
-                    'controvalore': float(controvalore_calcolato)
+                    'Data': data_input.strftime('%d/%m/%Y'),
+                    'Operazione': operazione_input.lower(),
+                    'Strumento': str(strumento_input).upper().strip(),
+                    'PMC': float(pmc_input),
+                    'Quantita': float(quantita_input),
+                    'Totale': float(totale_calcolato),
+                    'Valuta': valuta_input,
+                    'Tasso_cambio': float(tasso_cambio_input),
+                    'Commissioni': float(commissioni_input),
+                    'Controvalore': float(controvalore_calcolato)
                 }
 
                 
