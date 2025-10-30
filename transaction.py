@@ -52,19 +52,26 @@ def append_transaction_via_webhook(transaction_data, webhook_url):
                 return str(value).replace('.', ',')
             return value
         
-        # Prepara i dati per il webhook con virgole come separatore
+        # Prepara i dati per il webhook con virgole come # ⭐ CALCOLI
+        totalecalcolato = pmcinput * quantitainput
+        controvalorecalcolato = totalecalcolato / tassocambioinput
+        
+        # ⭐ PREPARA PAYLOAD - INVIA NUMERI VERI, NON STRINGHE ⭐
         payload = {
-            "data": transaction_data['Data'],
-            "operazione": transaction_data['Operazione'],
-            "strumento": transaction_data['Strumento'],
-            "pmc": format_decimal(transaction_data['PMC']),
-            "quantita": format_decimal(transaction_data['Quantità']),
-            "totale": format_decimal(transaction_data['Totale']),
-            "valuta": transaction_data['Valuta'],
-            "tasso_cambio": format_decimal(transaction_data['Tasso di cambio']),
-            "commissioni": format_decimal(transaction_data['Commissioni']),
-            "controvalore": format_decimal(transaction_data['Controvalore €'])
+            "data": datainput.strftime('%d/%m/%Y %H.%M.%S'),
+            "operazione": operazioneinput.lower(),  # Minuscolo per facilità
+            "strumento": strumentoinput.upper().strip(),
+            "pmc": pmcinput,                         # NUMERO VERO
+            "quantita": quantitainput,               # NUMERO VERO
+            "totale": totalecalcolato,               # NUMERO VERO
+            "valuta": valutainput,
+            "tasso_cambio": tassocambioinput,        # NUMERO VERO
+            "commissioni": commissioniinput,         # NUMERO VERO
+            "controvalore": controvalorecalcolato,   # NUMERO VERO
+            "lungo_breve": lungobreve,
+            "nome_strumento": nomestrumento if nomestrumento else strumentoinput.upper()
         }
+
         
         # Invia richiesta POST al webhook
         response = requests.post(
