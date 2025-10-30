@@ -444,18 +444,18 @@ def transaction_tracker_app():
             else:
                 # Crea nuova transazione
                 new_transaction = {
-                    'Data': data_input.strftime('%d/%m/%Y'),
-                    'Operazione': operazione_input,
-                    'Strumento': strumento_input,
-                    'PMC': float(pmc_input),
-                    'Quantità': float(quantita_input),
-                    'Totale': float(totale_calcolato),
-                    'Valuta': valuta_input,
-                    'Tasso di cambio': float(tasso_cambio_input),
-                    'Commissioni': float(commissioni_input),
-                    'Controvalore €': float(controvalore_calcolato),
-
+                    'data': data_input.strftime('%d/%m/%Y'),
+                    'operazione': operazione_input.lower(),
+                    'strumento': str(strumento_input).upper().strip(),
+                    'pmc': float(pmc_input),
+                    'quantita': float(quantita_input),
+                    'totale': float(totale_calcolato),
+                    'valuta': valuta_input,
+                    'tasso_cambio': float(tasso_cambio_input),
+                    'commissioni': float(commissioni_input),
+                    'controvalore': float(controvalore_calcolato)
                 }
+
                 
                 # Invia al webhook
                 with st.spinner("💾 Salvataggio transazione in corso..."):
