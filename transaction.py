@@ -41,18 +41,7 @@ def append_transaction_via_webhook(transaction_data, webhook_url):
         tuple: (success: bool, message: str)
     """
     try:
-        # Funzione per convertire numeri con virgola
-        def format_decimal(value):
-            """Converte numero in stringa con virgola come separatore decimale"""
-            if isinstance(value, str):
-                # Già stringa, sostituisci punto con virgola
-                return value.replace('.', ',')
-            elif isinstance(value, (int, float)):
-                # Converti numero in stringa con virgola
-                return str(value).replace('.', ',')
-            return value
-        
-        # Prepara i dati per il webhook con virgole come separatore
+        # CORREZIONE 1: Invia numeri veri, non stringhe
         payload = {
             "data": transaction_data['Data'],
             "operazione": transaction_data['Operazione'],
@@ -67,7 +56,6 @@ def append_transaction_via_webhook(transaction_data, webhook_url):
             "lungo_breve": transaction_data.get('Lungo/Breve', ''),
             "nome_strumento": transaction_data.get('Nome Strumento', transaction_data['Strumento'])
         }
-
         
         # CORREZIONE 2: Header Content-Type obbligatorio
         headers = {
