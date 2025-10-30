@@ -59,7 +59,7 @@ def append_transaction_via_webhook(transaction_data, webhook_url):
         # ⭐ PREPARA PAYLOAD - INVIA NUMERI VERI, NON STRINGHE ⭐
         payload = {
             "data": datainput.strftime('%d/%m/%Y %H.%M.%S'),
-            "operazione": operazioneinput.lower(),  # Minuscolo per facilità
+            "operazione": operazioneinput,  # Minuscolo per facilità
             "strumento": strumentoinput.upper().strip(),
             "pmc": pmcinput,                         # NUMERO VERO
             "quantita": quantitainput,               # NUMERO VERO
