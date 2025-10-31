@@ -94,7 +94,7 @@ def append_transaction_via_webhook(transaction_data, webhook_url):
 
 # ==================== APP PRINCIPALE ====================
 
-def main():
+def transaction_tracker_app():
     """Applicazione Transaction Tracker"""
     st.set_page_config(
         page_title="💳 Transaction Tracker",
