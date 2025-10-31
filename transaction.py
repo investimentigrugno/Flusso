@@ -520,5 +520,5 @@ def transaction_tracker_app():
                     st.error(f"❌ Errore: {str(e)}")
 
 
-if __name__ == "__main__":
-    main()
+if __name__ == "__transaction_tracker_app__":
+    transaction_tracker_app()
