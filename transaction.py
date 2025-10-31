@@ -428,7 +428,7 @@ def transaction_tracker_app():
                     # 🔧 BUG FIX 2: Nomi corretti dei campi corrispondono alla funzione
                     new_transaction = {
                         'Data': data_input.strftime('%d/%m/%Y'),
-                        'Operazione': operazione_input.lower().strip(),
+                        'Operazione': operazione_input.strip(),
                         'Strumento': str(strumento_input).upper().strip(),
                         'PMC': float(pmc_input),
                         'Quantita': float(quantita_input),  # ← Senza accento!
