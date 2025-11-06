@@ -1,6 +1,3 @@
-# screener.py - STOCK SCREENER COMPLETO E CORRETTO
-# Valuta solo nel TAB 3, TAB 1 e 2 invariate
-
 import streamlit as st
 import pandas as pd
 import time
@@ -17,6 +14,9 @@ import re
 from ai_agent import call_groq_api, escape_markdown_latex
 import yfinance as yf
 import ta
+import feedparser
+from urllib.parse import quote
+
 
 # ============================================================================
 # SEZIONE 1: FUNZIONI FORMATTAZIONE (TAB 1 e 2 - INVARIATE)
