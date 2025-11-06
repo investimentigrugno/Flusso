@@ -9,10 +9,11 @@ import webbrowser
 import numpy as np
 import requests
 import random
-from deep_translator import GoogleTranslator, single_detection
-from typing import List, Dict
+from typing import List, Dict, Tuple
 import re
 from ai_agent import call_groq_api, escape_markdown_latex
+import yfinance as yf
+
 
 def format_technical_rating(rating: float) -> str:
     """Format technical rating"""
@@ -439,6 +440,570 @@ def process_fundamental_results(df_result, symbol):
                 st.error("❌ Errore nella generazione del report AI.")
                 st.info("💡 Riprova più tardi o verifica la connessione API.")
 
+# ============================================================================
+# 1. FETCH TUTTE LE METRICHE FONDAMENTALI COMPLETE
+# ============================================================================
+
+def fetch_comprehensive_fundamentals(ticker_symbol):
+    """
+    Recupera TUTTE le metriche fondamentali necessarie per analisi DCF
+    """
+    try:
+        stock = yf.Ticker(ticker_symbol)
+
+        # Info generiche
+        info = stock.info
+
+        # Bilancio, conto economico, cash flow
+        balance_sheet = stock.balance_sheet  # Annuale
+        q_balance = stock.quarterly_balance_sheet  # Trimestrale
+        income_stmt = stock.income_stmt  # Annuale
+        q_income = stock.quarterly_income_stmt  # Trimestrale
+        cashflow = stock.cashflow  # Annuale
+        q_cashflow = stock.quarterly_cashflow  # Trimestrale
+
+        return {
+            'info': info,
+            'balance_sheet': balance_sheet,
+            'quarterly_balance': q_balance,
+            'income_stmt': income_stmt,
+            'quarterly_income': q_income,
+            'cashflow': cashflow,
+            'quarterly_cashflow': q_cashflow,
+            'ticker': stock
+        }
+    except Exception as e:
+        print(f"❌ Errore fetch dati: {e}")
+        return None
+
+# ============================================================================
+# 2. ESTRAZIONE METRICHE FONDAMENTALI CHIAVE
+# ============================================================================
+
+def extract_fundamental_metrics(data) -> Dict:
+    """
+    Estrae tutte le metriche fondamentali da yfinance
+    Per analisi completa e DCF
+    """
+
+    info = data['info']
+    income_stmt = data['income_stmt']
+    cashflow = data['cashflow']
+    balance = data['balance_sheet']
+
+    # Metriche di base
+    metrics = {
+        # ========== METRICHE DI VALUTAZIONE ==========
+        'P/E Ratio Trailing': info.get('trailingPE'),
+        'P/E Ratio Forward': info.get('forwardPE'),
+        'PEG Ratio': info.get('pegRatio'),
+        'Price/Book': info.get('priceToBook'),
+        'Price/Sales': info.get('priceToSalesTrailing12Months'),
+
+        # ========== CRESCITA ==========
+        'Revenue Growth': info.get('revenueGrowth'),
+        'Earnings Growth': info.get('earningsGrowth'),
+        'Revenue (TTM)': info.get('totalRevenue'),
+        'Earnings (TTM)': info.get('netIncomeToCommon'),
+
+        # ========== REDDITIVITÀ ==========
+        'Profit Margin': info.get('profitMargins'),
+        'Operating Margin': info.get('operatingMargins'),
+        'Gross Margin': info.get('grossMargins'),
+        'ROE': info.get('returnOnEquity'),
+        'ROA': info.get('returnOnAssets'),
+        'EBITDA': info.get('ebitda'),
+        'Operating Income': info.get('operatingIncome'),
+
+        # ========== LIQUIDITÀ E CAPITALE CIRCOLANTE ==========
+        'Current Ratio': info.get('currentRatio'),
+        'Quick Ratio': info.get('quickRatio'),
+        'Cash': info.get('totalCash'),
+        'Working Capital': info.get('workingCapital'),
+
+        # ========== DEBITO E SOLVIBILITÀ ==========
+        'Total Debt': info.get('totalDebt'),
+        'Debt/Equity': info.get('debtToEquity'),
+        'Long-term Debt': info.get('longTermDebt'),
+        'Net Debt': info.get('netDebt'),
+
+        # ========== FLUSSI DI CASSA ==========
+        'Free Cash Flow': info.get('freeCashflow'),
+        'Operating Cash Flow': info.get('operatingCashflow'),
+        'FCF Margin': info.get('freeCashflow') / info.get('totalRevenue', 1) if info.get('totalRevenue') else None,
+
+        # ========== VALUTAZIONE ENTERPRISE ==========
+        'Enterprise Value': info.get('enterpriseValue'),
+        'EV/Revenue': info.get('enterpriseToRevenue'),
+        'EV/EBITDA': info.get('enterpriseToEbitda'),
+
+        # ========== DIVIDENDI ==========
+        'Dividend Yield': info.get('dividendYield'),
+        'Payout Ratio': info.get('payoutRatio'),
+        'Dividend Rate': info.get('dividendRate'),
+
+        # ========== MARKET ==========
+        'Market Cap': info.get('marketCap'),
+        'Shares Outstanding': info.get('sharesOutstanding'),
+        'Beta': info.get('beta'),
+
+        # ========== ANALISTI ==========
+        'Target Mean Price': info.get('targetMeanPrice'),
+        'Number of Analysts': info.get('numberOfAnalysts'),
+        'Recommendation Key': info.get('recommendationKey'),
+
+        # ========== ALTRO ==========
+        'Industry': info.get('industry'),
+        'Sector': info.get('sector'),
+        'Country': info.get('country'),
+        'Currency': info.get('currency'),
+    }
+
+    return metrics
+
+# ============================================================================
+# 3. CALCOLO WACC (Weighted Average Cost of Capital)
+# ============================================================================
+
+def calculate_wacc(data, risk_free_rate=0.045, market_risk_premium=0.065) -> float:
+    """
+    Calcola WACC (Weighted Average Cost of Capital)
+    Per usare come discount rate nel DCF
+
+    Formula: WACC = (E/V × Re) + (D/V × Rd × (1 - Tc))
+
+    Dove:
+    - E = Market Value of Equity
+    - D = Market Value of Debt
+    - V = E + D
+    - Re = Cost of Equity (usando CAPM: Rf + β(Rm - Rf))
+    - Rd = Cost of Debt
+    - Tc = Corporate Tax Rate
+    """
+
+    info = data['info']
+    income = data['income_stmt']
+
+    try:
+        # 1. Calcola Cost of Equity (CAPM)
+        beta = info.get('beta', 1.0)
+        cost_of_equity = risk_free_rate + beta * market_risk_premium  # CAPM formula
+
+        # 2. Market Value di Equity
+        market_cap = info.get('marketCap', 1)
+
+        # 3. Market Value di Debt (approssimativamente Total Debt)
+        total_debt = info.get('totalDebt', 0)
+
+        # 4. Cost of Debt
+        interest_expense = income.iloc[0]['Interest Expense'] if 'Interest Expense' in income.index else 0
+        cost_of_debt = interest_expense / max(total_debt, 1)
+
+        # 5. Tax Rate
+        tax_expense = income.iloc[0]['Income Tax Expense'] if 'Income Tax Expense' in income.index else 0
+        total_income_before_tax = interest_expense + (income.iloc[0]['Net Income'] + tax_expense)
+        tax_rate = tax_expense / max(total_income_before_tax, 1)
+
+        # 6. Total Value
+        total_value = market_cap + total_debt
+
+        # 7. WACC
+        if total_value > 0:
+            wacc = (market_cap / total_value * cost_of_equity) +                    (total_debt / total_value * cost_of_debt * (1 - tax_rate))
+            return wacc
+        else:
+            return cost_of_equity
+
+    except Exception as e:
+        print(f"❌ Errore calcolo WACC: {e}")
+        return 0.10  # Default 10%
+
+# ============================================================================
+# 4. ANALISI FLUSSI DI CASSA
+# ============================================================================
+
+def analyze_cash_flows(data) -> Dict:
+    """
+    Analizza i flussi di cassa storici per proiezioni future
+    """
+
+    try:
+        cashflow = data['cashflow']
+
+        # Estrai dati ultimi 5 anni (o quanti disponibili)
+        periods = min(5, len(cashflow.columns))
+
+        cf_data = {
+            'Operating Cash Flow': [],
+            'Free Cash Flow': [],
+            'Capital Expenditures': [],
+            'Dividends Paid': [],
+            'Debt Repayment': []
+        }
+
+        for i in range(periods):
+            try:
+                # Operating Cash Flow
+                ocf = cashflow.iloc[0, i] if len(cashflow) > 0 else 0
+                cf_data['Operating Cash Flow'].append(ocf)
+
+                # Capital Expenditures (di solito riga 1)
+                capex = cashflow.iloc[1, i] if len(cashflow) > 1 else 0
+                cf_data['Capital Expenditures'].append(capex)
+
+                # Free Cash Flow = OCF - CapEx
+                fcf = ocf + capex  # CapEx è negativo
+                cf_data['Free Cash Flow'].append(fcf)
+
+                # Dividends Paid
+                divs = cashflow.iloc[3, i] if len(cashflow) > 3 else 0
+                cf_data['Dividends Paid'].append(divs)
+
+                # Debt Repayment
+                debt_rep = cashflow.iloc[5, i] if len(cashflow) > 5 else 0
+                cf_data['Debt Repayment'].append(debt_rep)
+
+            except:
+                pass
+
+        # Calcola trend e tasso di crescita
+        if len(cf_data['Free Cash Flow']) > 1:
+            fcf_list = [x for x in cf_data['Free Cash Flow'] if x != 0]
+            if len(fcf_list) > 1:
+                fcf_growth = (fcf_list[-1] / fcf_list[0]) ** (1 / (len(fcf_list) - 1)) - 1
+            else:
+                fcf_growth = 0
+        else:
+            fcf_growth = 0
+
+        return {
+            'historical_data': cf_data,
+            'average_fcf': np.mean([x for x in cf_data['Free Cash Flow'] if x != 0]) if cf_data['Free Cash Flow'] else 0,
+            'average_ocf': np.mean([x for x in cf_data['Operating Cash Flow'] if x != 0]) if cf_data['Operating Cash Flow'] else 0,
+            'average_capex': np.mean([abs(x) for x in cf_data['Capital Expenditures'] if x != 0]) if cf_data['Capital Expenditures'] else 0,
+            'fcf_growth_rate': fcf_growth,
+            'periods_available': periods
+        }
+
+    except Exception as e:
+        print(f"❌ Errore analisi cash flow: {e}")
+        return {}
+
+# ============================================================================
+# 5. MODELLO DCF (Discounted Cash Flow)
+# ============================================================================
+
+def calculate_dcf_value(data, wacc: float, 
+                       forecast_years: int = 5,
+                       terminal_growth_rate: float = 0.025) -> Dict:
+    """
+    Calcola il valore intrinseco usando DCF
+
+    Passi:
+    1. Proietta Free Cash Flow futuri (5 anni)
+    2. Calcola Terminal Value
+    3. Sconta tutti i CF al presente usando WACC
+    4. Calcola valore per azione
+    """
+
+    try:
+        info = data['info']
+        cashflow_analysis = analyze_cash_flows(data)
+
+        if not cashflow_analysis or not cashflow_analysis.get('average_fcf'):
+            return None
+
+        # 1. FCF Base (ultimo anno o media)
+        base_fcf = cashflow_analysis['average_fcf']
+        fcf_growth = cashflow_analysis['fcf_growth_rate']
+
+        # 2. Proietta FCF per i prossimi forecast_years
+        projected_fcf = []
+        for year in range(1, forecast_years + 1):
+            fcf = base_fcf * ((1 + fcf_growth) ** year)
+            projected_fcf.append(fcf)
+
+        # 3. Calcola Terminal Value (usando Gordon Growth Model)
+        terminal_fcf = projected_fcf[-1] * (1 + terminal_growth_rate)
+        terminal_value = terminal_fcf / (wacc - terminal_growth_rate)
+
+        # 4. Sconta al presente
+        pv_fcf = []
+        for year, fcf in enumerate(projected_fcf, 1):
+            pv = fcf / ((1 + wacc) ** year)
+            pv_fcf.append(pv)
+
+        # 5. Sconta Terminal Value
+        pv_terminal = terminal_value / ((1 + wacc) ** forecast_years)
+
+        # 6. Enterprise Value
+        enterprise_value = sum(pv_fcf) + pv_terminal
+
+        # 7. Equity Value = Enterprise Value - Net Debt
+        net_debt = info.get('totalDebt', 0) - info.get('totalCash', 0)
+        equity_value = enterprise_value - net_debt
+
+        # 8. Valore per azione
+        shares_out = info.get('sharesOutstanding', 1)
+        value_per_share = equity_value / shares_out
+
+        # 9. Current Price
+        current_price = info.get('currentPrice', 1)
+        upside_downside = ((value_per_share / current_price) - 1) * 100
+
+        return {
+            'base_fcf': base_fcf,
+            'fcf_growth_rate': fcf_growth,
+            'projected_fcf': projected_fcf,
+            'terminal_fcf': terminal_fcf,
+            'terminal_value': terminal_value,
+            'pv_fcf': pv_fcf,
+            'pv_terminal': pv_terminal,
+            'enterprise_value': enterprise_value,
+            'net_debt': net_debt,
+            'equity_value': equity_value,
+            'value_per_share': value_per_share,
+            'current_price': current_price,
+            'upside_downside': upside_downside,
+            'recommendation': 'BUY' if upside_downside > 15 else 'HOLD' if upside_downside > -15 else 'SELL',
+            'confidence': min(abs(upside_downside) / 50, 1.0)  # 0-1
+        }
+
+    except Exception as e:
+        print(f"❌ Errore DCF: {e}")
+        return None
+
+# ============================================================================
+# 6. ANALISI QUALITATIVA FONDAMENTALE
+# ============================================================================
+
+def qualitative_fundamental_analysis(metrics: Dict) -> Dict:
+    """
+    Analisi qualitativa basata su metriche fondamentali
+    """
+
+    analysis = {
+        'valuation_score': 0.5,
+        'growth_score': 0.5,
+        'profitability_score': 0.5,
+        'financial_health_score': 0.5,
+        'overall_score': 0.5,
+        'comments': []
+    }
+
+    # 1. VALUTAZIONE
+    pe = metrics.get('P/E Ratio Trailing')
+    pb = metrics.get('Price/Book')
+    peg = metrics.get('PEG Ratio')
+
+    if pe and pe > 0:
+        if pe < 15:
+            analysis['valuation_score'] = 0.8
+            analysis['comments'].append("✅ P/E basso: azione potenzialmente sottovalutata")
+        elif pe > 30:
+            analysis['valuation_score'] = 0.2
+            analysis['comments'].append("⚠️ P/E alto: azione potenzialmente sopravvalutata")
+        else:
+            analysis['valuation_score'] = 0.5
+
+    if peg and peg > 0:
+        if peg < 1.0:
+            analysis['valuation_score'] = max(analysis['valuation_score'], 0.7)
+            analysis['comments'].append("✅ PEG < 1.0: buon rapporto prezzo/crescita")
+
+    # 2. CRESCITA
+    rev_growth = metrics.get('Revenue Growth')
+    eps_growth = metrics.get('Earnings Growth')
+
+    if rev_growth and rev_growth > 0.10:
+        analysis['growth_score'] = 0.8
+        analysis['comments'].append(f"✅ Crescita ricavi forte: {rev_growth*100:.1f}%")
+    elif rev_growth and rev_growth < 0:
+        analysis['growth_score'] = 0.2
+        analysis['comments'].append(f"⚠️ Calo ricavi: {rev_growth*100:.1f}%")
+
+    if eps_growth and eps_growth > 0.15:
+        analysis['growth_score'] = max(analysis['growth_score'], 0.8)
+        analysis['comments'].append(f"✅ Crescita EPS forte: {eps_growth*100:.1f}%")
+
+    # 3. REDDITIVITÀ
+    margin = metrics.get('Profit Margin')
+    roe = metrics.get('ROE')
+
+    if margin and margin > 0.15:
+        analysis['profitability_score'] = 0.8
+        analysis['comments'].append(f"✅ Margine profitti alto: {margin*100:.1f}%")
+    elif margin and margin < 0:
+        analysis['profitability_score'] = 0.2
+        analysis['comments'].append(f"⚠️ Margine negativo: {margin*100:.1f}%")
+
+    if roe and roe > 0.15:
+        analysis['profitability_score'] = max(analysis['profitability_score'], 0.8)
+        analysis['comments'].append(f"✅ ROE eccellente: {roe*100:.1f}%")
+
+    # 4. SALUTE FINANZIARIA
+    debt_eq = metrics.get('Debt/Equity')
+    current_ratio = metrics.get('Current Ratio')
+
+    if debt_eq and debt_eq < 0.5:
+        analysis['financial_health_score'] = 0.8
+        analysis['comments'].append(f"✅ Leva finanziaria bassa: {debt_eq:.2f}")
+    elif debt_eq and debt_eq > 2.0:
+        analysis['financial_health_score'] = 0.2
+        analysis['comments'].append(f"⚠️ Leva finanziaria alta: {debt_eq:.2f}")
+
+    if current_ratio and current_ratio > 1.5:
+        analysis['financial_health_score'] = max(analysis['financial_health_score'], 0.8)
+        analysis['comments'].append(f"✅ Liquidità buona: Ratio {current_ratio:.2f}")
+    elif current_ratio and current_ratio < 1.0:
+        analysis['financial_health_score'] = min(analysis['financial_health_score'], 0.3)
+        analysis['comments'].append(f"⚠️ Liquidità critica: Ratio {current_ratio:.2f}")
+
+    # 5. SCORE FINALE
+    analysis['overall_score'] = np.mean([
+        analysis['valuation_score'],
+        analysis['growth_score'],
+        analysis['profitability_score'],
+        analysis['financial_health_score']
+    ])
+
+    # Rating
+    if analysis['overall_score'] >= 0.75:
+        analysis['rating'] = '🟢 STRONG BUY'
+    elif analysis['overall_score'] >= 0.60:
+        analysis['rating'] = '🟢 BUY'
+    elif analysis['overall_score'] >= 0.40:
+        analysis['rating'] = '🟡 HOLD'
+    else:
+        analysis['rating'] = '🔴 SELL'
+
+    return analysis
+
+# ============================================================================
+# 7. FUNZIONE PRINCIPALE: ANALISI FONDAMENTALE COMPLETA
+# ============================================================================
+
+def comprehensive_fundamental_analysis(ticker_symbol: str) -> Dict:
+    """
+    Esegue analisi fondamentale COMPLETA con:
+    - Tutte le metriche chiave
+    - Cash flow analysis
+    - DCF valuation
+    - Qualitative scoring
+    """
+
+    print(f"\n📊 ANALISI FONDAMENTALE COMPLETA: {ticker_symbol.upper()}")
+    print("=" * 70)
+
+    # 1. Fetch dati
+    print("\n1️⃣ Recupero dati..."  )
+    data = fetch_comprehensive_fundamentals(ticker_symbol)
+
+    if not data:
+        return None
+
+    # 2. Estrai metriche
+    print("2️⃣ Estrazione metriche...")
+    metrics = extract_fundamental_metrics(data)
+
+    # 3. Calcola WACC
+    print("3️⃣ Calcolo WACC...")
+    wacc = calculate_wacc(data)
+
+    # 4. Analisi Cash Flow
+    print("4️⃣ Analisi flussi di cassa...")
+    cf_analysis = analyze_cash_flows(data)
+
+    # 5. DCF Valuation
+    print("5️⃣ Valutazione DCF...")
+    dcf_result = calculate_dcf_value(data, wacc)
+
+    # 6. Analisi Qualitativa
+    print("6️⃣ Analisi qualitativa...")
+    qual_analysis = qualitative_fundamental_analysis(metrics)
+
+    # 7. Risultato finale
+    result = {
+        'ticker': ticker_symbol.upper(),
+        'timestamp': datetime.now().isoformat(),
+        'metrics': metrics,
+        'wacc': wacc,
+        'cash_flow_analysis': cf_analysis,
+        'dcf_valuation': dcf_result,
+        'qualitative_analysis': qual_analysis,
+    }
+
+    return result
+
+# ============================================================================
+# 8. DISPLAY FORMATTATO RISULTATI
+# ============================================================================
+
+def print_fundamental_analysis(result: Dict):
+    """
+    Stampa risultati in formato leggibile
+    """
+
+    if not result:
+        print("❌ Analisi non disponibile")
+        return
+
+    ticker = result['ticker']
+    metrics = result['metrics']
+    dcf = result['dcf_valuation']
+    qual = result['qualitative_analysis']
+
+    print(f"\n\n📊 ANALISI FONDAMENTALE COMPLETA: {ticker}")
+    print("=" * 70)
+
+    # Metriche di Valutazione
+    print("\n📈 METRICHE DI VALUTAZIONE:")
+    print(f"  P/E Trailing: {metrics.get('P/E Ratio Trailing', 'N/A')}")
+    print(f"  P/E Forward: {metrics.get('P/E Ratio Forward', 'N/A')}")
+    print(f"  PEG Ratio: {metrics.get('PEG Ratio', 'N/A')}")
+    print(f"  Price/Book: {metrics.get('Price/Book', 'N/A')}")
+
+    # Crescita
+    print("\n📊 CRESCITA:")
+    print(f"  Revenue Growth: {metrics.get('Revenue Growth', 'N/A')}")
+    print(f"  Earnings Growth: {metrics.get('Earnings Growth', 'N/A')}")
+
+    # Redditività
+    print("\n💰 REDDITIVITÀ:")
+    print(f"  Profit Margin: {metrics.get('Profit Margin', 'N/A')}")
+    print(f"  ROE: {metrics.get('ROE', 'N/A')}")
+    print(f"  ROA: {metrics.get('ROA', 'N/A')}")
+
+    # Flussi di Cassa
+    print("\n💵 FLUSSI DI CASSA:")
+    print(f"  Free Cash Flow: {metrics.get('Free Cash Flow', 'N/A')}")
+    print(f"  Operating Cash Flow: {metrics.get('Operating Cash Flow', 'N/A')}")
+    print(f"  FCF Growth: {result['cash_flow_analysis'].get('fcf_growth_rate', 'N/A')}")
+
+    # DCF
+    if dcf:
+        print("\n🎯 VALUTAZIONE DCF:")
+        print(f"  Enterprise Value: ${dcf.get('enterprise_value', 0):.2e}")
+        print(f"  Equity Value: ${dcf.get('equity_value', 0):.2e}")
+        print(f"  Value per Share: ${dcf.get('value_per_share', 0):.2f}")
+        print(f"  Current Price: ${dcf.get('current_price', 0):.2f}")
+        print(f"  Upside/Downside: {dcf.get('upside_downside', 0):.1f}%")
+        print(f"  DCF Raccomandazione: {dcf.get('recommendation', 'HOLD')}")
+
+    # Analisi Qualitativa
+    print("\n📊 ANALISI QUALITATIVA:")
+    print(f"  Rating: {qual.get('rating', 'N/A')}")
+    print(f"  Overall Score: {qual.get('overall_score', 0):.2f}/1.0")
+    print(f"  Valuation Score: {qual.get('valuation_score', 0):.2f}")
+    print(f"  Growth Score: {qual.get('growth_score', 0):.2f}")
+    print(f"  Profitability Score: {qual.get('profitability_score', 0):.2f}")
+    print(f"  Financial Health: {qual.get('financial_health_score', 0):.2f}")
+
+    print("\n📝 COMMENTI:")
+    for comment in qual.get('comments', []):
+        print(f"  {comment}")
+
+    print("\n" + "=" * 70)
 
 # ============================================================================
 # FUNZIONE PRINCIPALE PER IL MAIN
