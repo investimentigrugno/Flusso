@@ -275,28 +275,30 @@ def get_top_5_investment_picks(df):
 # ============================================================================
 
 def fetch_yfinance_data(ticker_symbol, period="1y"):
-    """Fetch dati da yfinance"""
+    """Fetch dati da yfinance + Google News RSS per notizie affidabili"""
     try:
         stock = yf.Ticker(ticker_symbol)
         hist = stock.history(period=period)
         info = stock.info
         
-        # SINTASSI CORRETTA PER NEWS
-        try:
-            news = stock.get_news(count=10)
-        except:
-            news = []
+        # Ottieni company name per le news
+        company_name = info.get('longName', info.get('shortName', ticker_symbol))
+        
+        # USA GOOGLE NEWS RSS (sempre affidabile)
+        news = fetch_google_news_rss(ticker_symbol, company_name)
         
         return {
             'history': hist, 
             'info': info, 
             'news': news, 
             'ticker': stock, 
-            'symbol': ticker_symbol
+            'symbol': ticker_symbol,
+            'company_name': company_name
         }
     except Exception as e:
         st.error(f"❌ Errore nel caricamento dati: {e}")
         return None
+
 
 
 def get_currency_symbol(ticker_data):
@@ -314,6 +316,45 @@ def get_currency_symbol(ticker_data):
         'MYR': 'RM', 'IDR': 'Rp', 'VND': '₫', 'TWD': 'NT$'
     }
     return currency_map.get(currency_code, currency_code)
+
+def fetch_google_news_rss(ticker_symbol, company_name=None):
+    """
+    Recupera notizie da Google News RSS feed
+    Più affidabile di yfinance.get_news()
+    """
+    try:
+        # Se non c'è company name, usa solo il ticker
+        if not company_name or company_name == ticker_symbol:
+            query = f"{ticker_symbol} stock"
+        else:
+            query = f"{company_name} {ticker_symbol} stock"
+        
+        # Encode query per URL
+        encoded_query = quote(query)
+        
+        # Google News RSS URL
+        rss_url = f"https://news.google.com/rss/search?q={encoded_query}&hl=en-US&gl=US&ceid=US:en"
+        
+        # Parse RSS feed
+        feed = feedparser.parse(rss_url)
+        
+        news_list = []
+        for entry in feed.entries[:10]:  # Max 10 notizie
+            news_item = {
+                'title': entry.get('title', 'N/A'),
+                'link': entry.get('link', 'N/A'),
+                'publisher': entry.get('source', {}).get('title', 'Google News'),
+                'published': entry.get('published', 'N/A'),
+                'summary': entry.get('summary', '')[:200]  # Prime 200 char
+            }
+            news_list.append(news_item)
+        
+        return news_list
+    
+    except Exception as e:
+        print(f"⚠️ Errore Google News RSS: {e}")
+        return []
+
 
 def calculate_atr(high, low, close, period=14):
     """Average True Range"""
@@ -1011,16 +1052,39 @@ def stock_screener_app():
                             st.error("❌ Errore nel calcolo dei segnali")
                         
                         # Notizie
+                        # Notizie - GOOGLE NEWS RSS
                         st.markdown("---")
-                        st.subheader("📰 Ultime Notizie")
-                        if ticker_data['news']:
-                            for i, news in enumerate(ticker_data['news'][:3], 1):
-                                with st.expander(f"📰 Notizia {i}"):
-                                    if isinstance(news, dict):
-                                        st.write(f"**Titolo:** {news.get('title', 'N/A')}")
-                                        st.write(f"**Link:** {news.get('link', 'N/A')}")
+                        st.subheader("📰 Ultime Notizie (Google News)")
+                        
+                        if ticker_data and ticker_data.get('news'):
+                            news_list = ticker_data['news']
+                            
+                            if len(news_list) > 0:
+                                st.info(f"📰 {len(news_list)} notizie trovate per {ticker_input.upper()}")
+                                
+                                # Mostra max 5 notizie
+                                for i, news_item in enumerate(news_list[:5], 1):
+                                    with st.expander(f"📰 Notizia {i}: {news_item.get('title', 'N/A')[:60]}..."):
+                                        col1, col2 = st.columns([3, 1])
+                                        
+                                        with col1:
+                                            st.markdown(f"**Titolo:** {news_item.get('title', 'N/A')}")
+                                            st.markdown(f"**Publisher:** {news_item.get('publisher', 'N/A')}")
+                                            st.markdown(f"**Pubblicato:** {news_item.get('published', 'N/A')}")
+                                            
+                                            # Summary se disponibile
+                                            summary = news_item.get('summary', '')
+                                            if summary:
+                                                st.caption(f"{summary}...")
+                                        
+                                        with col2:
+                                            link = news_item.get('link', '#')
+                                            st.link_button("📖 Leggi", link, use_container_width=True)
+                            else:
+                                st.warning(f"⚠️ Nessuna notizia trovata per {ticker_input.upper()}")
                         else:
-                            st.info("📰 Nessuna notizia disponibile")
+                            st.info("ℹ️ Nessuna notizia disponibile")
+
                         
                         # MULTI-AGENT AI ANALYSIS
                         if ticker_data and ticker_data['info'] and signal:
