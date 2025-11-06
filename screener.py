@@ -469,14 +469,7 @@ def stock_screener_app():
                 st.session_state.data = new_data
                 st.session_state.top_5_stocks = get_top_5_investment_picks(new_data)
                 
-                # Recupera e traduce notizie da Finnhub
-                st.session_state.market_news = fetch_mixed_finnhub_news(8)
-                st.session_state.last_update = datetime.now()
-                
-                news_count = len(st.session_state.market_news)
-                translated_count = sum(1 for news in st.session_state.market_news if news.get('translated', False))
-                
-                st.success(f"✅ Aggiornati {len(new_data)} titoli | 📰 {news_count} notizie ({translated_count} tradotte)")
+                st.success(f"✅ Aggiornati {len(new_data)} titoli)")
             else:
                 st.warning("⚠️ Nessun dato trovato")
     
