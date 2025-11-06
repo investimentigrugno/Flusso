@@ -40,13 +40,6 @@ except Exception as e:
     stock_ok = False
 
 try:
-    from ai_agent import ai_agent_app
-    ai_agent_ok = True
-except Exception as e:
-    st.sidebar.error(f"AI Agent error: {e}")
-    ai_agent_ok = False
-
-try:
     from decrypt import password_decryptor_app
     password_ok = True
 except Exception as e:
@@ -68,9 +61,6 @@ if proposte_ok:
 if stock_ok:
     MENU["📈 Stock Screener"] = stock_screener_app
 
-if ai_agent_ok:
-    MENU["🤖 Agente AI"] = ai_agent_app
-
 if password_ok:
     MENU["🔐 Password Decryptor"] = password_decryptor_app
 
@@ -88,7 +78,7 @@ scelta = st.sidebar.radio(
 )
 
 st.sidebar.markdown("---")
-st.sidebar.info(f"Moduli attivi: {len(MENU)}/6")
+st.sidebar.info(f"Moduli attivi: {len(MENU)}/5")
 # Info aggiuntive
 with st.sidebar.expander("ℹ️ Info App"):
     st.markdown("""
