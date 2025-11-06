@@ -356,8 +356,27 @@ def fetch_google_news_rss(ticker_symbol, company_name=None):
         return []
 
 
-def calculate_atr(high, low, close, period=14):
-    """Average True Range"""
+
+# ============================================================================
+# ANALISI TECNICA CORRETTA - CON INDICATORI CALCOLATI BENE
+# ============================================================================
+
+def calculate_sma(close, period):
+    """Simple Moving Average"""
+    try:
+        return close.rolling(window=period).mean()
+    except:
+        return None
+
+def calculate_ema(close, period):
+    """Exponential Moving Average"""
+    try:
+        return close.ewm(span=period, adjust=False).mean()
+    except:
+        return None
+
+def calculate_atr_corrected(high, low, close, period=14):
+    """Average True Range - CORRETTO"""
     try:
         tr1 = high - low
         tr2 = abs(high - close.shift())
@@ -365,113 +384,234 @@ def calculate_atr(high, low, close, period=14):
         tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
         atr = tr.rolling(window=period).mean()
         return atr
-    except:
+    except Exception as e:
+        print(f"ATR Error: {e}")
         return None
 
-def calculate_volatility(close, period=20):
-    """Volatilità storica annualizzata"""
+def calculate_rsi_corrected(close, period=14):
+    """RSI Corretto - Formula Standard"""
     try:
-        returns = close.pct_change()
-        volatility = returns.rolling(window=period).std() * np.sqrt(252)
-        return volatility
-    except:
+        delta = close.diff()
+        gain = (delta.where(delta > 0, 0)).rolling(window=period).mean()
+        loss = (-delta.where(delta < 0, 0)).rolling(window=period).mean()
+        rs = gain / loss
+        rsi = 100 - (100 / (1 + rs))
+        return rsi
+    except Exception as e:
+        print(f"RSI Error: {e}")
         return None
 
-def calculate_bollinger_bands(close, period=20, num_std=2):
-    """Bollinger Bands"""
+def calculate_macd_corrected(close, fast=12, slow=26, signal=9):
+    """MACD Corretto"""
+    try:
+        ema_fast = close.ewm(span=fast, adjust=False).mean()
+        ema_slow = close.ewm(span=slow, adjust=False).mean()
+        macd_line = ema_fast - ema_slow
+        signal_line = macd_line.ewm(span=signal, adjust=False).mean()
+        histogram = macd_line - signal_line
+        return macd_line, signal_line, histogram
+    except Exception as e:
+        print(f"MACD Error: {e}")
+        return None, None, None
+
+def calculate_bollinger_bands_corrected(close, period=20, num_std=2):
+    """Bollinger Bands Corrette"""
     try:
         sma = close.rolling(window=period).mean()
         std = close.rolling(window=period).std()
         upper_band = sma + (std * num_std)
         lower_band = sma - (std * num_std)
-        bandwidth = (upper_band - lower_band) / sma
-        return upper_band, sma, lower_band, bandwidth
-    except:
-        return None, None, None, None
+        bandwidth = ((upper_band - lower_band) / sma) * 100
+        percent_b = (close - lower_band) / (upper_band - lower_band) * 100
+        return upper_band, sma, lower_band, bandwidth, percent_b
+    except Exception as e:
+        print(f"BB Error: {e}")
+        return None, None, None, None, None
 
-def calculate_rsi(close, period=14):
-    """RSI"""
+def calculate_stochastic(high, low, close, k_period=14, d_period=3):
+    """Stochastic Oscillator"""
     try:
-        return ta.momentum.rsi(close, length=period)
-    except:
-        return None
+        lowest_low = low.rolling(window=k_period).min()
+        highest_high = high.rolling(window=k_period).max()
+        k_percent = ((close - lowest_low) / (highest_high - lowest_low)) * 100
+        d_percent = k_percent.rolling(window=d_period).mean()
+        return k_percent, d_percent
+    except Exception as e:
+        print(f"Stochastic Error: {e}")
+        return None, None
 
-def calculate_macd_diff(close, fast=12, slow=26):
-    """MACD"""
-    try:
-        return ta.trend.macd_diff(close, fast=fast, slow=slow)
-    except:
-        return None
-
-def calculate_dynamic_trading_signals(data, atr_multiplier_sl=2.0, atr_multiplier_tp=3.5):
-    """Calcola segnali trading dinamici basati su ATR"""
+def calculate_dynamic_trading_signals_corrected(data, atr_multiplier_sl=2.0, atr_multiplier_tp=3.5):
+    """
+    ANALISI TECNICA COMPLETA E CORRETTA
+    Con tutti gli indicatori calcolati bene
+    """
     try:
         close = data['Close']
         high = data['High']
         low = data['Low']
         volume = data['Volume']
-        
-        rsi = calculate_rsi(close)
-        macd = calculate_macd_diff(close)
-        atr = calculate_atr(high, low, close, period=14)
-        volatility = calculate_volatility(close, period=20)
-        bb_upper, bb_middle, bb_lower, bb_bandwidth = calculate_bollinger_bands(close)
-        
+
+        # ===== CALCOLA TUTTI GLI INDICATORI =====
+
+        # Moving Averages
+        sma20 = calculate_sma(close, 20)
+        sma50 = calculate_sma(close, 50)
+        sma200 = calculate_sma(close, 200)
+        ema12 = calculate_ema(close, 12)
+        ema26 = calculate_ema(close, 26)
+
+        # Volatilità
+        atr = calculate_atr_corrected(high, low, close, 14)
+        volatility = calculate_volatility(close, 20)
+
+        # Momentum
+        rsi = calculate_rsi_corrected(close, 14)
+        macd_line, signal_line, histogram = calculate_macd_corrected(close, 12, 26, 9)
+
+        # Bande e Support/Resistance
+        bb_upper, bb_middle, bb_lower, bb_bandwidth, percent_b = calculate_bollinger_bands_corrected(close, 20, 2)
+
+        # Stochastic
+        k_stoch, d_stoch = calculate_stochastic(high, low, close, 14, 3)
+
+        # ===== VALORI CORRENTI =====
+
         current_price = close.iloc[-1]
+        latest_sma20 = sma20.iloc[-1] if sma20 is not None else current_price
+        latest_sma50 = sma50.iloc[-1] if sma50 is not None else current_price
+        latest_sma200 = sma200.iloc[-1] if sma200 is not None else current_price
         latest_rsi = rsi.iloc[-1] if rsi is not None else 50
-        latest_macd = macd.iloc[-1] if macd is not None else 0
+        latest_macd = macd_line.iloc[-1] if macd_line is not None else 0
+        latest_signal = signal_line.iloc[-1] if signal_line is not None else 0
+        latest_histogram = histogram.iloc[-1] if histogram is not None else 0
         latest_atr = atr.iloc[-1] if atr is not None else current_price * 0.02
         latest_volatility = volatility.iloc[-1] if volatility is not None else 0.3
         latest_bb_upper = bb_upper.iloc[-1] if bb_upper is not None else current_price * 1.05
         latest_bb_lower = bb_lower.iloc[-1] if bb_lower is not None else current_price * 0.95
         latest_bb_middle = bb_middle.iloc[-1] if bb_middle is not None else current_price
-        latest_bandwidth = bb_bandwidth.iloc[-1] if bb_bandwidth is not None else 0.1
-        
+        latest_bandwidth = bb_bandwidth.iloc[-1] if bb_bandwidth is not None else 10
+        latest_percent_b = percent_b.iloc[-1] if percent_b is not None else 50
+        latest_k_stoch = k_stoch.iloc[-1] if k_stoch is not None else 50
+        latest_d_stoch = d_stoch.iloc[-1] if d_stoch is not None else 50
+
         support = latest_bb_lower
         resistance = latest_bb_upper
-        
+
         avg_volume = volume.rolling(window=20).mean().iloc[-1]
         volume_ratio = volume.iloc[-1] / avg_volume if avg_volume > 0 else 1.0
-        
-        signal = {'direction': 'HOLD', 'confidence': 0.0, 'entry_point': current_price, 'stop_loss': current_price, 'take_profit': current_price,
-                  'rsi': latest_rsi, 'macd': latest_macd, 'atr': latest_atr, 'volatility': latest_volatility * 100,
-                  'support': support, 'resistance': resistance, 'bb_bandwidth': latest_bandwidth * 100,
-                  'volume_ratio': volume_ratio, 'risk_reward_ratio': 0.0}
-        
+
+        # ===== GENERA SEGNALE =====
+
+        signal = {
+            'direction': 'HOLD',
+            'confidence': 0.0,
+            'entry_point': current_price,
+            'stop_loss': current_price,
+            'take_profit': current_price,
+            'risk_reward_ratio': 0.0,
+            'atr_percent': (latest_atr / current_price) * 100,
+            'sl_distance_percent': 0.0,
+            'tp_distance_percent': 0.0,
+            # Indicatori
+            'rsi': latest_rsi,
+            'macd_line': latest_macd,
+            'macd_signal': latest_signal,
+            'macd_histogram': latest_histogram,
+            'atr': latest_atr,
+            'volatility': latest_volatility * 100,
+            'sma20': latest_sma20,
+            'sma50': latest_sma50,
+            'sma200': latest_sma200,
+            'bb_upper': latest_bb_upper,
+            'bb_middle': latest_bb_middle,
+            'bb_lower': latest_bb_lower,
+            'bb_bandwidth': latest_bandwidth,
+            'percent_b': latest_percent_b,
+            'stoch_k': latest_k_stoch,
+            'stoch_d': latest_d_stoch,
+            'support': support,
+            'resistance': resistance,
+            'volume_ratio': volume_ratio
+        }
+
+        # ===== LOGICA BUY/SELL =====
+
         buy_conditions = 0
         buy_confidence = 0.0
-        
+
+        # RSI oversold
         if latest_rsi < 30:
             buy_conditions += 1
             buy_confidence += 0.25
+        elif latest_rsi < 40:
+            buy_confidence += 0.10
+
+        # Prezzo sotto lower BB
         if current_price <= latest_bb_lower * 1.02:
             buy_conditions += 1
             buy_confidence += 0.20
-        if latest_macd > 0:
+
+        # MACD positivo e crossover
+        if latest_macd > latest_signal:
             buy_conditions += 1
-            buy_confidence += 0.15
+            buy_confidence += 0.20
+        if latest_histogram > 0 and latest_histogram < latest_histogram if len(histogram) > 1 else False:
+            buy_confidence += 0.10
+
+        # Volume alto
         if volume_ratio > 1.2:
             buy_conditions += 1
             buy_confidence += 0.15
-        if latest_volatility < 0.5:
+
+        # Prezzo sopra SMA
+        if current_price > latest_sma50 > latest_sma200:
             buy_confidence += 0.10
-        
+
+        # Stochastic oversold
+        if latest_k_stoch < 20:
+            buy_confidence += 0.10
+
+        # Volatilità controllata
+        if latest_volatility < 0.5:
+            buy_confidence += 0.05
+
+        # ===== SELL CONDITIONS =====
+
         sell_conditions = 0
         sell_confidence = 0.0
-        
+
+        # RSI overbought
         if latest_rsi > 70:
             sell_conditions += 1
             sell_confidence += 0.25
+        elif latest_rsi > 60:
+            sell_confidence += 0.10
+
+        # Prezzo sopra upper BB
         if current_price >= latest_bb_upper * 0.98:
             sell_conditions += 1
             sell_confidence += 0.20
-        if latest_macd < 0:
+
+        # MACD negativo
+        if latest_macd < latest_signal:
+            sell_conditions += 1
+            sell_confidence += 0.20
+
+        # Volume alto
+        if volume_ratio > 1.5:
             sell_conditions += 1
             sell_confidence += 0.15
-        if volume_ratio > 1.2:
-            sell_conditions += 1
-            sell_confidence += 0.15
-        
+
+        # Prezzo sotto SMA
+        if current_price < latest_sma50:
+            sell_confidence += 0.10
+
+        # Stochastic overbought
+        if latest_k_stoch > 80:
+            sell_confidence += 0.10
+
+        # ===== DETERMINA DIREZIONE =====
+
         if buy_conditions >= 2:
             signal['direction'] = 'BUY'
             signal['confidence'] = min(buy_confidence, 0.95)
@@ -482,6 +622,7 @@ def calculate_dynamic_trading_signals(data, atr_multiplier_sl=2.0, atr_multiplie
             signal['take_profit'] = signal['entry_point'] + tp_distance
             if signal['take_profit'] > resistance:
                 signal['take_profit'] = resistance * 0.99
+
         elif sell_conditions >= 2:
             signal['direction'] = 'SELL'
             signal['confidence'] = min(sell_confidence, 0.95)
@@ -492,6 +633,7 @@ def calculate_dynamic_trading_signals(data, atr_multiplier_sl=2.0, atr_multiplie
             signal['take_profit'] = signal['entry_point'] - tp_distance
             if signal['take_profit'] < support:
                 signal['take_profit'] = support * 1.01
+
         else:
             signal['direction'] = 'HOLD'
             signal['confidence'] = 0.3
@@ -500,7 +642,9 @@ def calculate_dynamic_trading_signals(data, atr_multiplier_sl=2.0, atr_multiplie
             tp_distance = latest_atr * 2.5
             signal['stop_loss'] = current_price - sl_distance
             signal['take_profit'] = current_price + tp_distance
-        
+
+        # ===== RISK/REWARD =====
+
         if signal['direction'] == 'BUY':
             risk = signal['entry_point'] - signal['stop_loss']
             reward = signal['take_profit'] - signal['entry_point']
@@ -510,16 +654,184 @@ def calculate_dynamic_trading_signals(data, atr_multiplier_sl=2.0, atr_multiplie
         else:
             risk = abs(signal['entry_point'] - signal['stop_loss'])
             reward = abs(signal['take_profit'] - signal['entry_point'])
-        
+
         signal['risk_reward_ratio'] = reward / risk if risk > 0 else 0.0
-        signal['atr_percent'] = (latest_atr / current_price) * 100
         signal['sl_distance_percent'] = (abs(signal['entry_point'] - signal['stop_loss']) / signal['entry_point']) * 100
         signal['tp_distance_percent'] = (abs(signal['take_profit'] - signal['entry_point']) / signal['entry_point']) * 100
-        
+
         return signal
-    
+
     except Exception as e:
-        st.error(f"Errore nel calcolo dei segnali: {e}")
+        st.error(f"Errore nel calcolo dei segnali tecnici: {e}")
+        import traceback
+        traceback.print_exc()
+        return None
+
+# ============================================================================
+# ANALISI FONDAMENTALE CORRETTA - CON DCF COMPLETO
+# ============================================================================
+
+def calculate_dcf_valuation(ticker_data):
+    """
+    DCF VALUATION COMPLETO
+    Segue il metodo standard:
+    1. Stima FCF futuri
+    2. Determina WACC (tasso di sconto)
+    3. Attualizza i FCF
+    4. Calcola Terminal Value
+    5. Somma per ottenere Enterprise Value
+    """
+
+    try:
+        info = ticker_data['info']
+        cashflow = ticker_data.get('cashflow', pd.DataFrame())
+
+        # ===== 1. ESTRAI DATI STORICI =====
+
+        fcf_history = []
+        if len(cashflow) > 0:
+            # Free Cash Flow è di solito alla riga 2 (OCF - CapEx)
+            try:
+                ocf_values = cashflow.iloc[0].values[:5]  # Ultimi 5 anni
+                capex_values = cashflow.iloc[1].values[:5]
+
+                for ocf, capex in zip(ocf_values, capex_values):
+                    if pd.notna(ocf) and pd.notna(capex):
+                        fcf = ocf + capex  # CapEx è negativo, quindi si somma
+                        fcf_history.append(fcf)
+            except:
+                pass
+
+        if not fcf_history:
+            # Fallback: usa FCF da info
+            fcf_latest = info.get('freeCashflow', 0)
+            if fcf_latest:
+                fcf_history = [fcf_latest]
+
+        if not fcf_history or fcf_history[0] == 0:
+            return None
+
+        # ===== 2. CALCOLA WACC (TASSO DI SCONTO) =====
+
+        risk_free_rate = 0.045  # 4.5%
+        market_risk_premium = 0.065  # 6.5%
+        beta = info.get('beta', 1.0) or 1.0
+
+        # Cost of Equity (CAPM)
+        cost_of_equity = risk_free_rate + beta * market_risk_premium
+
+        # Market cap e Debt
+        market_cap = info.get('marketCap', 1)
+        total_debt = info.get('totalDebt', 0)
+        total_cash = info.get('totalCash', 0)
+
+        # Cost of Debt
+        try:
+            income = ticker_data.get('income_stmt', pd.DataFrame())
+            if len(income) > 0:
+                interest_exp = income.iloc[0].get('Interest Expense', 0) if 'Interest Expense' in income.index else 0
+                cost_of_debt = abs(interest_exp) / max(total_debt, 1) if total_debt > 0 else 0.05
+            else:
+                cost_of_debt = 0.05
+        except:
+            cost_of_debt = 0.05
+
+        # Tax Rate
+        try:
+            if len(income) > 0:
+                tax_exp = income.iloc[0].get('Income Tax Expense', 0) if 'Income Tax Expense' in income.index else 0
+                net_income = income.iloc[0].get('Net Income', 0) if 'Net Income' in income.index else 0
+                pretax_income = net_income + tax_exp
+                tax_rate = abs(tax_exp) / max(pretax_income, 1) if pretax_income > 0 else 0.2
+            else:
+                tax_rate = 0.2
+        except:
+            tax_rate = 0.2
+
+        # WACC Formula
+        total_value = market_cap + total_debt
+        wacc = (market_cap / total_value * cost_of_equity) + (total_debt / total_value * cost_of_debt * (1 - tax_rate))
+        wacc = max(wacc, 0.05)  # Min 5%
+
+        # ===== 3. STIMA FCF FUTURI (5 ANNI) =====
+
+        base_fcf = fcf_history[0]
+
+        # Calcola tasso di crescita storico
+        if len(fcf_history) > 1:
+            valid_fcf = [f for f in fcf_history if f > 0]
+            if len(valid_fcf) > 1:
+                growth_rate = (valid_fcf[-1] / valid_fcf[0]) ** (1 / (len(valid_fcf) - 1)) - 1
+            else:
+                growth_rate = 0.05  # Default 5%
+        else:
+            growth_rate = 0.05
+
+        # Limita growth rate
+        growth_rate = max(min(growth_rate, 0.20), -0.10)  # Tra -10% e +20%
+
+        # Proietta FCF 5 anni
+        projected_fcf = []
+        for year in range(1, 6):
+            fcf_proj = base_fcf * ((1 + growth_rate) ** year)
+            projected_fcf.append(fcf_proj)
+
+        # ===== 4. CALCOLA TERMINAL VALUE =====
+
+        terminal_growth = 0.025  # 2.5%
+        terminal_fcf = projected_fcf[-1] * (1 + terminal_growth)
+
+        if wacc > terminal_growth:
+            terminal_value = terminal_fcf / (wacc - terminal_growth)
+        else:
+            terminal_value = terminal_fcf / 0.05
+
+        # ===== 5. ATTUALIZZA AL PRESENTE =====
+
+        pv_fcf_list = []
+        for year, fcf in enumerate(projected_fcf, 1):
+            pv = fcf / ((1 + wacc) ** year)
+            pv_fcf_list.append(pv)
+
+        pv_fcf_total = sum(pv_fcf_list)
+        pv_terminal_value = terminal_value / ((1 + wacc) ** 5)
+
+        # ===== 6. CALCOLA ENTERPRISE E EQUITY VALUE =====
+
+        enterprise_value = pv_fcf_total + pv_terminal_value
+        net_debt = total_debt - total_cash
+        equity_value = enterprise_value - net_debt
+
+        shares_out = info.get('sharesOutstanding', 1)
+        intrinsic_value = equity_value / shares_out
+
+        current_price = info.get('currentPrice', 1)
+        upside_downside = ((intrinsic_value / current_price) - 1) * 100
+
+        return {
+            'intrinsic_value': intrinsic_value,
+            'current_price': current_price,
+            'upside_downside': upside_downside,
+            'enterprise_value': enterprise_value,
+            'equity_value': equity_value,
+            'terminal_value': terminal_value,
+            'pv_fcf_total': pv_fcf_total,
+            'pv_terminal': pv_terminal_value,
+            'wacc': wacc,
+            'cost_of_equity': cost_of_equity,
+            'cost_of_debt': cost_of_debt,
+            'tax_rate': tax_rate,
+            'base_fcf': base_fcf,
+            'growth_rate': growth_rate,
+            'projected_fcf': projected_fcf,
+            'terminal_fcf': terminal_fcf,
+            'recommendation': 'STRONG BUY' if upside_downside > 30 else 'BUY' if upside_downside > 15 else 'HOLD' if upside_downside > -15 else 'SELL'
+        }
+
+    except Exception as e:
+        print(f"DCF Error: {e}")
+        import traceback
+        traceback.print_exc()
         return None
 
 # ============================================================================
@@ -563,10 +875,15 @@ def generate_technical_agent_analysis(signal: dict, ticker_symbol: str) -> str:
     except Exception as e:
         return f"❌ Errore nell'analisi tecnica: {str(e)}"
 
-def generate_fundamental_agent_analysis(ticker_data: dict, ticker_symbol: str) -> str:
-    """AGENTE 2: ANALISTA FONDAMENTALE"""
+# Calcola DCF PRIMA di fare l'analisi
+dcf = calculate_dcf_valuation(ticker_data)
+
+
+def generate_fundamental_agent_analysis(ticker_ dict, ticker_symbol: str) -> str:
+    """AGENTE 2: ANALISTA FONDAMENTALE - CON DCF"""
     info = ticker_data['info']
     
+    # Parametri base
     pe = info.get('trailingPE', 'N/A')
     peg = info.get('pegRatio', 'N/A')
     pb = info.get('priceToBook', 'N/A')
@@ -581,10 +898,56 @@ def generate_fundamental_agent_analysis(ticker_data: dict, ticker_symbol: str) -
     div_yield = info.get('dividendYield', 'N/A')
     market_cap = info.get('marketCap', 'N/A')
     
+    # ===== CALCOLA DCF (NUOVA SEZIONE) =====
+    dcf = calculate_dcf_valuation(ticker_data)
+    
+    # ===== COSTRUISCI IL PROMPT CON DCF =====
+    
+    # Se DCF disponibile, aggiungi al prompt
+    if dcf:
+        dcf_section = f"""
+    
+    📊 DCF VALUATION (Discounted Cash Flow):
+    - Intrinsic Value per Share: ${dcf['intrinsic_value']:.2f}
+    - Current Market Price: ${dcf['current_price']:.2f}
+    - Upside/Downside: {dcf['upside_downside']:.1f}%
+    - Raccomandazione DCF: {dcf['recommendation']}
+    
+    📈 WACC & DISCOUNT RATE:
+    - WACC (Weighted Average Cost of Capital): {dcf['wacc']*100:.2f}%
+    - Cost of Equity (CAPM): {dcf['cost_of_equity']*100:.2f}%
+    - Cost of Debt: {dcf['cost_of_debt']*100:.2f}%
+    - Tax Rate: {dcf['tax_rate']*100:.2f}%
+    
+    💰 FREE CASH FLOW ANALYSIS:
+    - Base FCF (storico): ${dcf['base_fcf']/1e9:.2f}B
+    - Growth Rate stimato: {dcf['growth_rate']*100:.2f}%
+    - FCF Projection (5 anni):
+      • Anno 1: ${dcf['projected_fcf'][0]/1e9:.2f}B
+      • Anno 2: ${dcf['projected_fcf'][1]/1e9:.2f}B
+      • Anno 3: ${dcf['projected_fcf'][2]/1e9:.2f}B
+      • Anno 4: ${dcf['projected_fcf'][3]/1e9:.2f}B
+      • Anno 5: ${dcf['projected_fcf'][4]/1e9:.2f}B
+    
+    🎯 ENTERPRISE & EQUITY VALUE:
+    - Enterprise Value: ${dcf['enterprise_value']/1e9:.2f}B
+    - PV dei FCF (5 anni): ${dcf['pv_fcf_total']/1e9:.2f}B
+    - Terminal Value: ${dcf['terminal_value']/1e9:.2f}B
+    - PV Terminal Value: ${dcf['pv_terminal']/1e9:.2f}B
+    - Equity Value: ${dcf['equity_value']/1e9:.2f}B
+        """
+    else:
+        dcf_section = """
+    
+    📊 DCF VALUATION:
+    ⚠️ Dati insufficienti per calcolare il DCF per questo ticker.
+        """
+    
+    # Prompt completo
     prompt = f"""
     Sei un esperto di Analisi Fondamentale. Analizza il titolo {ticker_symbol}:
     
-    METRICHE DI VALUTAZIONE:
+    METRICHE DI VALUTAZIONE TRADIZIONALI:
     - P/E Ratio: {pe}
     - PEG Ratio: {peg}
     - Price/Book: {pb}
@@ -604,17 +967,21 @@ def generate_fundamental_agent_analysis(ticker_data: dict, ticker_symbol: str) -
     - Debt/Equity: {debt_equity}
     - Current Ratio: {current_ratio}
     - Dividend Yield: {div_yield}
+    {dcf_section}
     
-    Fornisci un'analisi BREVE (max 200 parole) su:
-    1. Valutazione dell'azione (sottovalutata/equa/sopravvalutata)
-    2. Salute della crescita (sostenibile?)
-    3. Solidità finanziaria e liquidità
-    4. Qualità degli utili
-    5. RATING FONDAMENTALE: Strong Buy / Buy / Hold / Sell (1 sola riga)
+    Fornisci un'analisi BREVE (max 250 parole) su:
+    1. Valutazione dell'azione secondo DCF vs multipli tradizionali
+    2. Il DCF suggerisce sottovalutazione o sopravvalutazione?
+    3. Qualità e sostenibilità dei FCF proiettati
+    4. WACC appropriato per il livello di rischio?
+    5. Confronto Intrinsic Value DCF vs Current Price
+    6. RATING FONDAMENTALE: Strong Buy / Buy / Hold / Sell (1 sola riga finale)
+    
+    Concentrati sull'analisi DCF se disponibile, altrimenti usa i multipli tradizionali.
     """
     
     try:
-        response = call_groq_api(prompt, max_tokens=400)
+        response = call_groq_api(prompt, max_tokens=500)
         return response
     except Exception as e:
         return f"❌ Errore nell'analisi fondamentale: {str(e)}"
@@ -686,12 +1053,16 @@ def generate_consensus_analysis(tech_analysis: str, fund_analysis: str, sentimen
     except Exception as e:
         return f"❌ Errore nel consenso multi-agente: {str(e)}"
 
-def display_multi_agent_analysis(ticker_data: dict, signal: dict, ticker_symbol: str):
+def display_multi_agent_analysis(ticker_ dict, signal: dict, ticker_symbol: str):
     """Visualizza analisi dei 3 agenti AI"""
     st.markdown("---")
     st.subheader("🤖 ANALISI MULTI-AGENTE AI (3 Analisti Esperti)")
     st.markdown("*3 agenti esperti si confrontano per un'analisi completa*")
     
+    # ===== CALCOLA DCF UNA VOLTA SOLA (PRIMA DI CHIAMARE GLI AGENTI) =====
+    dcf = calculate_dcf_valuation(ticker_data)
+    
+    # Info placeholder
     col_info = st.container()
     col_info.info("⏳ Generazione analisi AI in corso... (questo potrebbe richiedere 10-20 secondi)")
     
@@ -699,18 +1070,22 @@ def display_multi_agent_analysis(ticker_data: dict, signal: dict, ticker_symbol:
     placeholder_fund = st.empty()
     placeholder_sentiment = st.empty()
     
+    # Genera Analisi Tecnica
     placeholder_tech.info("🔧 Agente Tecnico: Analisi in corso...")
     tech_analysis = generate_technical_agent_analysis(signal, ticker_symbol)
     placeholder_tech.empty()
     
+    # Genera Analisi Fondamentale (ORA CON DCF)
     placeholder_fund.info("📊 Agente Fondamentale: Analisi in corso...")
     fund_analysis = generate_fundamental_agent_analysis(ticker_data, ticker_symbol)
     placeholder_fund.empty()
     
+    # Genera Analisi Sentiment
     placeholder_sentiment.info("📰 Agente News & Sentiment: Analisi in corso...")
     sentiment_analysis = generate_news_sentiment_agent_analysis(ticker_data, ticker_symbol)
     placeholder_sentiment.empty()
     
+    # Display TAB
     tab_tech, tab_fund, tab_news, tab_consensus = st.tabs([
         "🔧 Analista Tecnico",
         "📊 Analista Fondamentale",
@@ -719,31 +1094,80 @@ def display_multi_agent_analysis(ticker_data: dict, signal: dict, ticker_symbol:
     ])
     
     with tab_tech:
-        st.markdown("### 🔧 ANALISTA TECNICO - Analisi ATR, RSI, Volatilità")
+        st.markdown("### 🔧 ANALISTA TECNICO")
         st.markdown(tech_analysis)
     
     with tab_fund:
-        st.markdown("### 📊 ANALISTA FONDAMENTALE - Analisi Bilanci, DCF, Crescita")
+        st.markdown("### 📊 ANALISTA FONDAMENTALE - DCF Analysis")
+        
+        # ===== MOSTRA DCF PRIMA DELL'ANALISI AI =====
+        if dcf:
+            st.markdown("#### 💎 DCF VALUATION RESULTS")
+            
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric("Intrinsic Value", f"${dcf['intrinsic_value']:.2f}")
+            with col2:
+                st.metric("Current Price", f"${dcf['current_price']:.2f}")
+            with col3:
+                color = "🟢" if dcf['upside_downside'] > 0 else "🔴"
+                st.metric("Upside/Downside", f"{color} {dcf['upside_downside']:.1f}%")
+            
+            st.markdown(f"**DCF Recommendation:** {dcf['recommendation']}")
+            
+            with st.expander("📊 DCF Details"):
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.markdown(f"""
+                    **WACC Calculation:**
+                    - WACC: {dcf['wacc']*100:.2f}%
+                    - Cost of Equity: {dcf['cost_of_equity']*100:.2f}%
+                    - Cost of Debt: {dcf['cost_of_debt']*100:.2f}%
+                    - Tax Rate: {dcf['tax_rate']*100:.2f}%
+                    """)
+                with col2:
+                    st.markdown(f"""
+                    **Enterprise Value:**
+                    - EV: ${dcf['enterprise_value']/1e9:.2f}B
+                    - PV FCF: ${dcf['pv_fcf_total']/1e9:.2f}B
+                    - Terminal Value: ${dcf['terminal_value']/1e9:.2f}B
+                    - Equity Value: ${dcf['equity_value']/1e9:.2f}B
+                    """)
+        
+        st.markdown("---")
+        st.markdown("### 🤖 AI Analysis")
         st.markdown(fund_analysis)
     
     with tab_news:
-        st.markdown("### 📰 ANALISTA SENTIMENT - News & Market Sentiment")
+        st.markdown("### 📰 ANALISTA SENTIMENT")
         st.markdown(sentiment_analysis)
     
     with tab_consensus:
-        st.markdown("### 🎯 CONSENSO DEL TEAM - Raccomandazione Finale")
+        st.markdown("### 🎯 CONSENSO DEL TEAM")
         
         st.info("⏳ Generazione consenso multi-agente...")
         consensus = generate_consensus_analysis(tech_analysis, fund_analysis, sentiment_analysis, ticker_symbol)
         
         st.markdown(consensus)
         
+        # Download report
         full_report = f"""
 ╔════════════════════════════════════════════════════════════════╗
 ║          REPORT COMPLETO MULTI-AGENTE AI - {ticker_symbol}         ║
 ╚════════════════════════════════════════════════════════════════╝
 
 DATA ANALISI: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}
+
+────────────────────────────────────────────────────────────────
+DCF VALUATION SUMMARY
+────────────────────────────────────────────────────────────────
+{f'''
+Intrinsic Value: ${dcf['intrinsic_value']:.2f}
+Current Price: ${dcf['current_price']:.2f}
+Upside/Downside: {dcf['upside_downside']:.1f}%
+WACC: {dcf['wacc']*100:.2f}%
+Recommendation: {dcf['recommendation']}
+''' if dcf else 'DCF non disponibile'}
 
 ────────────────────────────────────────────────────────────────
 1️⃣ ANALISTA TECNICO
