@@ -722,288 +722,288 @@ def stock_screener_app():
                         else:
                             st.info("📰 Nessuna notizia disponibile")
                         
-                        # ============================================================
-                        # MULTI-AGENT AI ANALYSIS - INSERIRE QUI
-                        # ============================================================
-                        
-                        # ============================================================================
-                        # SEZIONE: 3 AGENTI AI CHE SI CONFRONTANO - MULTI-AGENT ANALYSIS
-                        # ============================================================================
-                        
-                        def generate_technical_agent_analysis(signal: dict, ticker_symbol: str) -> str:
-                            """
-                            AGENTE 1: ANALISTA TECNICO
-                            Analizza indicatori tecnici, volatilità, trends
-                            """
-                            prompt = f"""
-                            Sei un esperto di Analisi Tecnica. Analizza il seguente titolo {ticker_symbol}:
+                            # ============================================================
+                            # MULTI-AGENT AI ANALYSIS - INSERIRE QUI
+                            # ============================================================
                             
-                            DATI TECNICI:
-                            - Segnale: {signal['direction']}
-                            - Confidenza: {signal['confidence']*100:.0f}%
-                            - Prezzo: ${signal['entry_point']:.2f}
-                            - RSI: {signal['rsi']:.1f}
-                            - MACD: {signal['macd']:.4f}
-                            - ATR (Volatilità): ${signal['atr']:.2f} ({signal['atr_percent']:.2f}%)
-                            - Volatilità Annualizzata: {signal['volatility']:.1f}%
-                            - Support: ${signal['support']:.2f}
-                            - Resistance: ${signal['resistance']:.2f}
-                            - Volume Ratio: {signal['volume_ratio']:.2f}x
-                            - Risk/Reward: 1:{signal['risk_reward_ratio']:.2f}
+                            # ============================================================================
+                            # SEZIONE: 3 AGENTI AI CHE SI CONFRONTANO - MULTI-AGENT ANALYSIS
+                            # ============================================================================
                             
-                            LIVELLI DI TRADING (Basati su ATR):
-                            - Entry: ${signal['entry_point']:.2f}
-                            - Stop Loss: ${signal['stop_loss']:.2f} (-{signal['sl_distance_percent']:.2f}%)
-                            - Take Profit: ${signal['take_profit']:.2f} (+{signal['tp_distance_percent']:.2f}%)
+                            def generate_technical_agent_analysis(signal: dict, ticker_symbol: str) -> str:
+                                """
+                                AGENTE 1: ANALISTA TECNICO
+                                Analizza indicatori tecnici, volatilità, trends
+                                """
+                                prompt = f"""
+                                Sei un esperto di Analisi Tecnica. Analizza il seguente titolo {ticker_symbol}:
+                                
+                                DATI TECNICI:
+                                - Segnale: {signal['direction']}
+                                - Confidenza: {signal['confidence']*100:.0f}%
+                                - Prezzo: ${signal['entry_point']:.2f}
+                                - RSI: {signal['rsi']:.1f}
+                                - MACD: {signal['macd']:.4f}
+                                - ATR (Volatilità): ${signal['atr']:.2f} ({signal['atr_percent']:.2f}%)
+                                - Volatilità Annualizzata: {signal['volatility']:.1f}%
+                                - Support: ${signal['support']:.2f}
+                                - Resistance: ${signal['resistance']:.2f}
+                                - Volume Ratio: {signal['volume_ratio']:.2f}x
+                                - Risk/Reward: 1:{signal['risk_reward_ratio']:.2f}
+                                
+                                LIVELLI DI TRADING (Basati su ATR):
+                                - Entry: ${signal['entry_point']:.2f}
+                                - Stop Loss: ${signal['stop_loss']:.2f} (-{signal['sl_distance_percent']:.2f}%)
+                                - Take Profit: ${signal['take_profit']:.2f} (+{signal['tp_distance_percent']:.2f}%)
+                                
+                                Fornisci un'analisi BREVE (max 200 parole) su:
+                                1. Interpretazione del segnale tecnico
+                                2. Qualità della volatilità (controllata? Eccessiva?)
+                                3. Valutazione del Risk/Reward
+                                4. Raccomandazione su Entry/Exit
+                                5. RATING TECNICO: Strong Buy / Buy / Hold / Sell (1 sola riga)
+                                """
+                                
+                                try:
+                                    response = call_groq_api(prompt, max_tokens=400)
+                                    return response
+                                except Exception as e:
+                                    return f"❌ Errore nell'analisi tecnica: {str(e)}"
                             
-                            Fornisci un'analisi BREVE (max 200 parole) su:
-                            1. Interpretazione del segnale tecnico
-                            2. Qualità della volatilità (controllata? Eccessiva?)
-                            3. Valutazione del Risk/Reward
-                            4. Raccomandazione su Entry/Exit
-                            5. RATING TECNICO: Strong Buy / Buy / Hold / Sell (1 sola riga)
-                            """
+                            def generate_fundamental_agent_analysis(ticker_ dict, ticker_symbol: str) -> str:
+                                """
+                                AGENTE 2: ANALISTA FONDAMENTALE
+                                Analizza metriche fondamentali, crescita, solidità finanziaria
+                                """
+                                info = ticker_data['info']
+                                
+                                pe = info.get('trailingPE', 'N/A')
+                                peg = info.get('pegRatio', 'N/A')
+                                pb = info.get('priceToBook', 'N/A')
+                                roe = info.get('returnOnEquity', 'N/A')
+                                roa = info.get('returnOnAssets', 'N/A')
+                                profit_margin = info.get('profitMargins', 'N/A')
+                                rev_growth = info.get('revenueGrowth', 'N/A')
+                                eps_growth = info.get('earningsGrowth', 'N/A')
+                                fcf = info.get('freeCashflow', 'N/A')
+                                debt_equity = info.get('debtToEquity', 'N/A')
+                                current_ratio = info.get('currentRatio', 'N/A')
+                                div_yield = info.get('dividendYield', 'N/A')
+                                market_cap = info.get('marketCap', 'N/A')
+                                
+                                prompt = f"""
+                                Sei un esperto di Analisi Fondamentale. Analizza il titolo {ticker_symbol}:
+                                
+                                METRICHE DI VALUTAZIONE:
+                                - P/E Ratio: {pe}
+                                - PEG Ratio: {peg}
+                                - Price/Book: {pb}
+                                - Market Cap: {market_cap}
+                                
+                                REDDITIVITÀ:
+                                - ROE: {roe}
+                                - ROA: {roa}
+                                - Profit Margin: {profit_margin}
+                                
+                                CRESCITA:
+                                - Revenue Growth: {rev_growth}
+                                - EPS Growth: {eps_growth}
+                                - Free Cash Flow: {fcf}
+                                
+                                SOLIDITÀ FINANZIARIA:
+                                - Debt/Equity: {debt_equity}
+                                - Current Ratio: {current_ratio}
+                                - Dividend Yield: {div_yield}
+                                
+                                Fornisci un'analisi BREVE (max 200 parole) su:
+                                1. Valutazione dell'azione (sottovalutata/equa/sopravvalutata)
+                                2. Salute della crescita (sostenibile?)
+                                3. Solidità finanziaria e liquidità
+                                4. Qualità degli utili
+                                5. RATING FONDAMENTALE: Strong Buy / Buy / Hold / Sell (1 sola riga)
+                                """
+                                
+                                try:
+                                    response = call_groq_api(prompt, max_tokens=400)
+                                    return response
+                                except Exception as e:
+                                    return f"❌ Errore nell'analisi fondamentale: {str(e)}"
                             
-                            try:
-                                response = call_groq_api(prompt, max_tokens=400)
-                                return response
-                            except Exception as e:
-                                return f"❌ Errore nell'analisi tecnica: {str(e)}"
-                        
-                        def generate_fundamental_agent_analysis(ticker_ dict, ticker_symbol: str) -> str:
-                            """
-                            AGENTE 2: ANALISTA FONDAMENTALE
-                            Analizza metriche fondamentali, crescita, solidità finanziaria
-                            """
-                            info = ticker_data['info']
+                            def generate_news_sentiment_agent_analysis(ticker_ dict, ticker_symbol: str) -> str:
+                                """
+                                AGENTE 3: ANALISTA NEWS & SENTIMENT
+                                Analizza ultime notizie e sentiment di mercato
+                                """
+                                news_list = ticker_data.get('news', [])
+                                
+                                news_text = ""
+                                if news_list:
+                                    for i, news in enumerate(news_list[:5], 1):
+                                        if isinstance(news, dict):
+                                            title = news.get('title', 'N/A')
+                                            news_text += f"{i}. {title}\n"
+                                else:
+                                    news_text = "Nessuna notizia disponibile"
+                                
+                                prompt = f"""
+                                Sei un esperto di Market Sentiment e News Analysis. Analizza le ultime notizie su {ticker_symbol}:
+                                
+                                ULTIME NOTIZIE:
+                                {news_text}
+                                
+                                Fornisci un'analisi BREVE (max 200 parole) su:
+                                1. Sentiment generale delle notizie (Positivo/Neutro/Negativo)
+                                2. Impatto sulle prospettive dell'azienda
+                                3. Fattori di rischio evidenti
+                                4. Catalizzatori positivi o negativi
+                                5. RATING SENTIMENT: Strong Buy / Buy / Hold / Sell (1 sola riga)
+                                
+                                Sii conciso e pratico, focalizzati sugli aspetti rilevanti per il trading a 2-4 settimane.
+                                """
+                                
+                                try:
+                                    response = call_groq_api(prompt, max_tokens=400)
+                                    return response
+                                except Exception as e:
+                                    return f"❌ Errore nell'analisi sentiment: {str(e)}"
                             
-                            pe = info.get('trailingPE', 'N/A')
-                            peg = info.get('pegRatio', 'N/A')
-                            pb = info.get('priceToBook', 'N/A')
-                            roe = info.get('returnOnEquity', 'N/A')
-                            roa = info.get('returnOnAssets', 'N/A')
-                            profit_margin = info.get('profitMargins', 'N/A')
-                            rev_growth = info.get('revenueGrowth', 'N/A')
-                            eps_growth = info.get('earningsGrowth', 'N/A')
-                            fcf = info.get('freeCashflow', 'N/A')
-                            debt_equity = info.get('debtToEquity', 'N/A')
-                            current_ratio = info.get('currentRatio', 'N/A')
-                            div_yield = info.get('dividendYield', 'N/A')
-                            market_cap = info.get('marketCap', 'N/A')
+                            def generate_consensus_analysis(tech_analysis: str, fund_analysis: str, sentiment_analysis: str, ticker_symbol: str) -> str:
+                                """
+                                CONSENSO MULTI-AGENTE
+                                I 3 agenti si confrontano e generano una raccomandazione finale
+                                """
+                                prompt = f"""
+                                Sei il MODERATORE di un team di 3 analisti esperti che si confrontano su {ticker_symbol}.
+                                
+                                ANALISI TECNICA (Agente 1):
+                                {tech_analysis}
+                                
+                                ANALISI FONDAMENTALE (Agente 2):
+                                {fund_analysis}
+                                
+                                SENTIMENT NOTIZIE (Agente 3):
+                                {sentiment_analysis}
+                                
+                                TASK:
+                                1. Riassumi il consenso del team su {ticker_symbol}
+                                2. Evidenzia dove gli agenti CONCORDANO e dove DISCORDANO
+                                3. Identifica il fattore più critico
+                                4. Valuta la coerenza tra i tre pareri
+                                5. Genera RACCOMANDAZIONE FINALE: Strong Buy / Buy / Hold / Sell
+                                6. Spiega il confidence level (0-100%)
+                                7. Rischi principali e opportunità
+                                
+                                Formato CONCISO (max 300 parole). Usa tone professionale e dati-driven.
+                                """
+                                
+                                try:
+                                    response = call_groq_api(prompt, max_tokens=600)
+                                    return response
+                                except Exception as e:
+                                    return f"❌ Errore nel consenso multi-agente: {str(e)}"
                             
-                            prompt = f"""
-                            Sei un esperto di Analisi Fondamentale. Analizza il titolo {ticker_symbol}:
+                            def display_multi_agent_analysis(ticker_ dict, signal: dict, ticker_symbol: str):
+                                """
+                                Visualizza l'analisi dei 3 agenti AI in Streamlit
+                                """
+                                st.markdown("---")
+                                st.subheader("🤖 ANALISI MULTI-AGENTE AI (3 Analisti Esperti)")
+                                st.markdown("*3 agenti esperti si confrontano per un'analisi completa*")
+                                
+                                col_info = st.container()
+                                col_info.info("⏳ Generazione analisi AI in corso... (questo potrebbe richiedere 10-20 secondi)")
+                                
+                                placeholder_tech = st.empty()
+                                placeholder_fund = st.empty()
+                                placeholder_sentiment = st.empty()
+                                
+                                placeholder_tech.info("🔧 Agente Tecnico: Analisi in corso...")
+                                tech_analysis = generate_technical_agent_analysis(signal, ticker_symbol)
+                                placeholder_tech.empty()
+                                
+                                placeholder_fund.info("📊 Agente Fondamentale: Analisi in corso...")
+                                fund_analysis = generate_fundamental_agent_analysis(ticker_data, ticker_symbol)
+                                placeholder_fund.empty()
+                                
+                                placeholder_sentiment.info("📰 Agente News & Sentiment: Analisi in corso...")
+                                sentiment_analysis = generate_news_sentiment_agent_analysis(ticker_data, ticker_symbol)
+                                placeholder_sentiment.empty()
+                                
+                                tab_tech, tab_fund, tab_news, tab_consensus = st.tabs([
+                                    "🔧 Analista Tecnico",
+                                    "📊 Analista Fondamentale",
+                                    "📰 Sentiment & News",
+                                    "🎯 Consenso Finale"
+                                ])
+                                
+                                with tab_tech:
+                                    st.markdown("### 🔧 ANALISTA TECNICO - Analisi ATR, RSI, Volatilità")
+                                    st.markdown(tech_analysis)
+                                
+                                with tab_fund:
+                                    st.markdown("### 📊 ANALISTA FONDAMENTALE - Analisi Bilanci, DCF, Crescita")
+                                    st.markdown(fund_analysis)
+                                
+                                with tab_news:
+                                    st.markdown("### 📰 ANALISTA SENTIMENT - News & Market Sentiment")
+                                    st.markdown(sentiment_analysis)
+                                
+                                with tab_consensus:
+                                    st.markdown("### 🎯 CONSENSO DEL TEAM - Raccomandazione Finale")
+                                    
+                                    st.info("⏳ Generazione consenso multi-agente...")
+                                    consensus = generate_consensus_analysis(tech_analysis, fund_analysis, sentiment_analysis, ticker_symbol)
+                                    
+                                    st.markdown(consensus)
+                                    
+                                    full_report = f"""
+                            ╔════════════════════════════════════════════════════════════════╗
+                            ║          REPORT COMPLETO MULTI-AGENTE AI - {ticker_symbol}         ║
+                            ╚════════════════════════════════════════════════════════════════╝
                             
-                            METRICHE DI VALUTAZIONE:
-                            - P/E Ratio: {pe}
-                            - PEG Ratio: {peg}
-                            - Price/Book: {pb}
-                            - Market Cap: {market_cap}
+                            DATA ANALISI: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}
                             
-                            REDDITIVITÀ:
-                            - ROE: {roe}
-                            - ROA: {roa}
-                            - Profit Margin: {profit_margin}
-                            
-                            CRESCITA:
-                            - Revenue Growth: {rev_growth}
-                            - EPS Growth: {eps_growth}
-                            - Free Cash Flow: {fcf}
-                            
-                            SOLIDITÀ FINANZIARIA:
-                            - Debt/Equity: {debt_equity}
-                            - Current Ratio: {current_ratio}
-                            - Dividend Yield: {div_yield}
-                            
-                            Fornisci un'analisi BREVE (max 200 parole) su:
-                            1. Valutazione dell'azione (sottovalutata/equa/sopravvalutata)
-                            2. Salute della crescita (sostenibile?)
-                            3. Solidità finanziaria e liquidità
-                            4. Qualità degli utili
-                            5. RATING FONDAMENTALE: Strong Buy / Buy / Hold / Sell (1 sola riga)
-                            """
-                            
-                            try:
-                                response = call_groq_api(prompt, max_tokens=400)
-                                return response
-                            except Exception as e:
-                                return f"❌ Errore nell'analisi fondamentale: {str(e)}"
-                        
-                        def generate_news_sentiment_agent_analysis(ticker_ dict, ticker_symbol: str) -> str:
-                            """
-                            AGENTE 3: ANALISTA NEWS & SENTIMENT
-                            Analizza ultime notizie e sentiment di mercato
-                            """
-                            news_list = ticker_data.get('news', [])
-                            
-                            news_text = ""
-                            if news_list:
-                                for i, news in enumerate(news_list[:5], 1):
-                                    if isinstance(news, dict):
-                                        title = news.get('title', 'N/A')
-                                        news_text += f"{i}. {title}\n"
-                            else:
-                                news_text = "Nessuna notizia disponibile"
-                            
-                            prompt = f"""
-                            Sei un esperto di Market Sentiment e News Analysis. Analizza le ultime notizie su {ticker_symbol}:
-                            
-                            ULTIME NOTIZIE:
-                            {news_text}
-                            
-                            Fornisci un'analisi BREVE (max 200 parole) su:
-                            1. Sentiment generale delle notizie (Positivo/Neutro/Negativo)
-                            2. Impatto sulle prospettive dell'azienda
-                            3. Fattori di rischio evidenti
-                            4. Catalizzatori positivi o negativi
-                            5. RATING SENTIMENT: Strong Buy / Buy / Hold / Sell (1 sola riga)
-                            
-                            Sii conciso e pratico, focalizzati sugli aspetti rilevanti per il trading a 2-4 settimane.
-                            """
-                            
-                            try:
-                                response = call_groq_api(prompt, max_tokens=400)
-                                return response
-                            except Exception as e:
-                                return f"❌ Errore nell'analisi sentiment: {str(e)}"
-                        
-                        def generate_consensus_analysis(tech_analysis: str, fund_analysis: str, sentiment_analysis: str, ticker_symbol: str) -> str:
-                            """
-                            CONSENSO MULTI-AGENTE
-                            I 3 agenti si confrontano e generano una raccomandazione finale
-                            """
-                            prompt = f"""
-                            Sei il MODERATORE di un team di 3 analisti esperti che si confrontano su {ticker_symbol}.
-                            
-                            ANALISI TECNICA (Agente 1):
+                            ────────────────────────────────────────────────────────────────
+                            1️⃣ ANALISTA TECNICO
+                            ────────────────────────────────────────────────────────────────
                             {tech_analysis}
                             
-                            ANALISI FONDAMENTALE (Agente 2):
+                            ────────────────────────────────────────────────────────────────
+                            2️⃣ ANALISTA FONDAMENTALE
+                            ────────────────────────────────────────────────────────────────
                             {fund_analysis}
                             
-                            SENTIMENT NOTIZIE (Agente 3):
+                            ────────────────────────────────────────────────────────────────
+                            3️⃣ ANALISTA SENTIMENT & NEWS
+                            ────────────────────────────────────────────────────────────────
                             {sentiment_analysis}
                             
-                            TASK:
-                            1. Riassumi il consenso del team su {ticker_symbol}
-                            2. Evidenzia dove gli agenti CONCORDANO e dove DISCORDANO
-                            3. Identifica il fattore più critico
-                            4. Valuta la coerenza tra i tre pareri
-                            5. Genera RACCOMANDAZIONE FINALE: Strong Buy / Buy / Hold / Sell
-                            6. Spiega il confidence level (0-100%)
-                            7. Rischi principali e opportunità
+                            ────────────────────────────────────────────────────────────────
+                            🎯 CONSENSO MULTI-AGENTE (RACCOMANDAZIONE FINALE)
+                            ────────────────────────────────────────────────────────────────
+                            {consensus}
                             
-                            Formato CONCISO (max 300 parole). Usa tone professionale e dati-driven.
+                            ════════════════════════════════════════════════════════════════
+                            Fine Report
+                            ════════════════════════════════════════════════════════════════
                             """
+                                    
+                                    st.download_button(
+                                        label="📥 Scarica Report Completo Multi-Agente",
+                                        data=full_report,
+                                        file_name=f"Multi_Agent_Report_{ticker_symbol}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
+                                        mime="text/plain",
+                                        use_container_width=True
+                                    )
                             
-                            try:
-                                response = call_groq_api(prompt, max_tokens=600)
-                                return response
-                            except Exception as e:
-                                return f"❌ Errore nel consenso multi-agente: {str(e)}"
-                        
-                        def display_multi_agent_analysis(ticker_ dict, signal: dict, ticker_symbol: str):
-                            """
-                            Visualizza l'analisi dei 3 agenti AI in Streamlit
-                            """
-                            st.markdown("---")
-                            st.subheader("🤖 ANALISI MULTI-AGENTE AI (3 Analisti Esperti)")
-                            st.markdown("*3 agenti esperti si confrontano per un'analisi completa*")
+                            # ============================================================================
+                            # CHIAMATA MULTI-AGENTE - INSERIRE DOPO LE NOTIZIE
+                            # ============================================================================
                             
-                            col_info = st.container()
-                            col_info.info("⏳ Generazione analisi AI in corso... (questo potrebbe richiedere 10-20 secondi)")
+                            # AGGIUNGI QUESTA CHIAMATA SUBITO PRIMA DEL "DISCLAIMER":
+                            if ticker_data and ticker_data['info'] and signal:
+                                display_multi_agent_analysis(ticker_data, signal, ticker_input.upper())
                             
-                            placeholder_tech = st.empty()
-                            placeholder_fund = st.empty()
-                            placeholder_sentiment = st.empty()
-                            
-                            placeholder_tech.info("🔧 Agente Tecnico: Analisi in corso...")
-                            tech_analysis = generate_technical_agent_analysis(signal, ticker_symbol)
-                            placeholder_tech.empty()
-                            
-                            placeholder_fund.info("📊 Agente Fondamentale: Analisi in corso...")
-                            fund_analysis = generate_fundamental_agent_analysis(ticker_data, ticker_symbol)
-                            placeholder_fund.empty()
-                            
-                            placeholder_sentiment.info("📰 Agente News & Sentiment: Analisi in corso...")
-                            sentiment_analysis = generate_news_sentiment_agent_analysis(ticker_data, ticker_symbol)
-                            placeholder_sentiment.empty()
-                            
-                            tab_tech, tab_fund, tab_news, tab_consensus = st.tabs([
-                                "🔧 Analista Tecnico",
-                                "📊 Analista Fondamentale",
-                                "📰 Sentiment & News",
-                                "🎯 Consenso Finale"
-                            ])
-                            
-                            with tab_tech:
-                                st.markdown("### 🔧 ANALISTA TECNICO - Analisi ATR, RSI, Volatilità")
-                                st.markdown(tech_analysis)
-                            
-                            with tab_fund:
-                                st.markdown("### 📊 ANALISTA FONDAMENTALE - Analisi Bilanci, DCF, Crescita")
-                                st.markdown(fund_analysis)
-                            
-                            with tab_news:
-                                st.markdown("### 📰 ANALISTA SENTIMENT - News & Market Sentiment")
-                                st.markdown(sentiment_analysis)
-                            
-                            with tab_consensus:
-                                st.markdown("### 🎯 CONSENSO DEL TEAM - Raccomandazione Finale")
-                                
-                                st.info("⏳ Generazione consenso multi-agente...")
-                                consensus = generate_consensus_analysis(tech_analysis, fund_analysis, sentiment_analysis, ticker_symbol)
-                                
-                                st.markdown(consensus)
-                                
-                                full_report = f"""
-                        ╔════════════════════════════════════════════════════════════════╗
-                        ║          REPORT COMPLETO MULTI-AGENTE AI - {ticker_symbol}         ║
-                        ╚════════════════════════════════════════════════════════════════╝
-                        
-                        DATA ANALISI: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}
-                        
-                        ────────────────────────────────────────────────────────────────
-                        1️⃣ ANALISTA TECNICO
-                        ────────────────────────────────────────────────────────────────
-                        {tech_analysis}
-                        
-                        ────────────────────────────────────────────────────────────────
-                        2️⃣ ANALISTA FONDAMENTALE
-                        ────────────────────────────────────────────────────────────────
-                        {fund_analysis}
-                        
-                        ────────────────────────────────────────────────────────────────
-                        3️⃣ ANALISTA SENTIMENT & NEWS
-                        ────────────────────────────────────────────────────────────────
-                        {sentiment_analysis}
-                        
-                        ────────────────────────────────────────────────────────────────
-                        🎯 CONSENSO MULTI-AGENTE (RACCOMANDAZIONE FINALE)
-                        ────────────────────────────────────────────────────────────────
-                        {consensus}
-                        
-                        ════════════════════════════════════════════════════════════════
-                        Fine Report
-                        ════════════════════════════════════════════════════════════════
-                        """
-                                
-                                st.download_button(
-                                    label="📥 Scarica Report Completo Multi-Agente",
-                                    data=full_report,
-                                    file_name=f"Multi_Agent_Report_{ticker_symbol}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
-                                    mime="text/plain",
-                                    use_container_width=True
-                                )
-                        
-                        # ============================================================================
-                        # CHIAMATA MULTI-AGENTE - INSERIRE DOPO LE NOTIZIE
-                        # ============================================================================
-                        
-                        # AGGIUNGI QUESTA CHIAMATA SUBITO PRIMA DEL "DISCLAIMER":
-                        if ticker_data and ticker_data['info'] and signal:
-                            display_multi_agent_analysis(ticker_data, signal, ticker_input.upper())
-                        
                         st.info("⚠️ Disclaimer: Questa analisi è solo a scopo educativo. Non è consulenza finanziaria.")
                     else:
                         st.error(f"❌ Impossibile recuperare dati per {ticker_input.upper()}")
