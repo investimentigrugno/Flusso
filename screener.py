@@ -647,11 +647,11 @@ def stock_screener_app():
                         
                         col1, col2, col3, col4, col5 = st.columns(5)
                         with col1:
-                            st.metric("💰 Prezzo Attuale", f"${current_price:.2f}")
+                            st.metric("💰 Prezzo Attuale", f"{current_price:.2f}")
                         with col2:
                             market_cap = info.get('marketCap')
                             if market_cap and market_cap >= 1e9:
-                                st.metric("🏦 Market Cap", f"${market_cap/1e9:.2f}B")
+                                st.metric("🏦 Market Cap", f"{market_cap/1e9:.2f}B")
                             else:
                                 st.metric("🏦 Market Cap", "N/A")
                         with col3:
@@ -687,7 +687,7 @@ def stock_screener_app():
                                 color_emoji = "🟢" if signal['direction'] == "BUY" else "🔴" if signal['direction'] == "SELL" else "🟡"
                                 st.metric(f"{color_emoji} Segnale Finale", signal['direction'], f"{signal['confidence']*100:.0f}% confidence")
                             with col2:
-                                st.metric("📊 ATR (Volatilità)", f"${signal['atr']:.2f}", f"{signal['atr_percent']:.2f}% del prezzo")
+                                st.metric("📊 ATR (Volatilità)", f"{signal['atr']:.2f}", f"{signal['atr_percent']:.2f}% del prezzo")
                             with col3:
                                 st.metric("📈 Volatilità Storica", f"{signal['volatility']:.1f}%", "Annualizzata")
                             with col4:
@@ -698,14 +698,14 @@ def stock_screener_app():
                             col1, col2, col3 = st.columns(3)
                             with col1:
                                 st.markdown(f"**Entry Point:**")
-                                st.markdown(f"# `${signal['entry_point']:.2f}`")
+                                st.markdown(f"# `{signal['entry_point']:.2f}`")
                             with col2:
                                 st.markdown(f"**Stop Loss (SL):**")
-                                st.markdown(f"# `${signal['stop_loss']:.2f}`")
+                                st.markdown(f"# `{signal['stop_loss']:.2f}`")
                                 st.caption(f"📉 -{signal['sl_distance_percent']:.2f}%")
                             with col3:
                                 st.markdown(f"**Take Profit (TP):**")
-                                st.markdown(f"# `${signal['take_profit']:.2f}`")
+                                st.markdown(f"# `{signal['take_profit']:.2f}`")
                                 st.caption(f"📈 +{signal['tp_distance_percent']:.2f}%")
                         else:
                             st.error("❌ Errore nel calcolo dei segnali")
