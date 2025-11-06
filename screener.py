@@ -280,11 +280,24 @@ def fetch_yfinance_data(ticker_symbol, period="1y"):
         stock = yf.Ticker(ticker_symbol)
         hist = stock.history(period=period)
         info = stock.info
-        news = stock.news[:5] if hasattr(stock, 'news') else []
-        return {'history': hist, 'info': info, 'news': news, 'ticker': stock, 'symbol': ticker_symbol}
+        
+        # SINTASSI CORRETTA PER NEWS
+        try:
+            news = stock.get_news(count=10)
+        except:
+            news = []
+        
+        return {
+            'history': hist, 
+            'info': info, 
+            'news': news, 
+            'ticker': stock, 
+            'symbol': ticker_symbol
+        }
     except Exception as e:
         st.error(f"❌ Errore nel caricamento dati: {e}")
         return None
+
 
 def get_currency_symbol(ticker_data):
     """Ottieni simbolo valuta dal ticker"""
