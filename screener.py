@@ -11,7 +11,7 @@ import requests
 import random
 from typing import List, Dict, Tuple
 import re
-from ai_agent import call_groq_api, escape_markdown_latex
+import call_groq_api, escape_markdown_latex
 import yfinance as yf
 import ta
 import feedparser
