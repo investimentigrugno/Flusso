@@ -443,15 +443,29 @@ def fetch_technical_data(ticker: str):
     """
     Recupera i dati tecnici completi da TradingView per un ticker specifico.
     Utilizza oltre 50 parametri per analisi robusta.
+    
+    Ritorna un dizionario con i dati della prima riga trovata.
     """
     try:
+        # Definisci i mercati dove cercare
+        markets = [
+            'america', 'australia', 'belgium', 'brazil', 'canada', 'chile', 'china', 'italy',
+            'czech', 'denmark', 'egypt', 'estonia', 'finland', 'france', 'germany', 'greece',
+            'hongkong', 'hungary', 'india', 'indonesia', 'ireland', 'israel', 'japan', 'korea',
+            'kuwait', 'lithuania', 'luxembourg', 'malaysia', 'mexico', 'morocco', 'netherlands',
+            'newzealand', 'norway', 'peru', 'philippines', 'poland', 'portugal', 'qatar', 'russia',
+            'singapore', 'slovakia', 'spain', 'sweden', 'switzerland', 'taiwan', 'uae', 'uk',
+            'venezuela', 'vietnam', 'crypto'
+        ]
+        
         # Query completa per analisi tecnica
         query = (Query()
-            .set_markets('america', 'italy', 'uk', 'germany', 'france', 'spain')
+            .set_markets(*markets)
+            .set_tickers(ticker)
             .select(
                 # Prezzo e Volume base
                 'name', 'close', 'open', 'high', 'low', 'volume',
-                'change', 'change_abs', 'Recommend.All',
+                'change', 'change_abs', 'Recommend.All', 'description', 'country', 'sector',
                 
                 # Indicatori di Trend
                 'RSI', 'RSI[1]', 'Stoch.K', 'Stoch.D', 
@@ -483,22 +497,23 @@ def fetch_technical_data(ticker: str):
                 'Volatility.D', 'Volatility.W', 'Volatility.M',
                 
                 # Dati Fondamentali Base
-                'market_cap_basic', 'description', 'sector', 'country'
+                'market_cap_basic'
             )
-            .where(
-                Column('name').like(ticker)
-            )
-            .get_scanner_data()
         )
         
-        if query and len(query) > 0:
-            return query[0]
+        # Esegui la query - ritorna (total, dataframe)
+        total, df = query.get_scanner_data()
+        
+        # Se il dataframe non è vuoto, ritorna il primo risultato come dizionario
+        if df is not None and not df.empty:
+            return df.iloc[0].to_dict()
         else:
             return None
             
     except Exception as e:
         st.error(f"❌ Errore nel recupero dati tecnici: {str(e)}")
         return None
+
 
 
 def calculate_volatility_metrics( dict) -> dict:
