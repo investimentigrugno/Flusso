@@ -514,7 +514,7 @@ def fetch_technical_data(ticker: str):
         st.error(f"❌ Errore nel recupero dati tecnici: {str(e)}")
         return None
 
-def generate_technical_ai_report(ticker: str, technical_ dict) -> str:
+def generate_technical_ai_report(ticker: str, technical_dict) -> str:
     """
     Genera analisi AI completa utilizzando Groq tramite callgroqapi.
     Fornisce raccomandazioni su entry, stop loss e take profit.
