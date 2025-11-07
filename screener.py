@@ -514,54 +514,7 @@ def fetch_technical_data(ticker: str):
         st.error(f"❌ Errore nel recupero dati tecnici: {str(e)}")
         return None
 
-
-
-def calculate_volatility_metrics( dict) -> dict:
-    """
-    Calcola metriche di volatilità avanzate per determinare SL e TP ottimali.
-    """
-    try:
-        atr = data.get('ATR', 0) or 0
-        close = data.get('close', 0) or 0
-        
-        if close == 0:
-            return {
-                'atr': 0, 'atr_pct': 0, 'atr_normalized': 0,
-                'vol_daily': 0, 'vol_weekly': 0, 'vol_monthly': 0,
-                'bb_width_pct': 0
-            }
-        
-        # Volatilità percentuale
-        volatility_pct = (atr / close * 100) if close > 0 else 0
-        
-        # Average True Range normalizzato
-        atr_normalized = atr / close if close > 0 else 0
-        
-        # Volatilità multi-timeframe
-        vol_daily = data.get('Volatility.D', 0) or 0
-        vol_weekly = data.get('Volatility.W', 0) or 0
-        vol_monthly = data.get('Volatility.M', 0) or 0
-        
-        # Bollinger Bands width
-        bb_upper = data.get('BB.upper', close) or close
-        bb_lower = data.get('BB.lower', close) or close
-        bb_width_pct = ((bb_upper - bb_lower) / close * 100) if close > 0 else 0
-        
-        return {
-            'atr': round(atr, 4),
-            'atr_pct': round(volatility_pct, 2),
-            'atr_normalized': round(atr_normalized, 4),
-            'vol_daily': round(vol_daily, 2),
-            'vol_weekly': round(vol_weekly, 2),
-            'vol_monthly': round(vol_monthly, 2),
-            'bb_width_pct': round(bb_width_pct, 2)
-        }
-    except Exception as e:
-        st.error(f"Errore calcolo volatilità: {str(e)}")
-        return {}
-
-
-def generate_technical_ai_report(ticker: str, technical_dict, volatility_metrics: dict) -> str:
+def generate_technical_ai_report(ticker: str, technical_ dict) -> str:
     """
     Genera analisi AI completa utilizzando Groq tramite callgroqapi.
     Fornisce raccomandazioni su entry, stop loss e take profit.
@@ -603,15 +556,15 @@ MEDIE MOBILI:
 - SMA200: ${technical_data.get('SMA200', 0):.2f}
 
 VOLATILITÀ E BANDE:
-- ATR: ${volatility_metrics.get('atr', 0):.4f}
-- ATR Percentuale: {volatility_metrics.get('atr_pct', 0):.2f}%
-- Volatilità Giornaliera: {volatility_metrics.get('vol_daily', 0):.2f}%
-- Volatilità Settimanale: {volatility_metrics.get('vol_weekly', 0):.2f}%
-- Volatilità Mensile: {volatility_metrics.get('vol_monthly', 0):.2f}%
+- ATR: ${technical_data.get('atr', 0):.4f}
+- ATR Percentuale: {technical_data.get('atr_pct', 0):.2f}%
+- Volatilità Giornaliera: {technical_data.get('vol_daily', 0):.2f}%
+- Volatilità Settimanale: {technical_data.get('vol_weekly', 0):.2f}%
+- Volatilità Mensile: {technical_data.get('vol_monthly', 0):.2f}%
 - Bollinger Upper: ${technical_data.get('BB.upper', 0):.2f}
 - Bollinger Middle: ${technical_data.get('BB.basis', 0):.2f}
 - Bollinger Lower: ${technical_data.get('BB.lower', 0):.2f}
-- BB Width: {volatility_metrics.get('bb_width_pct', 0):.2f}%
+- BB Width: {technical_data.get('bb_width_pct', 0):.2f}%
 
 PIVOT POINTS MENSILI:
 - Resistenza 3: ${technical_data.get('Pivot.M.Classic.R3', 0):.2f}
@@ -1134,7 +1087,7 @@ Questa app utilizza un **algoritmo di scoring intelligente** e **notizie tradott
                     st.stop()
                 
                 # Calcola metriche volatilità
-                volatility_metrics = calculate_volatility_metrics(technical_data)
+                technical_data = calculate_technical_data(technical_data)
                 
                 # Mostra dati principali
                 st.success(f"✅ Dati recuperati per **{technical_data.get('description', ticker)}** ({ticker})")
@@ -1163,8 +1116,8 @@ Questa app utilizza un **algoritmo di scoring intelligente** e **notizie tradott
                     )
                 
                 with col3:
-                    atr = volatility_metrics.get('atr', 0)
-                    atr_pct = volatility_metrics.get('atr_pct', 0)
+                    atr = technical_data.get('atr', 0)
+                    atr_pct = technical_data.get('atr_pct', 0)
                     st.metric(
                         "ATR (Volatilità)",
                         f"${atr:.2f}",
@@ -1275,7 +1228,7 @@ Questa app utilizza un **algoritmo di scoring intelligente** e **notizie tradott
                 st.markdown("### 🤖 Report AI Completo con Strategia Operativa")
                 
                 with st.spinner("🧠 Generazione analisi AI in corso (può richiedere 10-20 secondi)..."):
-                    ai_analysis = generate_technical_ai_report(ticker, technical_data, volatility_metrics)
+                    ai_analysis = generate_technical_ai_report(ticker, technical_data, technical_data)
                     
                     if ai_analysis and "Errore" not in ai_analysis[:50]:
                         # Mostra il report con escape markdown se necessario
