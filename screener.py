@@ -1228,7 +1228,7 @@ Questa app utilizza un **algoritmo di scoring intelligente** e **notizie tradott
                 st.markdown("### 🤖 Report AI Completo con Strategia Operativa")
                 
                 with st.spinner("🧠 Generazione analisi AI in corso (può richiedere 10-20 secondi)..."):
-                    ai_analysis = generate_technical_ai_report(ticker, technical_data, technical_data)
+                    ai_analysis = generate_technical_ai_report(ticker, technical_data)
                     
                     if ai_analysis and "Errore" not in ai_analysis[:50]:
                         # Mostra il report con escape markdown se necessario
