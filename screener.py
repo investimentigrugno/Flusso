@@ -546,7 +546,7 @@ def calculate_volatility_metrics( dict) -> dict:
         return {}
 
 
-def generate_technical_ai_report(ticker: str, technical_ dict, volatility_metrics: dict) -> str:
+def generate_technical_ai_report(ticker: str, technical_dict, volatility_metrics: dict) -> str:
     """
     Genera analisi AI completa utilizzando Groq tramite callgroqapi.
     Fornisce raccomandazioni su entry, stop loss e take profit.
