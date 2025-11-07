@@ -764,99 +764,99 @@ Questa app utilizza un **algoritmo di scoring intelligente** e **notizie tradott
         else:
             st.info("📊 Aggiorna i dati per visualizzare i TOP 5 picks!")
     
-            with tab3:
-                st.header("📊 Analisi Fondamentale Azienda")
-                st.markdown("Cerca un'azienda specifica e ottieni un'analisi AI completa dei suoi bilanci")
+    with tab3:
+        st.header("📊 Analisi Fondamentale Azienda")
+        st.markdown("Cerca un'azienda specifica e ottieni un'analisi AI completa dei suoi bilanci")
+        
+        col1, col2 = st.columns([3, 1])
+        
+        with col1:
+            symbol = st.text_input(
+                "Inserisci Simbolo con prefisso (es. NASDAQ:AAPL, MIL:ENEL):", 
+                "", 
+                key="fundamental_search_input",
+                help="Formato richiesto: EXCHANGE:TICKER",
+                placeholder="Es. NASDAQ:AAPL"
+            )
+        
+        with col2:
+            st.markdown("")
+            analyze_btn = st.button(
+                "📊 Analizza", 
+                key="analyze_fundamentals_btn",
+                type="primary",
+                use_container_width=True
+            )
+        
+        # Esempi rapidi
+        st.markdown("**📈 Esempi rapidi:**")
+        col_ex1, col_ex2, col_ex3, col_ex4 = st.columns(4)
+        
+        examples = [
+            ("🍎 NASDAQ:AAPL", "NASDAQ:AAPL"),
+            ("🚗 NASDAQ:TSLA", "NASDAQ:TSLA"),
+            ("🏢 NYSE:JPM", "NYSE:JPM"),
+            ("🇮🇹 MIL:ENEL", "MIL:ENEL")
+        ]
+        
+        for i, (label, ticker_val) in enumerate(examples):
+            with [col_ex1, col_ex2, col_ex3, col_ex4][i]:
+                if st.button(label, key=f"ex_{i}", use_container_width=True):
+                    symbol = ticker_val
+                    analyze_btn = True
+        
+        if symbol and analyze_btn:
+            with st.spinner(f"🔍 Ricerca dati fondamentali per {symbol.upper()}..."):
+                df_result = fetch_fundamental_data(symbol.upper())
                 
-                col1, col2 = st.columns([3, 1])
-                
-                with col1:
-                    symbol = st.text_input(
-                        "Inserisci Simbolo con prefisso (es. NASDAQ:AAPL, MIL:ENEL):", 
-                        "", 
-                        key="fundamental_search_input",
-                        help="Formato richiesto: EXCHANGE:TICKER",
-                        placeholder="Es. NASDAQ:AAPL"
-                    )
-                
-                with col2:
-                    st.markdown("")
-                    analyze_btn = st.button(
-                        "📊 Analizza", 
-                        key="analyze_fundamentals_btn",
-                        type="primary",
-                        use_container_width=True
-                    )
-                
-                # Esempi rapidi
-                st.markdown("**📈 Esempi rapidi:**")
-                col_ex1, col_ex2, col_ex3, col_ex4 = st.columns(4)
-                
-                examples = [
-                    ("🍎 NASDAQ:AAPL", "NASDAQ:AAPL"),
-                    ("🚗 NASDAQ:TSLA", "NASDAQ:TSLA"),
-                    ("🏢 NYSE:JPM", "NYSE:JPM"),
-                    ("🇮🇹 MIL:ENEL", "MIL:ENEL")
-                ]
-                
-                for i, (label, ticker_val) in enumerate(examples):
-                    with [col_ex1, col_ex2, col_ex3, col_ex4][i]:
-                        if st.button(label, key=f"ex_{i}", use_container_width=True):
-                            symbol = ticker_val
-                            analyze_btn = True
-                
-                if symbol and analyze_btn:
-                    with st.spinner(f"🔍 Ricerca dati fondamentali per {symbol.upper()}..."):
-                        df_result = fetch_fundamental_data(symbol.upper())
+                if not df_result.empty:
+                    st.success(f"✅ Dati trovati per {symbol}")
+                    
+                    # Mostra dati completi
+                    st.subheader("📊 Dati Completi")
+                    st.dataframe(df_result, use_container_width=True)
+                    
+                    # Tabella presenza dati
+                    st.subheader("📋 Presenza Dati per Colonna")
+                    data_info = []
+                    for col in df_result.columns:
+                        if col != 'ticker':
+                            value = df_result.iloc[0].get(col, None)
+                            is_present = not pd.isna(value) and value != ""
+                            stato = "✅ Presente" if is_present else "❌ Assente"
+                            valore = value if is_present else "N/A"
+                            data_info.append({
+                                'Colonna': col,
+                                'Stato': stato,
+                                'Valore': valore
+                            })
+                    
+                    presence_df = pd.DataFrame(data_info)
+                    st.dataframe(presence_df, use_container_width=True)
+                    
+                    # Genera report AI usando i dati disponibili
+                    st.subheader("🤖 Report AI Fondamentale")
+                    
+                    with st.spinner("🧠 Generazione analisi AI..."):
+                        # Prepara dati per AI
+                        fundamental_dict = df_result.iloc[0].to_dict()
                         
-                        if not df_result.empty:
-                            st.success(f"✅ Dati trovati per {symbol}")
-                            
-                            # Mostra dati completi
-                            st.subheader("📊 Dati Completi")
-                            st.dataframe(df_result, use_container_width=True)
-                            
-                            # Tabella presenza dati
-                            st.subheader("📋 Presenza Dati per Colonna")
-                            data_info = []
-                            for col in df_result.columns:
-                                if col != 'ticker':
-                                    value = df_result.iloc[0].get(col, None)
-                                    is_present = not pd.isna(value) and value != ""
-                                    stato = "✅ Presente" if is_present else "❌ Assente"
-                                    valore = value if is_present else "N/A"
-                                    data_info.append({
-                                        'Colonna': col,
-                                        'Stato': stato,
-                                        'Valore': valore
-                                    })
-                            
-                            presence_df = pd.DataFrame(data_info)
-                            st.dataframe(presence_df, use_container_width=True)
-                            
-                            # Genera report AI usando i dati disponibili
-                            st.subheader("🤖 Report AI Fondamentale")
-                            
-                            with st.spinner("🧠 Generazione analisi AI..."):
-                                # Prepara dati per AI
-                                fundamental_dict = df_result.iloc[0].to_dict()
-                                
-                                # Genera report AI
-                                ai_report = generate_fundamental_ai_report(
-                                    company_name=fundamental_dict.get('name', symbol),
-                                    fundamentals=fundamental_dict
-                                )
-                                
-                                st.markdown(escape_markdown_latex(ai_report))
-                            
-                            # Pulsante download
-                            st.download_button(
-                                label="📥 Scarica Report Completo",
-                                data=ai_report,
-                                file_name=f"report_fondamentale_{symbol}.txt",
-                                mime="text/plain"
-                            )
+                        # Genera report AI
+                        ai_report = generate_fundamental_ai_report(
+                            company_name=fundamental_dict.get('name', symbol),
+                            fundamentals=fundamental_dict
+                        )
+                        
+                        st.markdown(escape_markdown_latex(ai_report))
+                    
+                    # Pulsante download
+                    st.download_button(
+                        label="📥 Scarica Report Completo",
+                        data=ai_report,
+                        file_name=f"report_fondamentale_{symbol}.txt",
+                        mime="text/plain"
+                    )
 
 
-            # Summary
-            current_date = datetime.now()
+    # Summary
+    current_date = datetime.now()
