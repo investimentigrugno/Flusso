@@ -1086,9 +1086,6 @@ Questa app utilizza un **algoritmo di scoring intelligente** e **notizie tradott
                     """)
                     st.stop()
                 
-                # Calcola metriche volatilità
-                technical_data = calculate_technical_data(technical_data)
-                
                 # Mostra dati principali
                 st.success(f"✅ Dati recuperati per **{technical_data.get('description', ticker)}** ({ticker})")
                 
