@@ -629,7 +629,7 @@ Fornisci un'analisi STRUTTURATA PROFESSIONALE nel seguente formato (usa markdown
 ### Trend e Direzione
 [Analisi completa del trend usando medie mobili, ADX, e price action - 120 parole]
 
-### Momentum
+### Momentum"""
 
 
 
