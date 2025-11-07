@@ -957,6 +957,8 @@ Questa app utilizza un **algoritmo di scoring intelligente** e **notizie tradott
         else:
             st.info("📊 Aggiorna i dati per visualizzare i TOP 5 picks!")
     
+    #========== TAB 3: ANALISI FONDAMENTALE =========
+    
     with tab3:
         st.header("📊 Analisi Fondamentale Azienda")
         st.markdown("Cerca un'azienda specifica e ottieni un'analisi AI completa dei suoi bilanci")
@@ -973,7 +975,7 @@ Questa app utilizza un **algoritmo di scoring intelligente** e **notizie tradott
             )
         
         with col2:
-            st.markdown("")
+            st.markdown("<br>", unsafe_allow_html=True)
             analyze_btn = st.button(
                 "📊 Analizza", 
                 key="analyze_fundamentals_btn",
@@ -981,11 +983,23 @@ Questa app utilizza un **algoritmo di scoring intelligente** e **notizie tradott
                 use_container_width=True
             )
         
+        # Esempi rapidi
+        st.markdown("**Esempi rapidi:**")
+        col_ex1, col_ex2, col_ex3, col_ex4 = st.columns(4)
+        
+        examples = [
+            ("📱 Apple", "NASDAQ:AAPL"),
+            ("⚡ Tesla", "NASDAQ:TSLA"),
+            ("💡 Enel", "MIL:ENEL"),
+            ("🏦 Intesa SP", "MIL:ISP")
+        ]
+        
         for i, (label, ticker_val) in enumerate(examples):
             with [col_ex1, col_ex2, col_ex3, col_ex4][i]:
-                if st.button(label, key=f"ex_{i}", use_container_width=True):
+                if st.button(label, key=f"fund_ex_{i}", use_container_width=True):
                     symbol = ticker_val
                     analyze_btn = True
+
         
         if symbol and analyze_btn:
             with st.spinner(f"🔍 Ricerca dati fondamentali per {symbol.upper()}..."):
