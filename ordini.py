@@ -81,8 +81,6 @@ def calcola_valore_ordini_attivi(df_ordini):
     
     return 0.0
 
-
-
 def ordini_app():
     st.title("🕹️ Gestione Ordini")
     st.markdown("Monitora e gestisci gli ordini di trading approvati")
@@ -138,29 +136,6 @@ def ordini_app():
         df_ordini = df_ordini.sort_values('DATA', ascending=False, na_position='last').reset_index(drop=True)
         
         st.success(f"✅ {len(df_ordini)} ordini caricati")
-        
-        # METRICHE
-        st.write("### 🔍 DEBUG CALCOLO")
-
-        # Debug ordini attivi
-        ordini_attivi_debug = df_ordini[df_ordini['STATO'] == 'ATTIVO'].copy()
-        st.write(f"Ordini con STATO='ATTIVO': {len(ordini_attivi_debug)}")
-
-        if not ordini_attivi_debug.empty:
-            st.write("**Prime 3 righe ordini attivi:**")
-            st.dataframe(ordini_attivi_debug[['ASSET', 'N.AZIONI', 'ENTRY PRICE', 'STATO']].head(3))
-            
-            # Controlla se i valori sono numerici
-            st.write(f"N.AZIONI tipo: {ordini_attivi_debug['N.AZIONI'].dtype}")
-            st.write(f"ENTRY PRICE tipo: {ordini_attivi_debug['ENTRY PRICE'].dtype}")
-            st.write(f"N.AZIONI non nulli: {ordini_attivi_debug['N.AZIONI'].notna().sum()}")
-            st.write(f"ENTRY PRICE non nulli: {ordini_attivi_debug['ENTRY PRICE'].notna().sum()}")
-
-        valore_attivi = calcola_valore_ordini_attivi(df_ordini)
-        st.write(f"**Valore calcolato: € {valore_attivi:,.2f}**")
-
-        liquidita_effettiva = liquidita_disponibile - valore_attivi
-
 
         # METRICHE
         valore_attivi = calcola_valore_ordini_attivi(df_ordini)
