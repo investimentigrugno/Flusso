@@ -10,7 +10,7 @@ from portfolio import load_sheet_csv
 # Configurazione pagina
 st.set_page_config(
     page_title="Gestione Ordini",
-    page_icon="📦",
+    page_icon="🕹️",
     layout="wide"
 )
 
@@ -129,7 +129,7 @@ def calcola_valore_ordini_attivi(df_ordini):
 def ordini_app():
     """Applicazione Gestione Ordini"""
     
-    st.title("📦 Gestione Ordini")
+    st.title("🕹️ Gestione Ordini")
     st.markdown("Monitora e gestisci gli ordini di trading approvati")
     st.markdown("---")
     
