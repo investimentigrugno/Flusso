@@ -1,9 +1,16 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import plotly.graph_objects as go
-from datetime import datetime, timedelta
+from datetime import datetime
 import requests
+
+# ⭐ IMPORT MODULO GLOBALE PORTFOLIO
+from utils.portfolio_global import (
+    get_liquidita_disponibile,
+    get_portfolio_data,
+    display_portfolio_sidebar,
+    load_portfolio_data
+)
 
 # Configurazione pagina
 st.set_page_config(
@@ -21,7 +28,7 @@ GID_ORDINI = "1901209178"
 
 WEBHOOK_URL_ORDINI = "TUO_WEBHOOK_URL_ORDINI_QUI"
 
-# ==================== FUNZIONI CARICAMENTO DATI ====================
+
 @st.cache_data(ttl=120)
 def load_sheet_csv_ordini(spreadsheet_id, gid):
     """Carica foglio Ordini pubblico via CSV export"""
@@ -44,7 +51,7 @@ def load_sheet_csv_ordini(spreadsheet_id, gid):
 
 
 def aggiorna_stato_ordine_via_webhook(row_number, stato_esecuzione, data_esecuzione, webhook_url):
-    """Aggiorna lo stato di un ordine (Attivo -> Eseguito o Cancellato)"""
+    """Aggiorna lo stato di un ordine"""
     try:
         payload = {
             "action": "update_stato_ordine",
@@ -64,57 +71,25 @@ def aggiorna_stato_ordine_via_webhook(row_number, stato_esecuzione, data_esecuzi
             result = response.json()
             return result.get('success', False), result.get('message', 'Risposta sconosciuta')
         else:
-            return False, f"Errore HTTP {response.status_code}: {response.text}"
+            return False, f"Errore HTTP {response.status_code}"
             
     except Exception as e:
-        return False, f"Errore imprevisto: {str(e)}"
+        return False, f"Errore: {str(e)}"
 
 
-# ==================== FUNZIONE CALCOLO LIQUIDITÀ ====================
-def calcola_liquidita_disponibile(df_ordini, liquidita_totale):
-    """
-    Calcola: Liquidità Disponibile = Liquidità Totale - Valore Totale Ordini Attivi
-    
-    Returns:
-        dict: {
-            'liquidita_totale': float,
-            'valore_ordini_attivi': float,
-            'liquidita_disponibile': float,
-            'num_ordini_attivi': int
-        }
-    """
+def calcola_valore_ordini_attivi(df_ordini):
+    """Calcola il valore totale degli ordini attivi"""
     if df_ordini is None or df_ordini.empty:
-        return {
-            'liquidita_totale': liquidita_totale,
-            'valore_ordini_attivi': 0.0,
-            'liquidita_disponibile': liquidita_totale,
-            'num_ordini_attivi': 0
-        }
+        return 0.0
     
-    # Filtra ordini attivi
     ordini_attivi = df_ordini[df_ordini['STATO ESECUZIONE'] == 'Attivo'].copy()
     
-    # Calcola valore totale ordini attivi (QUANTITA * PMC)
     if 'QUANTITA' in ordini_attivi.columns and 'PMC' in ordini_attivi.columns:
         ordini_attivi['VALORE'] = pd.to_numeric(ordini_attivi['QUANTITA'], errors='coerce') * \
                                    pd.to_numeric(ordini_attivi['PMC'], errors='coerce')
-        valore_ordini_attivi = ordini_attivi['VALORE'].sum()
-    else:
-        valore_ordini_attivi = 0.0
+        return ordini_attivi['VALORE'].sum()
     
-    liquidita_disponibile = liquidita_totale - valore_ordini_attivi
-    
-    return {
-        'liquidita_totale': liquidita_totale,
-        'valore_ordini_attivi': valore_ordini_attivi,
-        'liquidita_disponibile': liquidita_disponibile,
-        'num_ordini_attivi': len(ordini_attivi)
-    }
-
-
-# ==================== INIZIALIZZA SESSION STATE ====================
-if 'liquidita_info' not in st.session_state:
-    st.session_state.liquidita_info = None
+    return 0.0
 
 
 def ordini_app():
@@ -127,16 +102,8 @@ def ordini_app():
     # ==================== SIDEBAR ====================
     st.sidebar.markdown("### ⚙️ Opzioni")
     
-    # Input liquidità totale
-    st.sidebar.markdown("### 💰 Liquidità Portfolio")
-    liquidita_totale = st.sidebar.number_input(
-        "Liquidità Totale (€)",
-        min_value=0.0,
-        value=2228.92,
-        step=100.0,
-        format="%.2f",
-        help="Inserisci la liquidità totale disponibile dal portfolio"
-    )
+    # ⭐ MOSTRA WIDGET PORTFOLIO NELLA SIDEBAR
+    display_portfolio_sidebar()
     
     # Bottone refresh
     if st.sidebar.button("🔄 Aggiorna Dati", type="primary"):
@@ -149,6 +116,18 @@ def ordini_app():
     
     # ==================== CARICA DATI ====================
     try:
+        # Carica Portfolio
+        with st.spinner("Caricamento dati Portfolio..."):
+            portfolio_data = load_portfolio_data()
+        
+        if not portfolio_data:
+            st.error("❌ Impossibile caricare i dati del Portfolio")
+            st.stop()
+        
+        # Leggi liquidità disponibile dal Portfolio
+        liquidita_disponibile = portfolio_data['cash_disp']
+        
+        # Carica Ordini
         with st.spinner("Caricamento ordini..."):
             df_ordini = load_sheet_csv_ordini(SPREADSHEET_ID_ORDINI, GID_ORDINI)
         
@@ -156,11 +135,22 @@ def ordini_app():
             st.warning("⚠️ Nessun ordine trovato")
             st.info("💡 Gli ordini approvati (ESITO ≥ 3) verranno importati automaticamente dal foglio Proposte")
             
-            # Salva liquidità info anche se non ci sono ordini
-            st.session_state.liquidita_info = calcola_liquidita_disponibile(None, liquidita_totale)
+            # Mostra comunque le metriche del portfolio
+            st.markdown("### 💼 Dati Portfolio")
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                st.metric("Valore Portfolio", f"€ {portfolio_data['value_eur']:,.2f}")
+            
+            with col2:
+                st.metric("Liquidità Disponibile", f"€ {liquidita_disponibile:,.2f}")
+            
+            with col3:
+                st.metric("Performance", f"{portfolio_data['pl_percent']:.2f}%")
+            
             st.stop()
         
-        # Pulizia dati
+        # Pulizia dati ordini
         df_ordini = df_ordini.dropna(how='all')
         df_ordini['ROW_NUMBER'] = range(2, len(df_ordini) + 2)
         
@@ -181,56 +171,66 @@ def ordini_app():
                 dayfirst=True
             )
         
-        # Gestisci STATO ESECUZIONE (default: Attivo)
+        # Gestisci STATO ESECUZIONE
         if 'STATO ESECUZIONE' not in df_ordini.columns:
             df_ordini['STATO ESECUZIONE'] = 'Attivo'
         else:
             df_ordini['STATO ESECUZIONE'] = df_ordini['STATO ESECUZIONE'].fillna('Attivo')
             df_ordini['STATO ESECUZIONE'] = df_ordini['STATO ESECUZIONE'].replace('', 'Attivo')
         
-        # Ordina per data decrescente
+        # Ordina per data
         if 'DATA PROPOSTA' in df_ordini.columns:
             df_ordini = df_ordini.sort_values('DATA PROPOSTA', ascending=False, na_position='last')
         
         df_ordini = df_ordini.reset_index(drop=True)
         
-        # ==================== CALCOLA LIQUIDITÀ ====================
-        liquidita_info = calcola_liquidita_disponibile(df_ordini, liquidita_totale)
-        st.session_state.liquidita_info = liquidita_info
+        # ==================== CALCOLA METRICHE ====================
+        valore_ordini_attivi = calcola_valore_ordini_attivi(df_ordini)
+        liquidita_effettiva = liquidita_disponibile - valore_ordini_attivi
+        
+        totali = len(df_ordini)
+        attivi = len(df_ordini[df_ordini['STATO ESECUZIONE'] == 'Attivo'])
+        eseguiti = len(df_ordini[df_ordini['STATO ESECUZIONE'] == 'Eseguito'])
+        cancellati = len(df_ordini[df_ordini['STATO ESECUZIONE'] == 'Cancellato'])
         
         # ==================== METRICHE PRINCIPALI ====================
         col_met1, col_met2, col_met3, col_met4 = st.columns(4)
         
         with col_met1:
             st.metric(
-                "💰 Liquidità Totale",
-                f"€ {liquidita_info['liquidita_totale']:,.2f}"
+                "💰 Liquidità Portfolio",
+                f"€ {liquidita_disponibile:,.2f}",
+                help="Liquidità disponibile dal foglio Portfolio (CASH DISP)"
             )
         
         with col_met2:
             st.metric(
                 "📦 Valore Ordini Attivi",
-                f"€ {liquidita_info['valore_ordini_attivi']:,.2f}",
-                delta=f"{liquidita_info['num_ordini_attivi']} ordini"
+                f"€ {valore_ordini_attivi:,.2f}",
+                delta=f"{attivi} ordini",
+                help="Somma del valore (Quantità × PMC) di tutti gli ordini attivi"
             )
         
         with col_met3:
+            percentuale_impegnata = (valore_ordini_attivi / liquidita_disponibile * 100) if liquidita_disponibile > 0 else 0
             st.metric(
-                "✅ Liquidità Disponibile",
-                f"€ {liquidita_info['liquidita_disponibile']:,.2f}",
-                delta=f"{(liquidita_info['liquidita_disponibile']/liquidita_info['liquidita_totale']*100):.1f}%"
+                "✅ Liquidità Effettiva",
+                f"€ {liquidita_effettiva:,.2f}",
+                delta=f"{percentuale_impegnata:.1f}% impegnata",
+                delta_color="inverse",
+                help="Liquidità disponibile - Valore ordini attivi"
             )
         
         with col_met4:
-            totali = len(df_ordini)
-            attivi = len(df_ordini[df_ordini['STATO ESECUZIONE'] == 'Attivo'])
-            eseguiti = len(df_ordini[df_ordini['STATO ESECUZIONE'] == 'Eseguito'])
-            cancellati = len(df_ordini[df_ordini['STATO ESECUZIONE'] == 'Cancellato'])
-            st.metric("📊 Totale Ordini", totali)
+            st.metric(
+                "📊 Totale Ordini",
+                totali,
+                delta=f"✅ {eseguiti} | ❌ {cancellati}"
+            )
         
         st.markdown("---")
         
-        # ==================== SEZIONE ORDINI ATTIVI (IN RISALTO) ====================
+        # ==================== SEZIONE ORDINI ATTIVI ====================
         st.markdown("## 🔥 Ordini Attivi (Da Eseguire)")
         
         ordini_attivi = df_ordini[df_ordini['STATO ESECUZIONE'] == 'Attivo'].copy()
@@ -240,13 +240,10 @@ def ordini_app():
         else:
             st.info(f"📋 **{len(ordini_attivi)} ordini** in attesa di esecuzione")
             
-            # Visualizza ordini attivi come card in evidenza
             for idx, ordine in ordini_attivi.iterrows():
                 original_row_number = ordine['ROW_NUMBER']
                 
-                # Card con bordo colorato
                 with st.container():
-                    # Badge operazione
                     op_color = "🟢" if ordine.get('OPERAZIONE') == 'Buy' else "🔴"
                     
                     col_header, col_badge = st.columns([3, 1])
@@ -259,7 +256,6 @@ def ordini_app():
                     with col_badge:
                         st.warning("⏳ **ATTIVO**")
                     
-                    # Dettagli
                     col_det1, col_det2, col_det3, col_det4 = st.columns(4)
                     
                     with col_det1:
@@ -272,9 +268,7 @@ def ordini_app():
                         if 'QUANTITA' in ordine:
                             st.markdown(f"**📊 Quantità:** {ordine['QUANTITA']}")
                         if 'PMC' in ordine and 'VALUTA' in ordine:
-                            pmc_val = ordine['PMC']
-                            valuta = ordine['VALUTA']
-                            st.markdown(f"**💵 PMC:** {pmc_val} {valuta}")
+                            st.markdown(f"**💵 PMC:** {ordine['PMC']} {ordine['VALUTA']}")
                     
                     with col_det3:
                         if 'SL' in ordine:
@@ -288,7 +282,6 @@ def ordini_app():
                         if 'DATA PROPOSTA' in ordine and pd.notna(ordine['DATA PROPOSTA']):
                             st.markdown(f"**📅 Proposta:** {ordine['DATA PROPOSTA'].strftime('%d/%m/%Y')}")
                         
-                        # Calcola valore ordine
                         if 'QUANTITA' in ordine and 'PMC' in ordine:
                             qty = pd.to_numeric(ordine['QUANTITA'], errors='coerce')
                             pmc = pd.to_numeric(ordine['PMC'], errors='coerce')
@@ -296,7 +289,6 @@ def ordini_app():
                                 valore = qty * pmc
                                 st.markdown(f"**💰 Valore:** € {valore:,.2f}")
                     
-                    # Azioni
                     col_az1, col_az2, col_az3 = st.columns([1, 1, 2])
                     
                     with col_az1:
@@ -335,7 +327,7 @@ def ordini_app():
                     
                     st.markdown("---")
         
-        # ==================== SEZIONE ORDINI ESEGUITI (TABELLA) ====================
+        # ==================== SEZIONE ORDINI ESEGUITI ====================
         st.markdown("---")
         st.markdown("## ✅ Storico Ordini Eseguiti")
         
@@ -346,7 +338,6 @@ def ordini_app():
         else:
             st.success(f"📊 {len(ordini_eseguiti)} ordini completati")
             
-            # Prepara dati per tabella
             df_display_eseguiti = ordini_eseguiti.copy()
             
             if 'DATA PROPOSTA' in df_display_eseguiti.columns:
@@ -359,14 +350,12 @@ def ordini_app():
                     lambda x: x.strftime('%d/%m/%Y') if pd.notna(x) else ''
                 )
             
-            # Seleziona colonne da mostrare
             colonne_tabella = [
                 'DATA PROPOSTA', 'STRUMENTO', 'OPERAZIONE', 'RESPONSABILE',
                 'QUANTITA', 'PMC', 'VALUTA', 'ESITO', 'DATA ESECUZIONE'
             ]
             colonne_disponibili = [col for col in colonne_tabella if col in df_display_eseguiti.columns]
             
-            # Mostra tabella
             st.dataframe(
                 df_display_eseguiti[colonne_disponibili],
                 use_container_width=True,
@@ -374,7 +363,6 @@ def ordini_app():
                 hide_index=True
             )
             
-            # Export CSV
             csv_eseguiti = df_display_eseguiti[colonne_disponibili].to_csv(index=False).encode('utf-8')
             st.download_button(
                 label="📥 Scarica Ordini Eseguiti (CSV)",
@@ -384,7 +372,7 @@ def ordini_app():
                 use_container_width=False
             )
         
-        # ==================== SEZIONE ORDINI CANCELLATI (TABELLA) ====================
+        # ==================== SEZIONE ORDINI CANCELLATI ====================
         st.markdown("---")
         st.markdown("## ❌ Ordini Cancellati")
         
@@ -394,7 +382,6 @@ def ordini_app():
             st.info("Nessun ordine cancellato")
         else:
             with st.expander(f"📋 Mostra {len(ordini_cancellati)} ordini cancellati"):
-                # Prepara dati per tabella
                 df_display_cancellati = ordini_cancellati.copy()
                 
                 if 'DATA PROPOSTA' in df_display_cancellati.columns:
@@ -416,7 +403,6 @@ def ordini_app():
                     hide_index=True
                 )
                 
-                # Bottone per riattivare ordini cancellati
                 st.markdown("**Riattiva ordini cancellati:**")
                 for idx, ordine in ordini_cancellati.iterrows():
                     col_info, col_btn = st.columns([3, 1])
@@ -439,8 +425,8 @@ def ordini_app():
                                 st.error(f"❌ {message}")
     
     except Exception as e:
-        st.error(f"❌ Errore nel caricamento ordini: {str(e)}")
-        st.info("💡 Verifica che il foglio Ordini sia condiviso pubblicamente")
+        st.error(f"❌ Errore: {str(e)}")
+        st.info("💡 Verifica che i fogli siano condivisi pubblicamente")
 
 
 if __name__ == "__main__":
