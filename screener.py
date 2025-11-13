@@ -1161,10 +1161,10 @@ Questa app utilizza un **algoritmo di scoring intelligente** e **notizie tradott
         col_ex1, col_ex2, col_ex3, col_ex4 = st.columns(4)
         
         examples_tech = [
-            ("📱 Apple", "AAPL"),
-            ("⚡ Tesla", "TSLA"),
-            ("💡 Enel", "ENEL.MI"),
-            ("🏦 Intesa SP", "ISP.MI")
+            ("📱 Apple", "NASDAQ:AAPL"),
+            ("⚡ Tesla", "NASDAQ:TSLA"),
+            ("💡 Enel", "MIL:ENEL"),
+            ("🏦 Intesa SP", "MIL:ISP")
         ]
         
         for i, (label, ticker_val) in enumerate(examples_tech):
