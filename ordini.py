@@ -138,6 +138,10 @@ def ordini_app():
             st.warning("⚠️ DataFrame vuoto")
             st.stop()
         
+        # ⭐ RIMUOVI COLONNE VUOTE
+        df_ordini = df_ordini.loc[:, ~df_ordini.columns.str.contains('^Unnamed')]
+        df_ordini = df_ordini.dropna(axis=1, how='all')  # Rimuovi colonne completamente vuote
+
         # ⭐ DEFINISCI COLONNE CORRETTE (dal tuo foglio)
         expected_columns = [
             'DATA', 'TIME', 'COMPONENTE1', 'COMPONENTE2',
