@@ -126,7 +126,6 @@ with st.sidebar.expander("ℹ️ Info App"):
     **📈 Stock Screener**
     - Analisi titoli azionari
     - TOP 5 Picks con AI
-    - Notizie tradotte (Finnhub + Google Translate)
     - Integrazione TradingView
                 
     **🔐 Password Decryptor**
