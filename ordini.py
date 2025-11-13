@@ -15,7 +15,7 @@ from portfolio_global import (
 # Configurazione pagina
 st.set_page_config(
     page_title="Gestione Ordini",
-    page_icon="📦",
+    page_icon="🕹️",
     layout="wide"
 )
 
