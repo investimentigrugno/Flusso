@@ -1133,7 +1133,7 @@ Questa app utilizza un **algoritmo di scoring intelligente** e **notizie tradott
 
     # ========== TAB 4: ANALISI TECNICA AVANZATA ==========
     with tab4:
-        st.header("📊 Analisi Tecnica Avanzata con AI")
+        st.header("📊 Analisi Tecnica Avanzata")
         st.markdown("Cerca un'azienda specifica e ottieni un'analisi tecnica completa con strategia operativa")
         
         col1, col2 = st.columns([3, 1])
