@@ -4,12 +4,12 @@ import plotly.express as px
 from datetime import datetime
 import requests
 
-# ⭐ IMPORT MODULO GLOBALE PORTFOLIO
-from portfolio_global import (
+# ⭐ IMPORT CORRETTO - Solo funzioni pubbliche
+from utils.portfolio_global import (
     get_liquidita_disponibile,
     get_portfolio_data,
     display_portfolio_sidebar,
-    load_portfolio_data
+    refresh_portfolio_data
 )
 
 # Configurazione pagina
@@ -102,12 +102,13 @@ def ordini_app():
     # ==================== SIDEBAR ====================
     st.sidebar.markdown("### ⚙️ Opzioni")
     
-    # ⭐ MOSTRA WIDGET PORTFOLIO NELLA SIDEBAR
+    # ⭐ MOSTRA WIDGET PORTFOLIO NELLA SIDEBAR (opzionale)
     display_portfolio_sidebar()
     
     # Bottone refresh
     if st.sidebar.button("🔄 Aggiorna Dati", type="primary"):
         st.cache_data.clear()
+        refresh_portfolio_data()  # Refresh anche i dati portfolio
         st.rerun()
     
     st.sidebar.markdown("---")
@@ -116,16 +117,22 @@ def ordini_app():
     
     # ==================== CARICA DATI ====================
     try:
-        # Carica Portfolio
-        with st.spinner("Caricamento dati Portfolio..."):
-            portfolio_data = load_portfolio_data()
+        # ⭐ CARICA DATI PORTFOLIO in modo sicuro
+        portfolio_data = get_portfolio_data(silent=True)
         
-        if not portfolio_data:
-            st.error("❌ Impossibile caricare i dati del Portfolio")
-            st.stop()
-        
-        # Leggi liquidità disponibile dal Portfolio
-        liquidita_disponibile = portfolio_data['cash_disp']
+        if portfolio_data:
+            liquidita_disponibile = portfolio_data['cash_disp']
+        else:
+            # Fallback: usa valore manuale se Portfolio non disponibile
+            st.sidebar.warning("⚠️ Portfolio non disponibile")
+            liquidita_disponibile = st.sidebar.number_input(
+                "Liquidità Manuale (€)",
+                min_value=0.0,
+                value=2228.92,
+                step=100.0,
+                format="%.2f",
+                help="Inserisci manualmente la liquidità disponibile"
+            )
         
         # Carica Ordini
         with st.spinner("Caricamento ordini..."):
@@ -135,18 +142,19 @@ def ordini_app():
             st.warning("⚠️ Nessun ordine trovato")
             st.info("💡 Gli ordini approvati (ESITO ≥ 3) verranno importati automaticamente dal foglio Proposte")
             
-            # Mostra comunque le metriche del portfolio
-            st.markdown("### 💼 Dati Portfolio")
-            col1, col2, col3 = st.columns(3)
-            
-            with col1:
-                st.metric("Valore Portfolio", f"€ {portfolio_data['value_eur']:,.2f}")
-            
-            with col2:
-                st.metric("Liquidità Disponibile", f"€ {liquidita_disponibile:,.2f}")
-            
-            with col3:
-                st.metric("Performance", f"{portfolio_data['pl_percent']:.2f}%")
+            # Mostra comunque le metriche del portfolio se disponibili
+            if portfolio_data:
+                st.markdown("### 💼 Dati Portfolio")
+                col1, col2, col3 = st.columns(3)
+                
+                with col1:
+                    st.metric("Valore Portfolio", f"€ {portfolio_data['value_eur']:,.2f}")
+                
+                with col2:
+                    st.metric("Liquidità Disponibile", f"€ {liquidita_disponibile:,.2f}")
+                
+                with col3:
+                    st.metric("Performance", f"{portfolio_data['pl_percent']:.2f}%")
             
             st.stop()
         
