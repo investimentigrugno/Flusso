@@ -128,7 +128,7 @@ def ordini_app():
             liquidita_disponibile = st.sidebar.number_input(
                 "Liquidità Manuale (€)",
                 min_value=0.0,
-                value=2228.92,
+                value=0,
                 step=100.0,
                 format="%.2f",
                 help="Inserisci manualmente la liquidità disponibile"
