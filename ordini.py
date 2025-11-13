@@ -126,6 +126,29 @@ def ordini_app():
         st.success(f"✅ {len(df_ordini)} ordini caricati")
         
         # METRICHE
+        st.write("### 🔍 DEBUG CALCOLO")
+
+        # Debug ordini attivi
+        ordini_attivi_debug = df_ordini[df_ordini['STATO'] == 'ATTIVO'].copy()
+        st.write(f"Ordini con STATO='ATTIVO': {len(ordini_attivi_debug)}")
+
+        if not ordini_attivi_debug.empty:
+            st.write("**Prime 3 righe ordini attivi:**")
+            st.dataframe(ordini_attivi_debug[['ASSET', 'N.AZIONI', 'ENTRY PRICE', 'STATO']].head(3))
+            
+            # Controlla se i valori sono numerici
+            st.write(f"N.AZIONI tipo: {ordini_attivi_debug['N.AZIONI'].dtype}")
+            st.write(f"ENTRY PRICE tipo: {ordini_attivi_debug['ENTRY PRICE'].dtype}")
+            st.write(f"N.AZIONI non nulli: {ordini_attivi_debug['N.AZIONI'].notna().sum()}")
+            st.write(f"ENTRY PRICE non nulli: {ordini_attivi_debug['ENTRY PRICE'].notna().sum()}")
+
+        valore_attivi = calcola_valore_ordini_attivi(df_ordini)
+        st.write(f"**Valore calcolato: € {valore_attivi:,.2f}**")
+
+        liquidita_effettiva = liquidita_disponibile - valore_attivi
+
+
+        # METRICHE
         valore_attivi = calcola_valore_ordini_attivi(df_ordini)
         liquidita_effettiva = liquidita_disponibile - valore_attivi
         
@@ -203,7 +226,7 @@ def ordini_app():
         
         if not ordini_eseguiti.empty:
             st.success(f"📊 {len(ordini_eseguiti)} completati")
-            cols = ['DATA', 'ASSET', 'PROPOSTA', 'ENTRY PRICE', 'N.AZIONI']
+            cols = ['DATA', 'ASSET', 'PROPOSTA', 'ENTRY PRICE', 'N.AZIONI','TP', 'SL']
             cols_disp = [c for c in cols if c in ordini_eseguiti.columns]
             st.dataframe(ordini_eseguiti[cols_disp], use_container_width=True, hide_index=True, height=300)
         else:
@@ -215,7 +238,7 @@ def ordini_app():
         
         if not ordini_cancellati.empty:
             with st.expander(f"Mostra {len(ordini_cancellati)} cancellati"):
-                cols_canc = ['DATA', 'ASSET', 'PROPOSTA']
+                cols_canc = ['DATA', 'ASSET', 'PROPOSTA', 'ENTRY PRICE', 'N.AZIONI','TP', 'SL']
                 cols_disp_canc = [c for c in cols_canc if c in ordini_cancellati.columns]
                 st.dataframe(ordini_cancellati[cols_disp_canc], use_container_width=True, hide_index=True)
                 
