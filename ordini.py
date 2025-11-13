@@ -61,12 +61,26 @@ def calcola_valore_ordini_attivi(df_ordini):
     """Calcola valore ordini attivi"""
     if df_ordini is None or df_ordini.empty:
         return 0.0
+    
     ordini_attivi = df_ordini[df_ordini['STATO'] == 'ATTIVO'].copy()
+    
+    if ordini_attivi.empty:
+        return 0.0
+    
     if 'N.AZIONI' in ordini_attivi.columns and 'ENTRY PRICE' in ordini_attivi.columns:
-        ordini_attivi['VALORE'] = pd.to_numeric(ordini_attivi['N.AZIONI'], errors='coerce') * \
-                                   pd.to_numeric(ordini_attivi['ENTRY PRICE'], errors='coerce')
+        # ⭐ CONVERTI FORMATO EUROPEO (virgola → punto)
+        ordini_attivi['N.AZIONI_CLEAN'] = ordini_attivi['N.AZIONI'].astype(str).str.replace(',', '.').str.replace(' ', '')
+        ordini_attivi['ENTRY_PRICE_CLEAN'] = ordini_attivi['ENTRY PRICE'].astype(str).str.replace(',', '.').str.replace(' ', '').str.replace('€', '')
+        
+        ordini_attivi['N.AZIONI_NUM'] = pd.to_numeric(ordini_attivi['N.AZIONI_CLEAN'], errors='coerce')
+        ordini_attivi['ENTRY_PRICE_NUM'] = pd.to_numeric(ordini_attivi['ENTRY_PRICE_CLEAN'], errors='coerce')
+        
+        ordini_attivi['VALORE'] = ordini_attivi['N.AZIONI_NUM'] * ordini_attivi['ENTRY_PRICE_NUM']
+        
         return ordini_attivi['VALORE'].sum()
+    
     return 0.0
+
 
 
 def ordini_app():
