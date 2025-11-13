@@ -4,18 +4,13 @@ import plotly.express as px
 from datetime import datetime
 import requests
 
-# ⭐ IMPORT CORRETTO - Solo funzioni pubbliche
-from portfolio_global import (
-    get_liquidita_disponibile,
-    get_portfolio_data,
-    display_portfolio_sidebar,
-    refresh_portfolio_data
-)
+# ⭐ IMPORT SEMPLICE dalla tua funzione esistente
+from portfolio import load_sheet_csv
 
 # Configurazione pagina
 st.set_page_config(
     page_title="Gestione Ordini",
-    page_icon="🕹️",
+    page_icon="📦",
     layout="wide"
 )
 
@@ -25,6 +20,10 @@ GID_PROPOSTE = "836776830"
 
 SPREADSHEET_ID_ORDINI = "1mD9jxDJv26aZwCdIbvQVjlJGBhRwKWwQnPpPPq0ON5Y"
 GID_ORDINI = "1901209178"
+
+# ⭐ CONFIGURAZIONE PORTFOLIO PER LIQUIDITÀ
+SPREADSHEET_ID_PORTFOLIO = "1mD9jxDJv26aZwCdIbvQVjlJGBhRwKWwQnPpPPq0ON5Y"
+GID_PORTFOLIO_STATUS = "1033121372"
 
 WEBHOOK_URL_ORDINI = "TUO_WEBHOOK_URL_ORDINI_QUI"
 
@@ -48,6 +47,41 @@ def load_sheet_csv_ordini(spreadsheet_id, gid):
             time.sleep(2)
     
     return None
+
+
+def get_liquidita_disponibile():
+    """
+    Carica la liquidità disponibile dal foglio Portfolio
+    Returns: float (liquidità disponibile in EUR)
+    """
+    try:
+        # Carica il foglio Portfolio
+        df_liquidity = load_sheet_csv(SPREADSHEET_ID_PORTFOLIO, GID_PORTFOLIO_STATUS)
+        
+        # Estrai i dati come da tua specifica
+        df_liquidity = pd.DataFrame(
+            df_liquidity.iloc[2:3, 0:4].values,
+            columns=df_liquidity.iloc[1, 0:4].values
+        )
+        
+        # Estrai il valore della liquidità disponibile (assumo colonna 'CASH DISP' o simile)
+        # Adatta il nome della colonna in base al tuo foglio
+        if 'CASH DISP' in df_liquidity.columns:
+            liquidita = df_liquidity['CASH DISP'].iloc[0]
+        elif len(df_liquidity.columns) >= 3:
+            liquidita = df_liquidity.iloc[0, 2]  # Terza colonna (indice 2)
+        else:
+            liquidita = 0.0
+        
+        # Converti in float se necessario
+        if isinstance(liquidita, str):
+            liquidita = float(liquidita.replace('€', '').replace('.', '').replace(',', '.').strip())
+        
+        return float(liquidita)
+        
+    except Exception as e:
+        st.sidebar.error(f"Errore caricamento liquidità: {str(e)}")
+        return 0.0
 
 
 def aggiorna_stato_ordine_via_webhook(row_number, stato_esecuzione, data_esecuzione, webhook_url):
@@ -95,20 +129,16 @@ def calcola_valore_ordini_attivi(df_ordini):
 def ordini_app():
     """Applicazione Gestione Ordini"""
     
-    st.title("🕹️ Gestione Ordini")
+    st.title("📦 Gestione Ordini")
     st.markdown("Monitora e gestisci gli ordini di trading approvati")
     st.markdown("---")
     
     # ==================== SIDEBAR ====================
     st.sidebar.markdown("### ⚙️ Opzioni")
     
-    # ⭐ MOSTRA WIDGET PORTFOLIO NELLA SIDEBAR (opzionale)
-    display_portfolio_sidebar()
-    
     # Bottone refresh
     if st.sidebar.button("🔄 Aggiorna Dati", type="primary"):
         st.cache_data.clear()
-        refresh_portfolio_data()  # Refresh anche i dati portfolio
         st.rerun()
     
     st.sidebar.markdown("---")
@@ -117,22 +147,18 @@ def ordini_app():
     
     # ==================== CARICA DATI ====================
     try:
-        # ⭐ CARICA DATI PORTFOLIO in modo sicuro
-        portfolio_data = get_portfolio_data(silent=True)
+        # ⭐ CARICA LIQUIDITÀ DAL PORTFOLIO
+        with st.spinner("Caricamento dati Portfolio..."):
+            liquidita_disponibile = get_liquidita_disponibile()
         
-        if portfolio_data:
-            liquidita_disponibile = portfolio_data['cash_disp']
-        else:
-            # Fallback: usa valore manuale se Portfolio non disponibile
-            st.sidebar.warning("⚠️ Portfolio non disponibile")
-            liquidita_disponibile = st.sidebar.number_input(
-                "Liquidità Manuale (€)",
-                min_value=0.0,
-                value=0.0,
-                step=100.0,
-                format="%.2f",
-                help="Inserisci manualmente la liquidità disponibile"
-            )
+        # Mostra liquidità nella sidebar
+        st.sidebar.markdown("---")
+        st.sidebar.markdown("### 💰 Liquidità Portfolio")
+        st.sidebar.metric(
+            "Disponibile",
+            f"€ {liquidita_disponibile:,.2f}",
+            help="Dal foglio Portfolio"
+        )
         
         # Carica Ordini
         with st.spinner("Caricamento ordini..."):
@@ -141,21 +167,6 @@ def ordini_app():
         if df_ordini is None or df_ordini.empty:
             st.warning("⚠️ Nessun ordine trovato")
             st.info("💡 Gli ordini approvati (ESITO ≥ 3) verranno importati automaticamente dal foglio Proposte")
-            
-            # Mostra comunque le metriche del portfolio se disponibili
-            if portfolio_data:
-                st.markdown("### 💼 Dati Portfolio")
-                col1, col2, col3 = st.columns(3)
-                
-                with col1:
-                    st.metric("Valore Portfolio", f"€ {portfolio_data['value_eur']:,.2f}")
-                
-                with col2:
-                    st.metric("Liquidità Disponibile", f"€ {liquidita_disponibile:,.2f}")
-                
-                with col3:
-                    st.metric("Performance", f"{portfolio_data['pl_percent']:.2f}%")
-            
             st.stop()
         
         # Pulizia dati ordini
@@ -201,6 +212,11 @@ def ordini_app():
         eseguiti = len(df_ordini[df_ordini['STATO ESECUZIONE'] == 'Eseguito'])
         cancellati = len(df_ordini[df_ordini['STATO ESECUZIONE'] == 'Cancellato'])
         
+        # Salva liquidità in session_state per accesso globale
+        st.session_state.liquidita_disponibile = liquidita_disponibile
+        st.session_state.valore_ordini_attivi = valore_ordini_attivi
+        st.session_state.liquidita_effettiva = liquidita_effettiva
+        
         # ==================== METRICHE PRINCIPALI ====================
         col_met1, col_met2, col_met3, col_met4 = st.columns(4)
         
@@ -208,7 +224,7 @@ def ordini_app():
             st.metric(
                 "💰 Liquidità Portfolio",
                 f"€ {liquidita_disponibile:,.2f}",
-                help="Liquidità disponibile dal foglio Portfolio (CASH DISP)"
+                help="Liquidità disponibile dal foglio Portfolio"
             )
         
         with col_met2:
@@ -434,7 +450,8 @@ def ordini_app():
     
     except Exception as e:
         st.error(f"❌ Errore: {str(e)}")
-        st.info("💡 Verifica che i fogli siano condivisi pubblicamente")
+        import traceback
+        st.code(traceback.format_exc())
 
 
 if __name__ == "__main__":
