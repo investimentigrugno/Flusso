@@ -1134,54 +1134,173 @@ Questa app utilizza un **algoritmo di scoring intelligente** e **notizie tradott
     # ========== TAB 4: ANALISI TECNICA AVANZATA ==========
     with tab4:
         st.header("📊 Analisi Tecnica Avanzata con AI")
-        st.markdown("""
-        Inserisci un ticker per ottenere un'**analisi tecnica completa generata dall'AI**, 
-        includendo prezzi di ingresso ottimali, stop loss e take profit calcolati sulla volatilità effettiva (ATR).
-        """)
+        st.markdown("Cerca un ticker specifico e ottieni un'analisi tecnica completa con strategia operativa")
         
-        # Barra di ricerca ticker
         col1, col2 = st.columns([3, 1])
         
         with col1:
-            ticker_input = st.text_input(
-                "🔍 Ticker Symbol",
-                placeholder="es. AAPL, TSLA, MSFT",
+            ticker = st.text_input(
+                "Inserisci Ticker (es. AAPL, TSLA, ENEL.MI):", 
+                "", 
                 key="technical_search_input",
-                help="Inserisci il simbolo del ticker da analizzare"
+                help="Formato: TICKER o TICKER.MI per titoli italiani",
+                placeholder="Es. AAPL"
             )
         
         with col2:
             st.markdown("<br>", unsafe_allow_html=True)
-            analyze_btn = st.button(
-                "🚀 Analizza", 
-                key="analyze_technical_btn", 
-                type="primary", 
+            analyze_btn_tech = st.button(
+                "📊 Analizza", 
+                key="analyze_technical_btn",
+                type="primary",
                 use_container_width=True
             )
         
-        # Esegui analisi quando il bottone viene premuto
-        if ticker_input and analyze_btn:
-            ticker = ticker_input.upper().strip()
-            
-            with st.spinner(f"🔄 Recupero dati tecnici per **{ticker}**..."):
-                # Fetch dati tecnici
-                df_result = fetch_technical_data(ticker)
+        # Esempi rapidi
+        st.markdown("**Esempi rapidi:**")
+        col_ex1, col_ex2, col_ex3, col_ex4 = st.columns(4)
+        
+        examples_tech = [
+            ("📱 Apple", "AAPL"),
+            ("⚡ Tesla", "TSLA"),
+            ("💡 Enel", "ENEL.MI"),
+            ("🏦 Intesa SP", "ISP.MI")
+        ]
+        
+        for i, (label, ticker_val) in enumerate(examples_tech):
+            with [col_ex1, col_ex2, col_ex3, col_ex4][i]:
+                if st.button(label, key=f"tech_ex_{i}", use_container_width=True):
+                    ticker = ticker_val
+                    analyze_btn_tech = True
+        
+        if ticker and analyze_btn_tech:
+            with st.spinner(f"🔍 Ricerca dati tecnici per {ticker.upper()}..."):
+                df_result = fetch_technical_data(ticker.upper())
                 
-                if df_result.empty:
+                if not df_result.empty:
+                    st.success(f"✅ Dati trovati per {ticker}")
+                    
+                    # Dashboard metriche rapide
+                    st.subheader("📈 Metriche Principali")
+                    row = df_result.iloc[0]
+                    
+                    col1, col2, col3, col4, col5 = st.columns(5)
+                    
+                    with col1:
+                        close_price = row.get('close', 0)
+                        change_pct = row.get('change', 0)
+                        st.metric(
+                            "Prezzo Attuale",
+                            f"${close_price:.2f}",
+                            f"{change_pct:+.2f}%",
+                            delta_color="normal"
+                        )
+                    
+                    with col2:
+                        rsi = row.get('RSI', 0)
+                        rsi_status = "🔴 Ipercomprato" if rsi > 70 else "🟢 Ipervenduto" if rsi < 30 else "🟡 Neutrale"
+                        st.metric(
+                            "RSI(14)",
+                            f"{rsi:.1f}",
+                            rsi_status
+                        )
+                    
+                    with col3:
+                        atr = row.get('ATR', 0)
+                        volatility_d = row.get('Volatility.D', 0)
+                        st.metric(
+                            "ATR (Volatilità)",
+                            f"${atr:.2f}",
+                            f"Vol: {volatility_d:.2f}%"
+                        )
+                    
+                    with col4:
+                        volume_rel = row.get('relative_volume_10d_calc', 0)
+                        vol_status = "🔥 Alto" if volume_rel > 1.5 else "📊 Normale" if volume_rel > 0.7 else "📉 Basso"
+                        st.metric(
+                            "Volume Relativo",
+                            f"{volume_rel:.2f}x",
+                            vol_status
+                        )
+                    
+                    with col5:
+                        recommend = row.get('Recommend.All', 0)
+                        rec_label = format_technical_rating(recommend)
+                        st.metric(
+                            "Rating Tecnico",
+                            rec_label,
+                            f"{recommend:.2f}"
+                        )
+                    
+                    # Mostra dati completi
+                    st.subheader("📊 Dati Completi")
+                    st.dataframe(df_result, use_container_width=True)
+                    
+                    # Tabella presenza dati
+                    st.subheader("📋 Presenza Dati per Colonna")
+                    data_info = []
+                    for col in df_result.columns:
+                        if col not in ['name', 'description']:
+                            value = df_result.iloc[0].get(col, None)
+                            is_present = not pd.isna(value) and value != "" and value is not None
+                            stato = "✅ Presente" if is_present else "❌ Assente"
+                            
+                            # Formatta il valore
+                            if is_present:
+                                if isinstance(value, float):
+                                    if abs(value) >= 1e9:
+                                        valore = f"{value:,.2f}"
+                                    elif abs(value) >= 1:
+                                        valore = f"{value:.4f}"
+                                    else:
+                                        valore = f"{value:.6f}"
+                                else:
+                                    valore = str(value)
+                            else:
+                                valore = "N/A"
+                            
+                            data_info.append({
+                                'Colonna': col,
+                                'Stato': stato,
+                                'Valore': valore
+                            })
+                    
+                    presence_df = pd.DataFrame(data_info)
+                    st.dataframe(presence_df, use_container_width=True)
+                    
+                    # Genera report AI usando i dati disponibili
+                    st.subheader("🤖 Report AI Tecnico con Strategia Operativa")
+                    
+                    with st.spinner("🧠 Generazione analisi AI tecnica..."):
+                        # Prepara dati per AI
+                        technical_dict = df_result.iloc[0].to_dict()
+                        
+                        # Genera report AI
+                        ai_report = generate_technical_ai_report(
+                            ticker=ticker.upper(),
+                            technical_dict=technical_dict
+                        )
+                        
+                        st.markdown(escape_markdown_latex(ai_report))
+                    
+                    # Pulsante download
+                    st.download_button(
+                        label="📥 Scarica Report Completo",
+                        data=ai_report,
+                        file_name=f"report_tecnico_{ticker}_{datetime.now().strftime('%Y%m%d')}.txt",
+                        mime="text/plain",
+                        key="download_tech_report"
+                    )
+                else:
                     st.error(f"❌ Impossibile trovare dati per il ticker **'{ticker}'**.")
                     st.info("""
                     **Suggerimenti:**
                     - Verifica che il simbolo sia corretto
+                    - Per titoli italiani usa il formato: TICKER.MI (es. ENEL.MI)
+                    - Per titoli USA non serve aggiungere exchange
                     - Prova a cercare il ticker su TradingView.com prima
                     """)
-                else:
-                    st.success(f"✅ Dati recuperati per **{ticker}**")
-                    # Processa e mostra i risultati
-                    process_technical_results(df_result, ticker)
-        
-        # Messaggio se non è stata fatta ancora nessuna ricerca
-        elif not ticker_input:
-            st.info("👆 Inserisci un ticker nella barra di ricerca sopra per iniziare l'analisi tecnica avanzata.")
+
 
 
     # Summary
