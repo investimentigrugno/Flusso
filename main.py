@@ -26,6 +26,13 @@ except Exception as e:
     transaction_ok = False
 
 try:
+    from ordini import ordini_app
+    ordini_ok = True
+except Exception as e:
+    st.sidebar.error(f"Ordini error: {e}")
+    ordini_ok = False
+
+try:
     from proposte import proposte_app
     proposte_ok = True
 except Exception as e:
@@ -55,6 +62,9 @@ if portfolio_ok:
 if transaction_ok:
     MENU["💳 Transaction Tracker"] = transaction_tracker_app
 
+if ordini_ok:
+    MENU["🕹️ Ordini"] = ordini_app
+
 if proposte_ok:
     MENU["🗳️ Proposte"] = proposte_app
 
@@ -78,7 +88,7 @@ scelta = st.sidebar.radio(
 )
 
 st.sidebar.markdown("---")
-st.sidebar.info(f"Moduli attivi: {len(MENU)}/5")
+st.sidebar.info(f"Moduli attivi: {len(MENU)}/6")
 # Info aggiuntive
 with st.sidebar.expander("ℹ️ Info App"):
     st.markdown("""
@@ -96,6 +106,16 @@ with st.sidebar.expander("ℹ️ Info App"):
     - 5 Grafici: Tipo operazione, Top strumenti, Commissioni mensili, Distribuzione valuta
     - Tabella completa con tutte le transazioni filtrate
     - Export CSV con timestamp
+    
+    **🕹️ Ordini**
+    - Importazione automatica delle proposte approvate (ESITO ≥ 3) via trigger Google Script
+    - Ordini attivi in evidenza con card separate e visualizzazione prioritaria
+    - Tabella ordini eseguiti sotto la sezione attivi
+    - Tabella ordini cancellati in expander collassabile
+    - Modifica stato da Attivo a Eseguito o Cancellato con pulsanti dedicati
+    - Riattivazione ordini cancellati tornano allo stato Attivo
+    - Variabile globale liquidità accessibile da tutte le pagine 
+    - Calcolo automatico Liquidità Disponibile = Totale - Valore Ordini Attivi
     
     **🗳️Proposte**
     - Selettore dropdown - Scegli proposta da visualizzare
