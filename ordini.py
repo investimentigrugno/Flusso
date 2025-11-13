@@ -321,7 +321,7 @@ def calcola_valore_ordini_attivi(df_ordini):
     """Calcola valore ordini attivi"""
     if df_ordini is None or df_ordini.empty:
         return 0.0
-    ordini_attivi = df_ordini[df_ordini['STATO'] == 'Attivo'].copy()
+    ordini_attivi = df_ordini[df_ordini['STATO'] == 'ATTIVO'].copy()
     if 'N.AZIONI' in ordini_attivi.columns and 'ENTRY PRICE' in ordini_attivi.columns:
         ordini_attivi['VALORE'] = pd.to_numeric(ordini_attivi['N.AZIONI'], errors='coerce') * \
                                    pd.to_numeric(ordini_attivi['ENTRY PRICE'], errors='coerce')
@@ -402,9 +402,9 @@ def ordini_app():
         liquidita_effettiva = liquidita_disponibile - valore_attivi
         
         totali = len(df_ordini)
-        attivi = len(df_ordini[df_ordini['STATO'] == 'Attivo'])
-        eseguiti = len(df_ordini[df_ordini['STATO'] == 'Eseguito'])
-        cancellati = len(df_ordini[df_ordini['STATO'] == 'Cancellato'])
+        attivi = len(df_ordini[df_ordini['STATO'] == 'ATTIVO'])
+        eseguiti = len(df_ordini[df_ordini['STATO'] == 'ESEGUITO'])
+        cancellati = len(df_ordini[df_ordini['STATO'] == 'CANCELLATO'])
         
         st.session_state.liquidita_disponibile = liquidita_disponibile
         st.session_state.valore_ordini_attivi = valore_attivi
@@ -425,7 +425,7 @@ def ordini_app():
         
         # ORDINI ATTIVI
         st.markdown("## 🔥 Ordini Attivi")
-        ordini_attivi = df_ordini[df_ordini['STATO'] == 'Attivo'].copy()
+        ordini_attivi = df_ordini[df_ordini['STATO'] == 'ATTIVO'].copy()
         
         if ordini_attivi.empty:
             st.success("✅ Nessun ordine attivo")
@@ -453,7 +453,7 @@ def ordini_app():
                     col1, col2, col3 = st.columns([1, 1, 2])
                     with col1:
                         if st.button("✅ Eseguito", key=f"e_{ordine['ROW_NUMBER']}", use_container_width=True, type="primary"):
-                            success, msg = aggiorna_stato_ordine_via_webhook(ordine['ROW_NUMBER'], 'Eseguito', WEBHOOK_URL_ORDINI)
+                            success, msg = aggiorna_stato_ordine_via_webhook(ordine['ROW_NUMBER'], 'ESEGUITO', WEBHOOK_URL_ORDINI)
                             if success:
                                 st.success(msg)
                                 st.cache_data.clear()
@@ -462,7 +462,7 @@ def ordini_app():
                                 st.error(msg)
                     with col2:
                         if st.button("❌ Cancella", key=f"c_{ordine['ROW_NUMBER']}", use_container_width=True):
-                            success, msg = aggiorna_stato_ordine_via_webhook(ordine['ROW_NUMBER'], 'Cancellato', WEBHOOK_URL_ORDINI)
+                            success, msg = aggiorna_stato_ordine_via_webhook(ordine['ROW_NUMBER'], 'CANCELLATO', WEBHOOK_URL_ORDINI)
                             if success:
                                 st.success(msg)
                                 st.cache_data.clear()
@@ -473,7 +473,7 @@ def ordini_app():
         
         # ORDINI ESEGUITI
         st.markdown("## ✅ Ordini Eseguiti")
-        ordini_eseguiti = df_ordini[df_ordini['STATO'] == 'Eseguito'].copy()
+        ordini_eseguiti = df_ordini[df_ordini['STATO'] == 'ESEGUITO'].copy()
         
         if not ordini_eseguiti.empty:
             st.success(f"📊 {len(ordini_eseguiti)} completati")
@@ -485,7 +485,7 @@ def ordini_app():
         
         # ORDINI CANCELLATI
         st.markdown("## ❌ Ordini Cancellati")
-        ordini_cancellati = df_ordini[df_ordini['STATO'] == 'Cancellato'].copy()
+        ordini_cancellati = df_ordini[df_ordini['STATO'] == 'CANCELLATO'].copy()
         
         if not ordini_cancellati.empty:
             with st.expander(f"Mostra {len(ordini_cancellati)} cancellati"):
@@ -500,7 +500,7 @@ def ordini_app():
                         st.caption(f"{ordine.get('ASSET', 'N/A')} - {ordine.get('PROPOSTA', 'N/A')}")
                     with col_btn:
                         if st.button("🔄", key=f"r_{ordine['ROW_NUMBER']}", use_container_width=True):
-                            success, msg = aggiorna_stato_ordine_via_webhook(ordine['ROW_NUMBER'], 'Attivo', WEBHOOK_URL_ORDINI)
+                            success, msg = aggiorna_stato_ordine_via_webhook(ordine['ROW_NUMBER'], 'ATTIVO', WEBHOOK_URL_ORDINI)
                             if success:
                                 st.success(msg)
                                 st.cache_data.clear()
