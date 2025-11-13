@@ -96,20 +96,20 @@ def ordini_app():
             st.warning("⚠️ Nessun ordine trovato")
             st.stop()
         
-        # RIMUOVI COLONNE VUOTE/UNNAMED
+        # ⭐ RESET INDEX se è stato usato come colonna
+        df_ordini = df_ordini.reset_index(drop=True)
+
+        # RIMUOVI COLONNE UNNAMED
         df_ordini = df_ordini.loc[:, ~df_ordini.columns.str.contains('^Unnamed', na=False)]
-        
-        # PRENDI SOLO LE PRIME 14 COLONNE
-        df_ordini = df_ordini.iloc[:, :14]
-        
-        # RINOMINA COLONNE (14 colonne)
-        df_ordini.columns = [
+
+        # RINOMINA COLONNE
+        expected_columns = [
             'DATA', 'TIME', 'COMPONENTE1', 'COMPONENTE2',
             'VOTO A FAVORE', 'STATO', 'ASSET', 'PROPOSTA',
             'ENTRY PRICE', 'N.AZIONI', '% SU TOT. PF.',
             'TP', 'SL', 'TEMPO'
         ]
-        
+        df_ordini.columns = expected_columns[:len(df_ordini.columns)]
         df_ordini['ROW_NUMBER'] = range(2, len(df_ordini) + 2)
         
         # CONVERTI DATE
@@ -119,7 +119,7 @@ def ordini_app():
         # GESTISCI STATO
         df_ordini['STATO'] = df_ordini['STATO'].fillna('Attivo').replace('', 'Attivo')
         
-        # RIMUOVI RIGHE VUOTE
+        # RIMUOVI VUOTE
         mask = df_ordini[['ASSET', 'PROPOSTA']].notna().any(axis=1)
         df_ordini = df_ordini[mask].sort_values('DATA', ascending=False, na_position='last').reset_index(drop=True)
         
@@ -221,7 +221,6 @@ def ordini_app():
                 cols_disp_canc = [c for c in cols_canc if c in ordini_cancellati.columns]
                 st.dataframe(ordini_cancellati[cols_disp_canc], use_container_width=True, hide_index=True)
                 
-                st.markdown("**Riattiva ordini:**")
                 for idx, ordine in ordini_cancellati.iterrows():
                     col_info, col_btn = st.columns([3, 1])
                     with col_info:
@@ -233,8 +232,6 @@ def ordini_app():
                                 st.success(msg)
                                 st.cache_data.clear()
                                 st.rerun()
-                            else:
-                                st.error(msg)
         else:
             st.info("Nessun ordine cancellato")
     
