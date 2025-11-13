@@ -1134,17 +1134,17 @@ Questa app utilizza un **algoritmo di scoring intelligente** e **notizie tradott
     # ========== TAB 4: ANALISI TECNICA AVANZATA ==========
     with tab4:
         st.header("📊 Analisi Tecnica Avanzata con AI")
-        st.markdown("Cerca un ticker specifico e ottieni un'analisi tecnica completa con strategia operativa")
+        st.markdown("Cerca un'azienda specifica e ottieni un'analisi tecnica completa con strategia operativa")
         
         col1, col2 = st.columns([3, 1])
         
         with col1:
             ticker = st.text_input(
-                "Inserisci Ticker (es. AAPL, TSLA, ENEL.MI):", 
+                "Inserisci Simbolo con prefisso (es. NASDAQ:AAPL, MIL:ENEL):", 
                 "", 
                 key="technical_search_input",
                 help="Formato: TICKER o TICKER.MI per titoli italiani",
-                placeholder="Es. AAPL"
+                placeholder="Es. NASDAQ:AAPL"
             )
         
         with col2:
