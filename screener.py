@@ -287,8 +287,6 @@ def get_top_5_investment_picks(df):
 
 def fetch_fundamental_data(symbol: str):
     """Recupera dati fondamentali per un ticker specifico da tutti i mercati."""
-    from tradingview_screener import Query
-    import numpy as np
     
     markets = [
         'america', 'australia', 'belgium', 'brazil', 'canada', 'chile', 'china', 'italy',
@@ -334,20 +332,6 @@ def fetch_fundamental_data(symbol: str):
     except Exception as e:
         st.error(f"Errore nel caricamento dati fondamentali: {e}")
         return pd.DataFrame()
-
-
-    
-    # Se nessun formato ha funzionato
-    st.error(f"❌ Nessun dato trovato per '{symbol}' nei formati NASDAQ:{symbol}, NYSE:{symbol}, AMEX:{symbol}")
-    st.info("""
-    💡 **Suggerimenti**:
-    - Prova a cercare il ticker su TradingView.com prima
-    - Inserisci direttamente il formato completo (es. 'NASDAQ:AAPL')
-    - Verifica che sia un titolo del mercato USA
-    - Esempi che funzionano: NASDAQ:AAPL, NYSE:JPM, NASDAQ:TSLA
-    """)
-    
-    return pd.DataFrame()
 
 def generate_fundamental_ai_report(company_name: str, fundamentals: dict):
     """Genera report AI usando i dati fondamentali disponibili."""
@@ -441,162 +425,289 @@ def process_fundamental_results(df_result, symbol):
 def fetch_technical_data(ticker: str):
     """
     Recupera i dati tecnici completi da TradingView per un ticker specifico.
-    Utilizza oltre 50 parametri per analisi robusta.
-    
-    Ritorna un dizionario con i dati della prima riga trovata.
+    Ritorna un DataFrame con i dati della prima riga trovata.
     """
+    # Definisci i mercati dove cercare
+    markets = [
+        'america', 'australia', 'belgium', 'brazil', 'canada', 'chile', 'china', 'italy',
+        'czech', 'denmark', 'egypt', 'estonia', 'finland', 'france', 'germany', 'greece',
+        'hongkong', 'hungary', 'india', 'indonesia', 'ireland', 'israel', 'japan', 'korea',
+        'kuwait', 'lithuania', 'luxembourg', 'malaysia', 'mexico', 'morocco', 'netherlands',
+        'newzealand', 'norway', 'peru', 'philippines', 'poland', 'portugal', 'qatar', 'russia',
+        'singapore', 'slovakia', 'spain', 'sweden', 'switzerland', 'taiwan', 'uae', 'uk',
+        'venezuela', 'vietnam', 'crypto'
+    ]
+    
+    columns = [
+        # Info base
+        'name', 'description', 'close', 'open', 'high', 'low', 'volume',
+        'change', 'change_abs', 'Recommend.All',
+        
+        # Indicatori di Trend
+        'RSI', 'RSI[1]', 'Stoch.K', 'Stoch.D', 
+        'MACD.macd', 'MACD.signal', 'ADX', 'ADX+DI', 'ADX-DI',
+        'CCI20', 'Mom', 'Stoch.RSI.K',
+        
+        # Medie Mobili
+        'SMA20', 'EMA20', 'SMA50', 'EMA50', 'SMA100', 'SMA200',
+        'EMA10', 'EMA30',
+        
+        # Volatilità
+        'ATR', 'ATR[1]', 'BB.upper', 'BB.lower', 'BB.basis',
+        'Volatility.D', 'Volatility.W', 'Volatility.M',
+        
+        # Volume
+        'average_volume_10d_calc', 'average_volume_30d_calc',
+        'average_volume_60d_calc', 'relative_volume_10d_calc',
+        
+        # Pivot Points
+        'Pivot.M.Classic.S1', 'Pivot.M.Classic.R1',
+        'Pivot.M.Classic.S2', 'Pivot.M.Classic.R2',
+        'Pivot.M.Classic.S3', 'Pivot.M.Classic.R3',
+        'Pivot.M.Classic.Middle',
+        
+        # Performance
+        'Perf.W', 'Perf.1M', 'Perf.3M', 'Perf.6M', 'Perf.Y',
+        
+        # Dati Fondamentali Base
+        'market_cap_basic', 'price_earnings_ttm', 'sector', 'country'
+    ]
+    
     try:
-        # Definisci i mercati dove cercare
-        markets = [
-            'america', 'australia', 'belgium', 'brazil', 'canada', 'chile', 'china', 'italy',
-            'czech', 'denmark', 'egypt', 'estonia', 'finland', 'france', 'germany', 'greece',
-            'hongkong', 'hungary', 'india', 'indonesia', 'ireland', 'israel', 'japan', 'korea',
-            'kuwait', 'lithuania', 'luxembourg', 'malaysia', 'mexico', 'morocco', 'netherlands',
-            'newzealand', 'norway', 'peru', 'philippines', 'poland', 'portugal', 'qatar', 'russia',
-            'singapore', 'slovakia', 'spain', 'sweden', 'switzerland', 'taiwan', 'uae', 'uk',
-            'venezuela', 'vietnam', 'crypto'
-        ]
-        
-        # Query completa per analisi tecnica
-        query = (Query()
-            .set_markets(*markets)
-            .set_tickers(ticker)
-            .select(
-                # Prezzo e Volume base
-                'name', 'close', 'open', 'high', 'low', 'volume',
-                'change', 'change_abs', 'Recommend.All', 'description', 'country', 'sector',
-                
-                # Indicatori di Trend
-                'RSI', 'RSI[1]', 'Stoch.K', 'Stoch.D', 
-                'MACD.macd', 'MACD.signal', 'ADX', 'ADX+DI', 'ADX-DI',
-                'CCI20', 'Mom', 'Stoch.RSI.K',
-                
-                # Medie Mobili
-                'SMA20', 'EMA20', 'SMA50', 'EMA50', 'SMA100', 'SMA200',
-                'EMA10', 'EMA30',
-                
-                # Volatilità
-                'ATR', 'BB.upper', 'BB.lower', 'BB.basis',
-                'average_true_range',
-                
-                # Volume
-                'average_volume_10d_calc', 'average_volume_30d_calc',
-                'average_volume_60d_calc', 'relative_volume_10d_calc',
-                
-                # Pivot Points
-                'Pivot.M.Classic.S1', 'Pivot.M.Classic.R1',
-                'Pivot.M.Classic.S2', 'Pivot.M.Classic.R2',
-                'Pivot.M.Classic.S3', 'Pivot.M.Classic.R3',
-                'Pivot.M.Classic.Middle',
-                
-                # Performance
-                'Perf.W', 'Perf.1M', 'Perf.3M', 'Perf.6M', 'Perf.Y',
-                
-                # Volatilità Storica
-                'Volatility.D', 'Volatility.W', 'Volatility.M',
-                
-                # Dati Fondamentali Base
-                'market_cap_basic'
-            )
-        )
-        
-        # Esegui la query - ritorna (total, dataframe)
+        query = Query().set_markets(*markets).set_tickers(ticker).select(*columns)
         total, df = query.get_scanner_data()
         
-        # Se il dataframe non è vuoto, ritorna il primo risultato come dizionario
-        if df is not None and not df.empty:
-            return df.iloc[0].to_dict()
-        else:
-            return None
-            
+        if df.empty:
+            st.warning(f"❌ Nessun dato trovato per {ticker}")
+            return pd.DataFrame()
+        
+        df_filtered = df.head(1).copy()
+        
+        # Normalizza colonne mancanti
+        for col in columns:
+            if col not in df_filtered.columns:
+                df_filtered[col] = np.nan
+        
+        return df_filtered
+    
     except Exception as e:
-        st.error(f"❌ Errore nel recupero dati tecnici: {str(e)}")
-        return None
+        st.error(f"❌ Errore nel caricamento dati tecnici: {e}")
+        return pd.DataFrame()
 
-def generate_technical_ai_report(ticker: str, technical_dict) -> str:
+
+def generate_technical_ai_report(ticker: str, technical_dict: dict) -> str:
     """
-    Genera analisi AI completa utilizzando Groq tramite callgroqapi.
+    Genera analisi AI completa utilizzando Groq.
     Fornisce raccomandazioni su entry, stop loss e take profit.
     """
+    
+    # Filtra solo dati validi (come fai per i fondamentali)
+    relevant_data = {k: v for k, v in technical_dict.items() 
+                    if not pd.isna(v) and v != "" and k != 'name'}
     
     # Prepara il prompt strutturato
     prompt = f"""Sei un analista tecnico esperto specializzato in trading algoritmico. Analizza il ticker {ticker} e fornisci un report dettagliato e AZIONABILE.
 
-DATI TECNICI ATTUALI:
-- Ticker: {technical_data.get('name', 'N/A')}
-- Azienda: {technical_data.get('description', 'N/A')}
-- Settore: {technical_data.get('sector', 'N/A')}
-- Prezzo Corrente: ${technical_data.get('close', 0):.2f}
-- Variazione: {technical_data.get('change', 0):.2f}%
-- Volume: {format_currency(technical_data.get('volume', 0), '$')}
-- Volume Medio 10g: {format_currency(technical_data.get('average_volume_10d_calc', 0), '$')}
-- Volume Relativo: {technical_data.get('relative_volume_10d_calc', 0):.2f}x
-
-INDICATORI DI TREND:
-- RSI(14): {technical_data.get('RSI', 0):.2f}
-- RSI Precedente: {technical_data.get('RSI[1]', 0):.2f}
-- MACD: {technical_data.get('MACD.macd', 0):.4f}
-- MACD Signal: {technical_data.get('MACD.signal', 0):.4f}
-- ADX: {technical_data.get('ADX', 0):.2f}
-- ADX +DI: {technical_data.get('ADX+DI', 0):.2f}
-- ADX -DI: {technical_data.get('ADX-DI', 0):.2f}
-- Stochastic K: {technical_data.get('Stoch.K', 0):.2f}
-- Stochastic D: {technical_data.get('Stoch.D', 0):.2f}
-- CCI(20): {technical_data.get('CCI20', 0):.2f}
-- Momentum: {technical_data.get('Mom', 0):.2f}
-
-MEDIE MOBILI:
-- EMA10: ${technical_data.get('EMA10', 0):.2f}
-- SMA20: ${technical_data.get('SMA20', 0):.2f}
-- EMA20: ${technical_data.get('EMA20', 0):.2f}
-- EMA30: ${technical_data.get('EMA30', 0):.2f}
-- SMA50: ${technical_data.get('SMA50', 0):.2f}
-- SMA100: ${technical_data.get('SMA100', 0):.2f}
-- SMA200: ${technical_data.get('SMA200', 0):.2f}
-
-VOLATILITÀ E BANDE:
-- ATR: ${technical_data.get('atr', 0):.4f}
-- ATR Percentuale: {technical_data.get('atr_pct', 0):.2f}%
-- Volatilità Giornaliera: {technical_data.get('vol_daily', 0):.2f}%
-- Volatilità Settimanale: {technical_data.get('vol_weekly', 0):.2f}%
-- Volatilità Mensile: {technical_data.get('vol_monthly', 0):.2f}%
-- Bollinger Upper: ${technical_data.get('BB.upper', 0):.2f}
-- Bollinger Middle: ${technical_data.get('BB.basis', 0):.2f}
-- Bollinger Lower: ${technical_data.get('BB.lower', 0):.2f}
-- BB Width: {technical_data.get('bb_width_pct', 0):.2f}%
-
-PIVOT POINTS MENSILI:
-- Resistenza 3: ${technical_data.get('Pivot.M.Classic.R3', 0):.2f}
-- Resistenza 2: ${technical_data.get('Pivot.M.Classic.R2', 0):.2f}
-- Resistenza 1: ${technical_data.get('Pivot.M.Classic.R1', 0):.2f}
-- Pivot Middle: ${technical_data.get('Pivot.M.Classic.Middle', 0):.2f}
-- Supporto 1: ${technical_data.get('Pivot.M.Classic.S1', 0):.2f}
-- Supporto 2: ${technical_data.get('Pivot.M.Classic.S2', 0):.2f}
-- Supporto 3: ${technical_data.get('Pivot.M.Classic.S3', 0):.2f}
-
-PERFORMANCE STORICA:
-- 1 Settimana: {technical_data.get('Perf.W', 0):.2f}%
-- 1 Mese: {technical_data.get('Perf.1M', 0):.2f}%
-- 3 Mesi: {technical_data.get('Perf.3M', 0):.2f}%
-- 6 Mesi: {technical_data.get('Perf.6M', 0):.2f}%
-- 1 Anno: {technical_data.get('Perf.Y', 0):.2f}%
-
-RACCOMANDAZIONE AGGREGATA: {format_technical_rating(technical_data.get('Recommend.All', 0))}
-Score Numerico: {technical_data.get('Recommend.All', 0):.3f}
-
----
+DATI TECNICI DISPONIBILI:
+{relevant_data}
 
 Fornisci un'analisi STRUTTURATA PROFESSIONALE nel seguente formato (usa markdown):
 
 ## 1. SINTESI ESECUTIVA
-[Panoramica rapida: trend principale, sentiment del mercato, opportunità/rischi immediati - max 80 parole]
+Panoramica rapida: trend principale, sentiment del mercato, opportunità/rischi immediati (100 parole)
 
 ## 2. ANALISI TECNICA APPROFONDITA
 
 ### Trend e Direzione
-[Analisi completa del trend usando medie mobili, ADX, e price action - 120 parole]
+Analisi completa del trend usando medie mobili, ADX, e price action (120 parole)
 
-### Momentum"""
+### Momentum e Oscillatori
+Valutazione RSI, MACD, Stocastico, CCI - identificare divergenze e segnali (120 parole)
+
+### Supporti e Resistenze
+Analisi dei livelli chiave basati su pivot points, medie mobili, e Bollinger Bands (100 parole)
+
+## 3. ANALISI VOLATILITÀ E RISK MANAGEMENT
+Interpretazione ATR, volatilità multi-timeframe, implicazioni per sizing e holding period (100 parole)
+
+## 4. RACCOMANDAZIONI OPERATIVE
+
+**ATTENZIONE:** Fornisci SOLO lo scenario più probabile (LONG o SHORT), NON entrambi.
+
+### Scenario Raccomandato: [LONG o SHORT]
+
+**Prezzo di Ingresso Ottimale:** $[prezzo preciso]
+- Razionale: [perché questo prezzo - es. rottura resistenza, pullback a supporto, etc.]
+
+**Stop Loss:** $[prezzo preciso]
+- Distanza: [percentuale e ATR multipli dal prezzo di ingresso]
+- Razionale: [perché questo livello invalida lo scenario]
+
+**Take Profit 1 (Target Conservativo):** $[prezzo preciso]
+- Potenziale Gain: [percentuale]
+- Risk/Reward Ratio: [es. 1:1.8]
+- Chiudere: 40% della posizione
+
+**Take Profit 2 (Target Intermedio):** $[prezzo preciso]
+- Potenziale Gain: [percentuale]
+- Risk/Reward Ratio: [es. 1:3.2]
+- Chiudere: 40% della posizione
+
+**Take Profit 3 (Target Esteso):** $[prezzo preciso]
+- Potenziale Gain: [percentuale]
+- Risk/Reward Ratio: [es. 1:5.5]
+- Chiudere: 20% della posizione o trailing stop
+
+**Strategia di Gestione:**
+Descrivi come gestire la posizione: quando spostare lo stop a breakeven, quando usare trailing stop, etc. (80 parole)
+
+## 5. GESTIONE DEL RISCHIO
+
+**Position Sizing Raccomandato:** [X]% del capitale totale
+- Giustificazione: [basato su volatilità e livello di confidenza]
+
+**Livello di Invalidazione:** $[prezzo]
+- Se il prezzo raggiunge questo livello, lo scenario è compromesso
+
+**Timeframe Consigliato:** [es. 2-4 settimane, swing trading]
+
+**Note di Risk Management:**
+Considerazioni specifiche sulla volatilità, eventi macroeconomici in arrivo, earnings, etc. (60 parole)
+
+## 6. LIVELLI CHIAVE DA MONITORARE
+
+**Supporti Critici:**
+1. $[prezzo] - [descrizione]
+2. $[prezzo] - [descrizione]
+3. $[prezzo] - [descrizione]
+
+**Resistenze Critiche:**
+1. $[prezzo] - [descrizione]
+2. $[prezzo] - [descrizione]
+3. $[prezzo] - [descrizione]
+
+## 7. CONCLUSIONI E RACCOMANDAZIONE FINALE
+
+**Outlook:** [Bullish/Bearish/Neutrale]
+**Livello di Confidenza:** [Alto/Medio/Basso] - [percentuale estimata]
+**Orizzonte Temporale:** [giorni/settimane]
+
+Sintesi finale con call-to-action chiara (60 parole)
+
+---
+
+ISTRUZIONI CRITICHE:
+- Basa TUTTI i calcoli di SL e TP sulla volatilità effettiva (ATR) del titolo
+- Utilizza questi moltiplicatori ATR standard:
+  * Stop Loss: 1.5-2.0x ATR dal prezzo di ingresso
+  * TP1: 2.5-3.5x ATR (ratio minimo 1:1.5)
+  * TP2: 4-6x ATR (ratio minimo 1:2.5)
+  * TP3: 7-10x ATR (solo se il trend è molto forte e ADX > 25)
+- Fornisci SOLO prezzi numerici specifici, MAI range vaghi tipo "$45-47"
+- NON inventare dati - usa solo quelli forniti
+- Se un dato manca, dichiaralo esplicitamente
+- Mantieni tono professionale ma accessibile
+- NON usare underscore nei termini (scrivi "stop loss" non "stop_loss")
+"""
+
+    try:
+        # Chiamata API Groq tramite la funzione esistente
+        ai_report = call_groq_api(prompt, max_tokens=3500)
+        return ai_report
+        
+    except Exception as e:
+        return f"❌ Errore nella generazione del report AI: {str(e)}"
+
+def process_technical_results(df_result, ticker):
+    """Processa e mostra i risultati dell'analisi tecnica."""
+    row = df_result.iloc[0]
+    company_name = row.get('description', ticker.upper())
+    
+    st.subheader(f"📊 {company_name} ({row.get('name', ticker)})")
+    st.caption(f"Settore: {row.get('sector', 'N/A')} | Paese: {row.get('country', 'N/A')}")
+    
+    # Dashboard metriche rapide
+    st.markdown("### 📈 Metriche Principali")
+    col1, col2, col3, col4, col5 = st.columns(5)
+    
+    with col1:
+        close_price = row.get('close', 0)
+        change_pct = row.get('change', 0)
+        st.metric(
+            "Prezzo Attuale",
+            f"${close_price:.2f}",
+            f"{change_pct:+.2f}%",
+            delta_color="normal"
+        )
+    
+    with col2:
+        rsi = row.get('RSI', 0)
+        rsi_status = "🔴 Ipercomprato" if rsi > 70 else "🟢 Ipervenduto" if rsi < 30 else "🟡 Neutrale"
+        st.metric(
+            "RSI(14)",
+            f"{rsi:.1f}",
+            rsi_status
+        )
+    
+    with col3:
+        atr = row.get('ATR', 0)
+        volatility_d = row.get('Volatility.D', 0)
+        st.metric(
+            "ATR (Volatilità)",
+            f"${atr:.2f}",
+            f"Vol: {volatility_d:.2f}%"
+        )
+    
+    with col4:
+        volume_rel = row.get('relative_volume_10d_calc', 0)
+        vol_status = "🔥 Alto" if volume_rel > 1.5 else "📊 Normale" if volume_rel > 0.7 else "📉 Basso"
+        st.metric(
+            "Volume Relativo",
+            f"{volume_rel:.2f}x",
+            vol_status
+        )
+    
+    with col5:
+        recommend = row.get('Recommend.All', 0)
+        rec_label = format_technical_rating(recommend)
+        st.metric(
+            "Rating Tecnico",
+            rec_label,
+            f"{recommend:.2f}"
+        )
+    
+    # Tabella dati tecnici completi
+    st.markdown("---")
+    st.markdown("### 💼 Dati Tecnici Completi")
+    excluded_cols = ['name', 'description', 'sector', 'country']
+    display_cols = [c for c in df_result.columns if c not in excluded_cols]
+    st.dataframe(df_result[display_cols].T, use_container_width=True, height=400)
+    
+    # Report AI tecnico
+    st.markdown("---")
+    st.markdown("### 🧠 Analisi AI Tecnica con Strategia Operativa")
+    if st.button("🤖 Genera Report AI Tecnico", key="generate_technical_report_btn"):
+        with st.spinner("Generazione report AI tecnico in corso..."):
+            data_dict = row.to_dict()
+            # Chiama la funzione AI per l'analisi tecnica
+            ai_report = generate_technical_ai_report(ticker, data_dict)
+            
+            if "❌" not in ai_report:
+                st.success("✅ Report AI tecnico generato.")
+                with st.expander("📄 Report Completo", expanded=True):
+                    st.markdown(escape_markdown_latex(ai_report))
+                
+                # Download report
+                st.download_button(
+                    label="📥 Scarica Report AI",
+                    data=ai_report,
+                    file_name=f"Technical_Report_{ticker}_{datetime.now().strftime('%Y%m%d')}.txt",
+                    mime="text/plain",
+                    key="download_technical_report_btn"
+                )
+            else:
+                st.error("❌ Errore nella generazione del report AI.")
+                st.info("💡 Riprova più tardi o verifica la connessione API.")
 
 
 
@@ -1023,7 +1134,6 @@ Questa app utilizza un **algoritmo di scoring intelligente** e **notizie tradott
     # ========== TAB 4: ANALISI TECNICA AVANZATA ==========
     with tab4:
         st.header("📊 Analisi Tecnica Avanzata con AI")
-        
         st.markdown("""
         Inserisci un ticker per ottenere un'**analisi tecnica completa generata dall'AI**, 
         includendo prezzi di ingresso ottimali, stop loss e take profit calcolati sulla volatilità effettiva (ATR).
@@ -1035,9 +1145,9 @@ Questa app utilizza un **algoritmo di scoring intelligente** e **notizie tradott
         with col1:
             ticker_input = st.text_input(
                 "🔍 Ticker Symbol",
-                placeholder="es. AAPL, TSLA, MSFT, ENEL.MI",
+                placeholder="es. AAPL, TSLA, MSFT",
                 key="technical_search_input",
-                help="Inserisci il simbolo del ticker da analizzare. Per titoli italiani aggiungi .MI (es. ENEL.MI)"
+                help="Inserisci il simbolo del ticker da analizzare"
             )
         
         with col2:
@@ -1049,258 +1159,30 @@ Questa app utilizza un **algoritmo di scoring intelligente** e **notizie tradott
                 use_container_width=True
             )
         
-        # Esempi rapidi
-        st.markdown("**Esempi rapidi:**")
-        col_ex1, col_ex2, col_ex3, col_ex4 = st.columns(4)
-        
-        examples = [
-            ("📱 Apple", "AAPL"),
-            ("⚡ Tesla", "TSLA"),
-            ("💡 Enel", "ENEL.MI"),
-            ("🏦 Intesa SP", "ISP.MI")
-        ]
-        
-        for i, (label, ticker_val) in enumerate(examples):
-            with [col_ex1, col_ex2, col_ex3, col_ex4][i]:
-                if st.button(label, key=f"tech_ex{i}", use_container_width=True):
-                    ticker_input = ticker_val
-                    analyze_btn = True
-        
         # Esegui analisi quando il bottone viene premuto
         if ticker_input and analyze_btn:
             ticker = ticker_input.upper().strip()
             
             with st.spinner(f"🔄 Recupero dati tecnici per **{ticker}**..."):
                 # Fetch dati tecnici
-                technical_data = fetch_technical_data(ticker)
+                df_result = fetch_technical_data(ticker)
                 
-                if technical_data is None:
+                if df_result.empty:
                     st.error(f"❌ Impossibile trovare dati per il ticker **'{ticker}'**.")
                     st.info("""
                     **Suggerimenti:**
                     - Verifica che il simbolo sia corretto
-                    - Per titoli italiani usa il formato: TICKER.MI (es. ENEL.MI)
-                    - Per titoli USA non serve aggiungere exchange
                     - Prova a cercare il ticker su TradingView.com prima
                     """)
-                    st.stop()
-                
-                # Mostra dati principali
-                st.success(f"✅ Dati recuperati per **{technical_data.get('description', ticker)}** ({ticker})")
-                
-                # Dashboard metriche rapide
-                st.markdown("### 📈 Metriche Principali")
-                col1, col2, col3, col4, col5 = st.columns(5)
-                
-                with col1:
-                    close_price = technical_data.get('close', 0)
-                    change_pct = technical_data.get('change', 0)
-                    st.metric(
-                        "Prezzo Attuale",
-                        f"${close_price:.2f}",
-                        f"{change_pct:+.2f}%",
-                        delta_color="normal"
-                    )
-                
-                with col2:
-                    rsi = technical_data.get('RSI', 0)
-                    rsi_status = "🔴 Ipercomprato" if rsi > 70 else "🟢 Ipervenduto" if rsi < 30 else "🟡 Neutrale"
-                    st.metric(
-                        "RSI(14)",
-                        f"{rsi:.1f}",
-                        rsi_status
-                    )
-                
-                with col3:
-                    atr = technical_data.get('atr', 0)
-                    atr_pct = technical_data.get('atr_pct', 0)
-                    st.metric(
-                        "ATR (Volatilità)",
-                        f"${atr:.2f}",
-                        f"{atr_pct:.2f}%"
-                    )
-                
-                with col4:
-                    volume_rel = technical_data.get('relative_volume_10d_calc', 0)
-                    vol_status = "🔥 Alto" if volume_rel > 1.5 else "📊 Normale" if volume_rel > 0.7 else "📉 Basso"
-                    st.metric(
-                        "Volume Relativo",
-                        f"{volume_rel:.2f}x",
-                        vol_status
-                    )
-                
-                with col5:
-                    recommend = technical_data.get('Recommend.All', 0)
-                    rec_label = format_technical_rating(recommend)
-                    st.metric(
-                        "Rating Tecnico",
-                        rec_label,
-                        f"{recommend:.2f}"
-                    )
-                
-                st.divider()
-                
-                # Sezione indicatori dettagliati
-                with st.expander("📊 Indicatori Tecnici Dettagliati", expanded=False):
-                    col_ind1, col_ind2, col_ind3 = st.columns(3)
-                    
-                    with col_ind1:
-                        st.markdown("**🎯 Oscillatori**")
-                        st.write(f"- RSI: {technical_data.get('RSI', 0):.2f}")
-                        st.write(f"- Stoch K: {technical_data.get('Stoch.K', 0):.2f}")
-                        st.write(f"- Stoch D: {technical_data.get('Stoch.D', 0):.2f}")
-                        st.write(f"- CCI(20): {technical_data.get('CCI20', 0):.2f}")
-                        st.write(f"- Momentum: {technical_data.get('Mom', 0):.2f}")
-                    
-                    with col_ind2:
-                        st.markdown("**📈 Medie Mobili**")
-                        st.write(f"- SMA20: ${technical_data.get('SMA20', 0):.2f}")
-                        st.write(f"- SMA50: ${technical_data.get('SMA50', 0):.2f}")
-                        st.write(f"- SMA200: ${technical_data.get('SMA200', 0):.2f}")
-                        st.write(f"- EMA20: ${technical_data.get('EMA20', 0):.2f}")
-                        st.write(f"- EMA50: ${technical_data.get('EMA50', 0):.2f}")
-                    
-                    with col_ind3:
-                        st.markdown("**📊 MACD & Trend**")
-                        macd = technical_data.get('MACD.macd', 0)
-                        signal = technical_data.get('MACD.signal', 0)
-                        st.write(f"- MACD: {macd:.4f}")
-                        st.write(f"- Signal: {signal:.4f}")
-                        st.write(f"- Histogram: {(macd - signal):.4f}")
-                        st.write(f"- ADX: {technical_data.get('ADX', 0):.2f}")
-                
-                # Sezione Bollinger Bands e Pivot
-                with st.expander("🎯 Supporti, Resistenze e Bollinger Bands", expanded=False):
-                    col_sr1, col_sr2 = st.columns(2)
-                    
-                    with col_sr1:
-                        st.markdown("**🔴 Resistenze (Pivot Mensili)**")
-                        st.write(f"- R3: ${technical_data.get('Pivot.M.Classic.R3', 0):.2f}")
-                        st.write(f"- R2: ${technical_data.get('Pivot.M.Classic.R2', 0):.2f}")
-                        st.write(f"- R1: ${technical_data.get('Pivot.M.Classic.R1', 0):.2f}")
-                        st.write(f"- Pivot: ${technical_data.get('Pivot.M.Classic.Middle', 0):.2f}")
-                    
-                    with col_sr2:
-                        st.markdown("**🟢 Supporti (Pivot Mensili)**")
-                        st.write(f"- S1: ${technical_data.get('Pivot.M.Classic.S1', 0):.2f}")
-                        st.write(f"- S2: ${technical_data.get('Pivot.M.Classic.S2', 0):.2f}")
-                        st.write(f"- S3: ${technical_data.get('Pivot.M.Classic.S3', 0):.2f}")
-                        
-                        st.markdown("**📊 Bollinger Bands**")
-                        st.write(f"- Upper: ${technical_data.get('BB.upper', 0):.2f}")
-                        st.write(f"- Middle: ${technical_data.get('BB.basis', 0):.2f}")
-                        st.write(f"- Lower: ${technical_data.get('BB.lower', 0):.2f}")
-                
-                # Sezione Performance
-                with st.expander("📅 Performance Storica", expanded=False):
-                    perf_data = {
-                        'Timeframe': ['1 Settimana', '1 Mese', '3 Mesi', '6 Mesi', '1 Anno'],
-                        'Performance (%)': [
-                            technical_data.get('Perf.W', 0),
-                            technical_data.get('Perf.1M', 0),
-                            technical_data.get('Perf.3M', 0),
-                            technical_data.get('Perf.6M', 0),
-                            technical_data.get('Perf.Y', 0)
-                        ]
-                    }
-                    perf_df = pd.DataFrame(perf_data)
-                    
-                    # Crea grafico performance
-                    fig_perf = px.bar(
-                        perf_df,
-                        x='Timeframe',
-                        y='Performance (%)',
-                        title=f'Performance Storica - {ticker}',
-                        color='Performance (%)',
-                        color_continuous_scale=['red', 'yellow', 'green']
-                    )
-                    fig_perf.update_traces(texttemplate='%{y:.2f}%', textposition='outside')
-                    fig_perf.add_hline(y=0, line_dash="dash", line_color="black", line_width=1)
-                    st.plotly_chart(fig_perf, use_container_width=True)
-                
-                st.divider()
-                
-                # Genera analisi AI
-                st.markdown("### 🤖 Report AI Completo con Strategia Operativa")
-                
-                with st.spinner("🧠 Generazione analisi AI in corso (può richiedere 10-20 secondi)..."):
-                    ai_analysis = generate_technical_ai_report(ticker, technical_data)
-                    
-                    if ai_analysis and "Errore" not in ai_analysis[:50]:
-                        # Mostra il report con escape markdown se necessario
-                        st.markdown(escape_markdown_latex(ai_analysis))
-                        
-                        # Bottoni di azione
-                        col_btn1, col_btn2, col_btn3 = st.columns(3)
-                        
-                        with col_btn1:
-                            # Bottone per scaricare il report
-                            st.download_button(
-                                label="📥 Scarica Report",
-                                data=ai_analysis,
-                                file_name=f"report_analisi_tecnica_{ticker}_{datetime.now().strftime('%Y%m%d')}.txt",
-                                mime="text/plain",
-                                use_container_width=True
-                            )
-                        
-                        with col_btn2:
-                            # Link a TradingView
-                            tv_url = get_tradingview_url(ticker)
-                            st.link_button(
-                                f"📊 Vedi Grafico {ticker}",
-                                tv_url,
-                                use_container_width=True
-                            )
-                        
-                        with col_btn3:
-                            # Bottone per nuova analisi
-                            if st.button("🔄 Nuova Analisi", key="new_analysis_btn", use_container_width=True):
-                                st.rerun()
-                        
-                    else:
-                        st.error("❌ Errore nella generazione del report AI")
-                        st.info("Riprova tra qualche istante o verifica la connessione all'API Groq.")
-                
-                st.divider()
-                
-                # Sezione dati tecnici completi (espandibile)
-                with st.expander("📋 Tutti i Dati Tecnici Grezzi (JSON)", expanded=False):
-                    df_technical = pd.DataFrame([technical_data])
-                    st.dataframe(df_technical.T, use_container_width=True)
+                else:
+                    st.success(f"✅ Dati recuperati per **{ticker}**")
+                    # Processa e mostra i risultati
+                    process_technical_results(df_result, ticker)
         
         # Messaggio se non è stata fatta ancora nessuna ricerca
         elif not ticker_input:
             st.info("👆 Inserisci un ticker nella barra di ricerca sopra per iniziare l'analisi tecnica avanzata.")
-            
-            st.markdown("---")
-            st.markdown("### 🎯 Caratteristiche dell'Analisi Tecnica AI")
-            
-            col_feat1, col_feat2 = st.columns(2)
-            
-            with col_feat1:
-                st.markdown("""
-                **📊 Indicatori Analizzati:**
-                - ✅ Oltre 50 parametri tecnici da TradingView
-                - ✅ RSI, MACD, Stocastico, ADX, CCI
-                - ✅ Medie Mobili (SMA20/50/200, EMA10/20/30)
-                - ✅ Bollinger Bands e ATR
-                - ✅ Pivot Points mensili
-                - ✅ Volatilità multi-timeframe
-                - ✅ Volume relativo e performance storica
-                """)
-            
-            with col_feat2:
-                st.markdown("""
-                **🎯 Output del Report AI:**
-                - ✅ Analisi tecnica completa del trend
-                - ✅ **Prezzo di ingresso ottimale**
-                - ✅ **Stop Loss calcolato su ATR**
-                - ✅ **3 livelli di Take Profit** con risk/reward
-                - ✅ Strategia di gestione posizione
-                - ✅ Position sizing raccomandato
-                - ✅ Supporti e resistenze chiave
-                - ✅ Timeframe consigliato
-                """)
+
 
     # Summary
     current_date = datetime.now()
