@@ -102,9 +102,8 @@ def get_portfolio_data(silent=True):
         # Prova a caricare dal Google Sheet
         data = _load_portfolio_from_sheets()
         
-        if 
-            # Salva in session_state per accesso rapido
-            st.session_state.portfolio_data = data
+        # Salva in session_state per accesso rapido
+        if st.session_state.portfolio_data = data
             return data
         
         # Se caricamento fallisce, prova a recuperare da session_state
