@@ -5,7 +5,7 @@ from datetime import datetime
 import requests
 
 # ⭐ IMPORT MODULO GLOBALE PORTFOLIO
-from utils.portfolio_global import (
+from portfolio_global import (
     get_liquidita_disponibile,
     get_portfolio_data,
     display_portfolio_sidebar,
