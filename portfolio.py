@@ -5,7 +5,7 @@ import plotly.graph_objects as go
 import numpy as np
 import time
 
-@st.cache_data(ttl=120)
+@st.cache_data(ttl=30)
 def load_sheet_csv(spreadsheet_id, gid):
     """Carica foglio pubblico via CSV export e rimuove righe vuote"""
     url = f"https://docs.google.com/spreadsheets/d/{spreadsheet_id}/export?format=csv&gid={gid}"
