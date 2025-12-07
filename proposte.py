@@ -475,6 +475,7 @@ def proposte_app():
             st.markdown("---")
             submitted = st.form_submit_button("💾 Salva Proposta", type="primary", use_container_width=True)
 
+            col_info1, col_info2 = st.columns(2)
             with col_info1:
                 if valuta != "EUR":
                     exchange_rate = get_exchange_rate(valuta, 'EUR')
