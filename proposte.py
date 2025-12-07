@@ -349,7 +349,7 @@ def proposte_app():
                 st.error(f"❌ ESITO: {int(esito_val)} - PROPOSTA RESPINTA")
             
             col_det1, col_det2, col_det3 = st.columns(3)
-            
+
             with col_det1:
                 st.markdown("##### 📌 Informazioni Base")
                 st.write(f"**Strumento:** {proposta['STRUMENTO']}")
@@ -366,6 +366,18 @@ def proposte_app():
                 st.write(f"**SL:** {proposta['SL']}")
                 st.write(f"**TP:** {proposta['TP']}")
                 st.write(f"**Valuta:** {proposta['VALUTA']}")
+                try:
+                    quantita_val = float(str(proposta['QUANTITA']).replace(',', '.'))
+                    pmc_val = float(str(proposta['PMC']).replace(',', '.'))
+                    valore_totale = quantita_val * pmc_val
+                    if proposta['VALUTA'] != "EUR":
+                        exchange_rate = get_exchange_rate(proposta['VALUTA'], 'EUR')
+                        valore_eur = valore_totale * exchange_rate
+                        st.write(f"**Valore EUR:** € {valore_eur:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
+                    else:
+                        st.write(f"**Valore:** € {valore_totale:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
+                except:
+                    pass
             
             with col_det3:
                 st.markdown("##### ✅ Votazione")
@@ -563,6 +575,18 @@ def proposte_app():
                     st.write(f"**Quantità:** {proposta['QUANTITA']}")
                     st.write(f"**PMC:** {proposta['PMC']}")
                     st.write(f"**Valuta:** {proposta['VALUTA']}")
+                    try:
+                        quantita_val = float(str(proposta['QUANTITA']).replace(',', '.'))
+                        pmc_val = float(str(proposta['PMC']).replace(',', '.'))
+                        valore_totale = quantita_val * pmc_val
+                        if proposta['VALUTA'] != "EUR":
+                            exchange_rate = get_exchange_rate(proposta['VALUTA'], 'EUR')
+                            valore_eur = valore_totale * exchange_rate
+                            st.write(f"**Valore EUR:** € {valore_eur:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
+                        else:
+                            st.write(f"**Valore:** € {valore_totale:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
+                    except:
+                        pass
                 
                 with col_info2:
                     st.write(f"**SL:** {proposta['SL']}")
