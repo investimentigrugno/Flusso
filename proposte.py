@@ -529,7 +529,7 @@ def proposte_app():
                     'MOTIVAZIONE': motivazione,
                     'LINK': link,
                     'IMMAGINE': immagine,
-                    'VALUTA': valuta
+                    'VALUTA': valuta,
                 }
                 
                 with st.spinner("💾 Salvataggio proposta in corso..."):
