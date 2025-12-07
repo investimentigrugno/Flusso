@@ -126,8 +126,8 @@ def ordini_app():
         # ⭐ RIMUOVI COLONNE VUOTE/UNNAMED PRIMA DI RINOMINARE
         df_ordini = df_ordini.loc[:, ~df_ordini.columns.str.contains('^Unnamed', na=False)]
         
-        # PRENDI SOLO LE PRIME 14 COLONNE (scarta la 15esima)
-        df_ordini = df_ordini.iloc[:, :14]
+        # PRENDI SOLO LE PRIME 15 COLONNE
+        df_ordini = df_ordini.iloc[:, :15]
         
         # RINOMINA LE 14 COLONNE
         df_ordini.columns = [
