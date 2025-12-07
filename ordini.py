@@ -56,6 +56,21 @@ def aggiorna_stato_ordine_via_webhook(row_number, stato_esecuzione, webhook_url)
     except Exception as e:
         return False, f"Errore: {str(e)}"
 
+def get_exchange_rate(from_currency, to_currency='EUR'):
+    """Ottiene il tasso di cambio da Frankfurter API"""
+    if from_currency == to_currency:
+        return 1.0
+    try:
+        url = f'https://api.frankfurter.app/latest?from={from_currency}&to={to_currency}'
+        response = requests.get(url, timeout=5)
+        if response.status_code == 200:
+            data = response.json()
+            return data['rates'].get(to_currency, 1.0)
+        return 1.0
+    except Exception as e:
+        st.sidebar.warning(f"Errore tasso cambio {from_currency}: {str(e)}")
+        return 1.0
+
 
 def calcola_valore_ordini_attivi(df_ordini):
     """Calcola valore ordini attivi"""
@@ -118,7 +133,7 @@ def ordini_app():
         df_ordini.columns = [
             'DATA', 'TIME', 'COMPONENTE1', 'COMPONENTE2',
             'VOTO A FAVORE', 'STATO', 'ASSET', 'PROPOSTA',
-            'ENTRY PRICE', 'N.AZIONI', '% SU TOT. PF.',
+            'ENTRY PRICE', 'N.AZIONI', 'VALUTA', '% SU TOT. PF.',
             'TP', 'SL', 'TEMPO'
         ]
         

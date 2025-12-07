@@ -26,6 +26,21 @@ def load_sheet_csv_proposte(spreadsheet_id, gid):
     
     return None
 
+def get_exchange_rate(from_currency, to_currency='EUR'):
+    """Ottiene il tasso di cambio da Frankfurter API"""
+    if from_currency == to_currency:
+        return 1.0
+    try:
+        url = f'https://api.frankfurter.app/latest?from={from_currency}&to={to_currency}'
+        response = requests.get(url, timeout=5)
+        if response.status_code == 200:
+            data = response.json()
+            return data['rates'].get(to_currency, 1.0)
+        return 1.0
+    except Exception as e:
+        st.sidebar.warning(f"Errore tasso cambio {from_currency}: {str(e)}")
+        return 1.0
+
 
 def append_proposta_via_webhook(proposta_data, webhook_url):
     """Invia proposta al Google Apps Script webhook"""
