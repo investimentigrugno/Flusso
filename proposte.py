@@ -478,15 +478,15 @@ def proposte_app():
             col_info1, col_info2 = st.columns(2)
             with col_info1:
                 if valuta != "EUR":
-                    exchange_rate = get_exchange_rate(valuta, 'EUR')
+                    exchange_rate = get_exchange_rate('EUR', valuta)
                     st.info(f"**Tasso cambio:** 1 {valuta} = {exchange_rate:,.4f} EUR".replace(',', 'X').replace('.', ',').replace('X', '.'))
         
             with col_info2:
                 if quantita > 0 and pmc > 0:
                     valore_totale = quantita * pmc
                     if valuta != "EUR":
-                        exchange_rate = get_exchange_rate(valuta, 'EUR')
-                        valore_eur = valore_totale * exchange_rate
+                        exchange_rate = get_exchange_rate('EUR', valuta)
+                        valore_eur = valore_totale / exchange_rate
                         st.info(f"**Valore EUR:** € {valore_eur:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
                     else:
                         st.info(f"**Valore:** € {valore_totale:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
@@ -598,8 +598,8 @@ def proposte_app():
                         pmc_val = float(str(proposta['PMC']).replace(',', '.'))
                         valore_totale = quantita_val * pmc_val
                         if proposta['VALUTA'] != "EUR":
-                            exchange_rate = get_exchange_rate(proposta['VALUTA'], 'EUR')
-                            valore_eur = valore_totale * exchange_rate
+                            exchange_rate = get_exchange_rate('EUR', proposta['VALUTA'])
+                            valore_eur = valore_totale / exchange_rate
                             st.write(f"**Valore EUR:** € {valore_eur:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
                         else:
                             st.write(f"**Valore:** € {valore_totale:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
