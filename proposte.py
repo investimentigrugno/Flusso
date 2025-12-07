@@ -468,10 +468,15 @@ def proposte_app():
             col_all1, col_all2 = st.columns(2)
             with col_all1:
                 link = st.text_input("Link (URL)")
+
+            if valuta != "EUR":
+                exchange_rate = get_exchange_rate(valuta, 'EUR')
+                st.write(f"**Tasso cambio:** 1 {valuta} = {exchange_rate:,.4f} EUR".replace(',', 'X').replace('.', ',').replace('X', '.'))
+
             with col_all2:
                 immagine = st.text_input("Immagine (URL)")
             
-
+            if quantita > 0 and pmc > 0:
                 valore_totale = quantita * pmc
                 if valuta != "EUR":
                     exchange_rate = get_exchange_rate(valuta, 'EUR')
