@@ -73,7 +73,7 @@ def get_exchange_rate(from_currency, to_currency='EUR'):
 
 
 def calcola_valore_ordini_attivi(df_ordini):
-    """Calcola valore ordini attivi"""
+    """Calcola valore ordini attivi con conversione valuta"""
     if df_ordini is None or df_ordini.empty:
         return 0.0
     
@@ -83,18 +83,24 @@ def calcola_valore_ordini_attivi(df_ordini):
         return 0.0
     
     if 'N.AZIONI' in ordini_attivi.columns and 'ENTRY PRICE' in ordini_attivi.columns:
-        # ⭐ CONVERTI FORMATO EUROPEO (virgola → punto)
+        # Pulisci i valori numerici
         ordini_attivi['N.AZIONI_CLEAN'] = ordini_attivi['N.AZIONI'].astype(str).str.replace(',', '.').str.replace(' ', '')
-        ordini_attivi['ENTRY_PRICE_CLEAN'] = ordini_attivi['ENTRY PRICE'].astype(str).str.replace(',', '.').str.replace(' ', '').str.replace('€', '')
+        ordini_attivi['ENTRY_PRICE_CLEAN'] = ordini_attivi['ENTRY PRICE'].astype(str).str.replace(',', '.').str.replace(' ', '').str.replace('€', '').str.replace('$', '')
         
         ordini_attivi['N.AZIONI_NUM'] = pd.to_numeric(ordini_attivi['N.AZIONI_CLEAN'], errors='coerce')
         ordini_attivi['ENTRY_PRICE_NUM'] = pd.to_numeric(ordini_attivi['ENTRY_PRICE_CLEAN'], errors='coerce')
         
-        ordini_attivi['VALORE'] = ordini_attivi['N.AZIONI_NUM'] * ordini_attivi['ENTRY_PRICE_NUM']
+        # ⭐ Usa colonna VALUTA e applica tasso cambio
+        ordini_attivi['VALUTA'] = ordini_attivi['VALUTA'].fillna('EUR').str.upper()
+        ordini_attivi['EXCHANGE_RATE'] = ordini_attivi['VALUTA'].apply(lambda x: get_exchange_rate(x, 'EUR'))
         
-        return ordini_attivi['VALORE'].sum()
+        # Calcola valore in EUR
+        ordini_attivi['VALORE_EUR'] = ordini_attivi['N.AZIONI_NUM'] * ordini_attivi['ENTRY_PRICE_NUM'] * ordini_attivi['EXCHANGE_RATE']
+        
+        return ordini_attivi['VALORE_EUR'].sum()
     
     return 0.0
+
 
 def ordini_app():
     st.title("🕹️ Gestione Ordini")
@@ -242,7 +248,7 @@ def ordini_app():
         
         if not ordini_cancellati.empty:
             with st.expander(f"Mostra {len(ordini_cancellati)} cancellati"):
-                cols_canc = ['DATA', 'ASSET', 'PROPOSTA', 'ENTRY PRICE', 'N.AZIONI','TP', 'SL']
+                cols_canc = ['DATA', 'ASSET', 'PROPOSTA', 'ENTRY PRICE', 'N.AZIONI','TP', 'SL','VALUTA']
                 cols_disp_canc = [c for c in cols_canc if c in ordini_cancellati.columns]
                 st.dataframe(ordini_cancellati[cols_disp_canc], use_container_width=True, hide_index=True)
                 
