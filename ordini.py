@@ -230,7 +230,7 @@ def ordini_app():
         
         if not ordini_eseguiti.empty:
             st.success(f"📊 {len(ordini_eseguiti)} completati")
-            cols = ['DATA', 'ASSET', 'PROPOSTA', 'ENTRY PRICE', 'N.AZIONI','TP', 'SL']
+            cols = ['DATA', 'ASSET', 'PROPOSTA', 'ENTRY PRICE', 'N.AZIONI','TP', 'SL','VALUTA']
             cols_disp = [c for c in cols if c in ordini_eseguiti.columns]
             st.dataframe(ordini_eseguiti[cols_disp], use_container_width=True, hide_index=True, height=300)
         else:
