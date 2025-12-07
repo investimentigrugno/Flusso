@@ -471,6 +471,15 @@ def proposte_app():
             with col_all2:
                 immagine = st.text_input("Immagine (URL)")
             
+
+                valore_totale = quantita * pmc
+                if valuta != "EUR":
+                    exchange_rate = get_exchange_rate(valuta, 'EUR')
+                    valore_eur = valore_totale * exchange_rate
+                    st.write(f"**Valore EUR:** € {valore_eur:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
+                else:
+                    st.write(f"**Valore:** € {valore_totale:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
+
             st.markdown("---")
             submitted = st.form_submit_button("💾 Salva Proposta", type="primary", use_container_width=True)
         
