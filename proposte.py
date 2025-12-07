@@ -469,25 +469,28 @@ def proposte_app():
             with col_all1:
                 link = st.text_input("Link (URL)")
 
-                if valuta != "EUR":
-                    exchange_rate = get_exchange_rate(valuta, 'EUR')
-                    st.write(f"**Tasso cambio:** 1 {valuta} = {exchange_rate:,.4f} EUR".replace(',', 'X').replace('.', ',').replace('X', '.'))
-
             with col_all2:
                 immagine = st.text_input("Immagine (URL)")
-            
+
+            st.markdown("---")
+            submitted = st.form_submit_button("💾 Salva Proposta", type="primary", use_container_width=True)
+
+            with col_info1:
+                if valuta != "EUR":
+                    exchange_rate = get_exchange_rate(valuta, 'EUR')
+                    st.info(f"**Tasso cambio:** 1 {valuta} = {exchange_rate:,.4f} EUR".replace(',', 'X').replace('.', ',').replace('X', '.'))
+        
+            with col_info2:
                 if quantita > 0 and pmc > 0:
                     valore_totale = quantita * pmc
                     if valuta != "EUR":
                         exchange_rate = get_exchange_rate(valuta, 'EUR')
                         valore_eur = valore_totale * exchange_rate
-                        st.write(f"**Valore EUR:** € {valore_eur:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
+                        st.info(f"**Valore EUR:** € {valore_eur:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
                     else:
-                        st.write(f"**Valore:** € {valore_totale:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
+                        st.info(f"**Valore:** € {valore_totale:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
 
-            st.markdown("---")
-            submitted = st.form_submit_button("💾 Salva Proposta", type="primary", use_container_width=True)
-        
+
         if submitted:
             errors = []
             if not responsabili:
