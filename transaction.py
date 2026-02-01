@@ -295,7 +295,7 @@ def transaction_tracker_app():
 
                 strumento_input = st.text_input(
                     "Strumento *",
-                    value="CASH" if is_bonifico_prelievo else "",
+                    value="EURO" if is_bonifico_prelievo else "",
                     placeholder="Es: BIT:LDO, NASDAQ:AAPL",
                     help="Ticker dello strumento",
                     disabled=is_bonifico_prelievo
@@ -303,7 +303,7 @@ def transaction_tracker_app():
                 
                 nome_strumento = st.text_input(
                     "Nome Strumento",
-                    value="Contanti" if is_bonifico_prelievo else "",
+                    value="EURO" if is_bonifico_prelievo else "",
                     placeholder="Es: Apple Inc.",
                     help="Nome leggibile (opzionale)",
                     disabled=is_bonifico_prelievo
