@@ -64,19 +64,6 @@ def append_transaction_via_webhook(transaction_data, webhook_url):
             headers={'Content-Type': 'application/json'},
             timeout=10
         )
-        
-        # Nella funzione append_transaction_via_webhook, sostituisci la sezione DEBUG con:
-
-        # ✅ DEBUG: Stampa la risposta grezza COMPLETA
-        st.write("🔍 **DEBUG - Risposta HTTP:**")
-        st.write(f"Status Code: {response.status_code}")
-        st.write(f"Content-Type: {response.headers.get('Content-Type', 'N/A')}")
-
-        if 'text/html' in response.headers.get('Content-Type', ''):
-            st.error("⚠️ Il webhook ha restituito HTML (pagina di errore)")
-            with st.expander("🔍 Clicca per vedere l'errore completo di Google Apps Script"):
-                st.code(response.text, language="html")  # Mostra TUTTO l'HTML
-            return False, "Il webhook ha generato un errore - espandi per vedere i dettagli"
 
         # Verifica la risposta
         if response.status_code == 200:
