@@ -362,7 +362,7 @@ def transaction_tracker_app():
                 )
             
             if is_bonifico_prelievo:
-                st.info(f"💡 **{operazione_input}**: Strumento = CASH, PMC = 1.0, Posizione = P")
+                st.info(f"💡 **{operazione_input}**: Strumento = EURO, QTA = 1.0")
             
             st.markdown("---")
             st.markdown("### 📊 Riepilogo Calcoli")
