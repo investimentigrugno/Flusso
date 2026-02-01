@@ -118,7 +118,7 @@ def transaction_tracker_app():
     gid_transactions = 1594640549
     
     # ⚠️ IMPORTANTE: Sostituisci questo URL con il TUO webhook Google Apps Script
-    WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbx_lAUdZTKFgybEbjG_6RHTf08hnXtOlLfSaSxuP7RR5-HmEKiDpjwDpJKIAayXQSjLQw/exec"
+    WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbyu8f1-wz-UA7NAsiYmX0hRUgUiRv3pEmCYwYWMi9uQZAAoddPfHxN3iz1ldfY3fc0u/exec"
     
     # Sidebar
     st.sidebar.markdown("### ⚙️ Opzioni Transazioni")
