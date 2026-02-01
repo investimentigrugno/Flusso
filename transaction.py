@@ -40,9 +40,6 @@ def format_decimal(value):
 def append_transaction_via_webhook(transaction_data, webhook_url):
     """
     Invia transazione al Google Apps Script webhook
-    
-    🔧 BUG FIX 1: Aggiunto chiudere la parentesi mancante su requests.post()
-    🔧 BUG FIX 2: Aggiunto gestione dei campi opzionali con .get() e valori default
     """
     try:
         # Prepara i dati per il webhook con virgole come separatore
@@ -61,32 +58,36 @@ def append_transaction_via_webhook(transaction_data, webhook_url):
             "nome_strumento": transaction_data.get('Nome_strumento', transaction_data.get('Strumento', ''))
         }
         
-        # 🔧 BUG FIX 1: PARENTESI CHIUSA - requests.post() era senza )
         response = requests.post(
             webhook_url,
             json=payload,
             headers={'Content-Type': 'application/json'},
             timeout=10
-        )  # ← PARENTESI AGGIUNTA QUI!
+        )
+        
+        # ✅ DEBUG: Stampa la risposta grezza
+        st.write("🔍 **DEBUG - Risposta HTTP:**")
+        st.write(f"Status Code: {response.status_code}")
+        st.write(f"Headers: {dict(response.headers)}")
+        st.write(f"Content-Type: {response.headers.get('Content-Type', 'N/A')}")
+        st.write(f"Risposta grezza (primi 500 caratteri):")
+        st.code(response.text[:500])
         
         # Verifica la risposta
         if response.status_code == 200:
-            result = response.json()
-            return result.get('success', False), result.get('message', 'Risposta sconosciuta')
+            try:
+                result = response.json()
+                return result.get('success', False), result.get('message', 'Risposta sconosciuta')
+            except json.JSONDecodeError as je:
+                return False, f"❌ JSON non valido. Risposta: {response.text[:200]}"
         else:
-            return False, f"Errore HTTP {response.status_code}: {response.text}"
+            return False, f"Errore HTTP {response.status_code}: {response.text[:200]}"
     
     except requests.exceptions.Timeout:
         return False, "⏱️ Timeout: il server non ha risposto in tempo (> 10 secondi)"
     
     except requests.exceptions.ConnectionError:
         return False, "❌ Errore di connessione: verifica che il webhook sia raggiungibile"
-    
-    except KeyError as e:
-        return False, f"❌ Errore: Campo mancante nel payload - {str(e)}"
-    
-    except json.JSONDecodeError:
-        return False, "❌ Errore: La risposta del webhook non è JSON valido"
     
     except Exception as e:
         return False, f"❌ Errore imprevisto: {str(e)}"
