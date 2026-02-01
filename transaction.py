@@ -272,7 +272,7 @@ def transaction_tracker_app():
         operazioni_options = sorted(list(set(existing_operazioni + default_operazioni)))
         valute_options = sorted(list(set(existing_valute + default_valute)))
         
-        # Form
+        # ==================== FORM ====================
         with st.form("new_transaction_form", clear_on_submit=True):
             st.markdown("### 📝 Dettagli Transazione")
             
@@ -287,7 +287,6 @@ def transaction_tracker_app():
                 
                 operazione_input = st.selectbox(
                     "Operazione *",
-                    value="",
                     options=operazioni_options,
                     help="Tipo di operazione"
                 )
@@ -296,22 +295,23 @@ def transaction_tracker_app():
 
                 strumento_input = st.text_input(
                     "Strumento *",
-                    value="EURO" if is_bonifico_prelievo else "",
+                    value="CASH" if is_bonifico_prelievo else "",
                     placeholder="Es: BIT:LDO, NASDAQ:AAPL",
-                    help="Ticker dello strumento"
+                    help="Ticker dello strumento",
+                    disabled=is_bonifico_prelievo
                 )
                 
                 nome_strumento = st.text_input(
                     "Nome Strumento",
-                    value="EURO" if is_bonifico_prelievo else "",
+                    value="Contanti" if is_bonifico_prelievo else "",
                     placeholder="Es: Apple Inc.",
-                    help="Nome leggibile (opzionale)"
+                    help="Nome leggibile (opzionale)",
+                    disabled=is_bonifico_prelievo
                 )
                 
                 pmc_input = st.number_input(
                     "PMC (Prezzo Medio) *",
-                    min_value=0.0,
-                    value=0.0,
+                    value=1.0 if is_bonifico_prelievo else 0.01,
                     step=0.01,
                     format="%.4f",
                     help="Prezzo medio di carico"
@@ -319,8 +319,7 @@ def transaction_tracker_app():
                 
                 quantita_input = st.number_input(
                     "Quantità *",
-                    min_value=0.0,
-                    value=1.0 if is_bonifico_prelievo else 0.0,
+                    value=0.01,
                     step=0.01,
                     format="%.4f",
                     help="Quantità acquistata"
@@ -330,19 +329,20 @@ def transaction_tracker_app():
                 lungo_breve = st.selectbox(
                     "Posizione",
                     options=["", "L", "B", "P"],
+                    index=3 if is_bonifico_prelievo else 0,
                     format_func=lambda x: {
                         "": "Non specificato",
                         "L": "L - Lungo termine",
                         "B": "B - Breve termine",
                         "P": "P - Passività",
                     }[x],
-                    help="Orizzonte temporale",
+                    help="Orizzonte temporale"
                 )
                 
                 valuta_input = st.selectbox(
                     "Valuta *",
                     options=valute_options,
-                    value="EUR" if is_bonifico_prelievo else "",
+                    index=valute_options.index("EUR") if "EUR" in valute_options and is_bonifico_prelievo else 0,
                     help="Valuta della transazione"
                 )
                 
@@ -357,12 +357,14 @@ def transaction_tracker_app():
                 
                 commissioni_input = st.number_input(
                     "Commissioni",
-                    min_value=0.0,
                     value=0.0,
                     step=0.01,
                     format="%.2f",
-                    help="Costi di intermediazione",
+                    help="Costi di intermediazione"
                 )
+            
+            if is_bonifico_prelievo:
+                st.info(f"💡 **{operazione_input}**: Strumento = CASH, PMC = 1.0, Posizione = P")
             
             st.markdown("---")
             st.markdown("### 📊 Riepilogo Calcoli")
@@ -389,7 +391,7 @@ def transaction_tracker_app():
             
             st.markdown("---")
             
-            # Bottoni
+            # Bottoni DENTRO IL FORM
             col_btn1, col_btn2 = st.columns([3, 1])
             
             with col_btn1:
@@ -404,8 +406,8 @@ def transaction_tracker_app():
                     "🔄 Reset",
                     use_container_width=True
                 )
-            
-        # Validazione e submit
+        
+        # ==================== GESTIONE SUBMIT (FUORI DAL FORM) ====================
         if submitted:
             errors = []
             
@@ -425,23 +427,21 @@ def transaction_tracker_app():
                 for error in errors:
                     st.error(error)
             else:
-                # 🔧 BUG FIX 2: Nomi corretti dei campi corrispondono alla funzione
                 new_transaction = {
                     'Data': data_input.strftime('%d/%m/%Y'),
                     'Operazione': operazione_input.strip(),
                     'Strumento': str(strumento_input).upper().strip(),
                     'PMC': float(pmc_input),
-                    'Quantita': float(quantita_input),  # ← Senza accento!
+                    'Quantita': float(quantita_input),
                     'Totale': float(totale_calcolato),
                     'Valuta': valuta_input,
-                    'Tasso_cambio': float(tasso_cambio_input),  # ← Con underscore!
+                    'Tasso_cambio': float(tasso_cambio_input),
                     'Commissioni': float(commissioni_input),
                     'Controvalore': float(controvalore_calcolato),
-                    'Lungo_breve': lungo_breve,  # ← Con underscore!
-                    'Nome_strumento': nome_strumento.strip()  # ← Con underscore!
+                    'Lungo_breve': lungo_breve,
+                    'Nome_strumento': nome_strumento.strip()
                 }
                 
-                # Invia al webhook
                 with st.spinner("💾 Salvataggio transazione..."):
                     success, message = append_transaction_via_webhook(new_transaction, WEBHOOK_URL)
                 
@@ -459,7 +459,6 @@ def transaction_tracker_app():
                     st.error(f"❌ {message}")
                     st.warning("Verifica che l'URL del webhook sia corretto.")
                     
-                    # Fallback download
                     df_preview = pd.DataFrame([new_transaction])
                     csv_backup = df_preview.to_csv(index=False).encode('utf-8')
                     st.download_button(
@@ -477,6 +476,7 @@ def transaction_tracker_app():
             - **Tasso Cambio**: Se EUR metti 1.0, altrimenti il cambio EUR/VALUTA
             - **Totale e Controvalore**: Calcolati automaticamente
             """)
+
 
     # ==================== TAB 3: CONFIGURAZIONE ====================
     with tab3:
