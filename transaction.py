@@ -287,6 +287,7 @@ def transaction_tracker_app():
                 
                 operazione_input = st.selectbox(
                     "Operazione *",
+                    value="",
                     options=operazioni_options,
                     help="Tipo di operazione"
                 )
