@@ -405,79 +405,79 @@ def transaction_tracker_app():
                     use_container_width=True
                 )
             
-            # Validazione e submit
-            if submitted:
-                errors = []
-                
-                if not strumento_input.strip():
-                    errors.append("⚠️ Il campo 'Strumento' è obbligatorio")
-                
-                if pmc_input <= 0:
-                    errors.append("⚠️ Il 'PMC' deve essere > 0")
-                
-                if quantita_input <= 0:
-                    errors.append("⚠️ La 'Quantità' deve essere > 0")
-                
-                if tasso_cambio_input <= 0:
-                    errors.append("⚠️ Il 'Tasso di Cambio' deve essere > 0")
-                
-                if errors:
-                    for error in errors:
-                        st.error(error)
-                else:
-                    # 🔧 BUG FIX 2: Nomi corretti dei campi corrispondono alla funzione
-                    new_transaction = {
-                        'Data': data_input.strftime('%d/%m/%Y'),
-                        'Operazione': operazione_input.strip(),
-                        'Strumento': str(strumento_input).upper().strip(),
-                        'PMC': float(pmc_input),
-                        'Quantita': float(quantita_input),  # ← Senza accento!
-                        'Totale': float(totale_calcolato),
-                        'Valuta': valuta_input,
-                        'Tasso_cambio': float(tasso_cambio_input),  # ← Con underscore!
-                        'Commissioni': float(commissioni_input),
-                        'Controvalore': float(controvalore_calcolato),
-                        'Lungo_breve': lungo_breve,  # ← Con underscore!
-                        'Nome_strumento': nome_strumento.strip()  # ← Con underscore!
-                    }
-                    
-                    # Invia al webhook
-                    with st.spinner("💾 Salvataggio transazione..."):
-                        success, message = append_transaction_via_webhook(new_transaction, WEBHOOK_URL)
-                    
-                    if success:
-                        st.success(f"✅ {message}")
-                        st.balloons()
-                        
-                        st.markdown("### 👀 Transazione Salvata")
-                        df_preview = pd.DataFrame([new_transaction])
-                        st.dataframe(df_preview, use_container_width=True, hide_index=True)
-                        
-                        st.cache_data.clear()
-                        st.info("🔄 Torna a 'Visualizza Transazioni' e clicca 'Aggiorna'")
-                    else:
-                        st.error(f"❌ {message}")
-                        st.warning("Verifica che l'URL del webhook sia corretto.")
-                        
-                        # Fallback download
-                        df_preview = pd.DataFrame([new_transaction])
-                        csv_backup = df_preview.to_csv(index=False).encode('utf-8')
-                        st.download_button(
-                            label="📥 Scarica Backup CSV",
-                            data=csv_backup,
-                            file_name=f"transazione_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                            mime="text/csv",
-                            use_container_width=True
-                        )
+        # Validazione e submit
+        if submitted:
+            errors = []
             
-            with st.expander("💡 Suggerimenti"):
-                st.markdown("""
-                - **PMC**: Prezzo unitario di acquisto/vendita
-                - **Quantità**: Numero di unità
-                - **Tasso Cambio**: Se EUR metti 1.0, altrimenti il cambio EUR/VALUTA
-                - **Totale e Controvalore**: Calcolati automaticamente
-                """)
-    
+            if not strumento_input.strip():
+                errors.append("⚠️ Il campo 'Strumento' è obbligatorio")
+            
+            if pmc_input <= 0:
+                errors.append("⚠️ Il 'PMC' deve essere > 0")
+            
+            if quantita_input <= 0:
+                errors.append("⚠️ La 'Quantità' deve essere > 0")
+            
+            if tasso_cambio_input <= 0:
+                errors.append("⚠️ Il 'Tasso di Cambio' deve essere > 0")
+            
+            if errors:
+                for error in errors:
+                    st.error(error)
+            else:
+                # 🔧 BUG FIX 2: Nomi corretti dei campi corrispondono alla funzione
+                new_transaction = {
+                    'Data': data_input.strftime('%d/%m/%Y'),
+                    'Operazione': operazione_input.strip(),
+                    'Strumento': str(strumento_input).upper().strip(),
+                    'PMC': float(pmc_input),
+                    'Quantita': float(quantita_input),  # ← Senza accento!
+                    'Totale': float(totale_calcolato),
+                    'Valuta': valuta_input,
+                    'Tasso_cambio': float(tasso_cambio_input),  # ← Con underscore!
+                    'Commissioni': float(commissioni_input),
+                    'Controvalore': float(controvalore_calcolato),
+                    'Lungo_breve': lungo_breve,  # ← Con underscore!
+                    'Nome_strumento': nome_strumento.strip()  # ← Con underscore!
+                }
+                
+                # Invia al webhook
+                with st.spinner("💾 Salvataggio transazione..."):
+                    success, message = append_transaction_via_webhook(new_transaction, WEBHOOK_URL)
+                
+                if success:
+                    st.success(f"✅ {message}")
+                    st.balloons()
+                    
+                    st.markdown("### 👀 Transazione Salvata")
+                    df_preview = pd.DataFrame([new_transaction])
+                    st.dataframe(df_preview, use_container_width=True, hide_index=True)
+                    
+                    st.cache_data.clear()
+                    st.info("🔄 Torna a 'Visualizza Transazioni' e clicca 'Aggiorna'")
+                else:
+                    st.error(f"❌ {message}")
+                    st.warning("Verifica che l'URL del webhook sia corretto.")
+                    
+                    # Fallback download
+                    df_preview = pd.DataFrame([new_transaction])
+                    csv_backup = df_preview.to_csv(index=False).encode('utf-8')
+                    st.download_button(
+                        label="📥 Scarica Backup CSV",
+                        data=csv_backup,
+                        file_name=f"transazione_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                        mime="text/csv",
+                        use_container_width=True
+                    )
+        
+        with st.expander("💡 Suggerimenti"):
+            st.markdown("""
+            - **PMC**: Prezzo unitario di acquisto/vendita
+            - **Quantità**: Numero di unità
+            - **Tasso Cambio**: Se EUR metti 1.0, altrimenti il cambio EUR/VALUTA
+            - **Totale e Controvalore**: Calcolati automaticamente
+            """)
+
     # ==================== TAB 3: CONFIGURAZIONE ====================
     with tab3:
         st.subheader("⚙️ Configurazione Webhook")
