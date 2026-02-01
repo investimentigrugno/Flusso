@@ -297,16 +297,14 @@ def transaction_tracker_app():
                     "Strumento *",
                     value="EURO" if is_bonifico_prelievo else "",
                     placeholder="Es: BIT:LDO, NASDAQ:AAPL",
-                    help="Ticker dello strumento",
-                    disabled=is_bonifico_prelievo
+                    help="Ticker dello strumento"
                 )
                 
                 nome_strumento = st.text_input(
                     "Nome Strumento",
                     value="EURO" if is_bonifico_prelievo else "",
                     placeholder="Es: Apple Inc.",
-                    help="Nome leggibile (opzionale)",
-                    disabled=is_bonifico_prelievo
+                    help="Nome leggibile (opzionale)"
                 )
                 
                 pmc_input = st.number_input(
