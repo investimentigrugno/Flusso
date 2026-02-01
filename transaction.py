@@ -338,7 +338,7 @@ def transaction_tracker_app():
                         "B": "B - Breve termine",
                         "P": "P - Passività",
                     }[x],
-                    help="Orizzonte temporale"
+                    help="Orizzonte temporale",
                     disabled=is_bonifico_prelievo
                 )
                 
@@ -346,7 +346,7 @@ def transaction_tracker_app():
                     "Valuta *",
                     options=valute_options,
                     value="EUR" if is_bonifico_prelievo else "",
-                    help="Valuta della transazione"
+                    help="Valuta della transazione",
                     disabled=is_bonifico_prelievo
                 )
                 
@@ -356,7 +356,7 @@ def transaction_tracker_app():
                     value=1.0,
                     step=0.0001,
                     format="%.4f",
-                    help="Tasso di cambio verso EUR (1.0 se EUR)"
+                    help="Tasso di cambio verso EUR (1.0 se EUR)",
                     disabled=is_bonifico_prelievo
                 )
                 
@@ -366,7 +366,7 @@ def transaction_tracker_app():
                     value=0.0,
                     step=0.01,
                     format="%.2f",
-                    help="Costi di intermediazione"
+                    help="Costi di intermediazione",
                     disabled=is_bonifico_prelievo
                 )
             
