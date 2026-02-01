@@ -291,16 +291,22 @@ def transaction_tracker_app():
                     help="Tipo di operazione"
                 )
                 
+                is_bonifico_prelievo = operazione_input in ["Bonifico", "Prelievo"]
+
                 strumento_input = st.text_input(
                     "Strumento *",
+                    value="EURO" if is_bonifico_prelievo else "",
                     placeholder="Es: BIT:LDO, NASDAQ:AAPL",
-                    help="Ticker dello strumento"
+                    help="Ticker dello strumento",
+                    disabled=is_bonifico_prelievo
                 )
                 
                 nome_strumento = st.text_input(
                     "Nome Strumento",
+                    value="EURO" if is_bonifico_prelievo else "",
                     placeholder="Es: Apple Inc.",
-                    help="Nome leggibile (opzionale)"
+                    help="Nome leggibile (opzionale)",
+                    disabled=is_bonifico_prelievo
                 )
                 
                 pmc_input = st.number_input(
@@ -315,10 +321,11 @@ def transaction_tracker_app():
                 quantita_input = st.number_input(
                     "Quantità *",
                     min_value=0.0,
-                    value=0.0,
+                    value="1" if is_bonifico_prelievo else "0.0",
                     step=0.01,
                     format="%.4f",
-                    help="Quantità acquistata"
+                    help="Quantità acquistata",
+                    disabled=is_bonifico_prelievo
                 )
             
             with col2:
@@ -332,12 +339,15 @@ def transaction_tracker_app():
                         "P": "P - Passività",
                     }[x],
                     help="Orizzonte temporale"
+                    disabled=is_bonifico_prelievo
                 )
                 
                 valuta_input = st.selectbox(
                     "Valuta *",
                     options=valute_options,
+                    value="EUR" if is_bonifico_prelievo else "",
                     help="Valuta della transazione"
+                    disabled=is_bonifico_prelievo
                 )
                 
                 tasso_cambio_input = st.number_input(
@@ -347,6 +357,7 @@ def transaction_tracker_app():
                     step=0.0001,
                     format="%.4f",
                     help="Tasso di cambio verso EUR (1.0 se EUR)"
+                    disabled=is_bonifico_prelievo
                 )
                 
                 commissioni_input = st.number_input(
@@ -356,6 +367,7 @@ def transaction_tracker_app():
                     step=0.01,
                     format="%.2f",
                     help="Costi di intermediazione"
+                    disabled=is_bonifico_prelievo
                 )
             
             st.markdown("---")
