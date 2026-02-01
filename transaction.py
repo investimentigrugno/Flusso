@@ -319,7 +319,7 @@ def transaction_tracker_app():
                 quantita_input = st.number_input(
                     "Quantità *",
                     min_value=0.0,
-                    value="1" if is_bonifico_prelievo else "0.0",
+                    value=1.0 if is_bonifico_prelievo else 0.0,
                     step=0.01,
                     format="%.4f",
                     help="Quantità acquistata"
