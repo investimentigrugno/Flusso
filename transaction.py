@@ -300,13 +300,6 @@ def transaction_tracker_app():
                     help="Ticker dello strumento"
                 )
                 
-                nome_strumento = st.text_input(
-                    "Nome Strumento",
-                    value="EURO" if is_bonifico_prelievo else "",
-                    placeholder="Es: Apple Inc.",
-                    help="Nome leggibile (opzionale)"
-                )
-                
                 pmc_input = st.number_input(
                     "PMC (Prezzo Medio) *",
                     value=1.0 if is_bonifico_prelievo else 0.01,
@@ -436,8 +429,7 @@ def transaction_tracker_app():
                     'Tasso_cambio': float(tasso_cambio_input),
                     'Commissioni': float(commissioni_input),
                     'Controvalore': float(controvalore_calcolato),
-                    'Lungo_breve': lungo_breve,
-                    'Nome_strumento': nome_strumento.strip()
+                    'Lungo_breve': lungo_breve
                 }
                 
                 with st.spinner("💾 Salvataggio transazione..."):
