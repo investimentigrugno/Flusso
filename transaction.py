@@ -400,6 +400,15 @@ def transaction_tracker_app():
         
         # ==================== GESTIONE SUBMIT (FUORI DAL FORM) ====================
         if submitted:
+            # ✅ Auto-correzione per Bonifico/Prelievo PRIMA della validazione
+            if operazione_input in ["Bonifico", "Prelievo"]:
+                if not strumento_input.strip():
+                    strumento_input = "EURO"
+                if pmc_input != 1.0:
+                    pmc_input = 1.0
+                if lungo_breve != "P":
+                    lungo_breve = "P"
+            
             errors = []
             
             if not strumento_input.strip():
@@ -407,9 +416,6 @@ def transaction_tracker_app():
             
             if pmc_input <= 0:
                 errors.append("⚠️ Il 'PMC' deve essere > 0")
-            
-            if quantita_input <= 0:
-                errors.append("⚠️ La 'Quantità' deve essere > 0")
             
             if tasso_cambio_input <= 0:
                 errors.append("⚠️ Il 'Tasso di Cambio' deve essere > 0")
@@ -424,12 +430,13 @@ def transaction_tracker_app():
                     'Strumento': str(strumento_input).upper().strip(),
                     'PMC': float(pmc_input),
                     'Quantita': float(quantita_input),
-                    'Totale': float(totale_calcolato),
+                    'Totale': float(pmc_input * quantita_input),
                     'Valuta': valuta_input,
                     'Tasso_cambio': float(tasso_cambio_input),
                     'Commissioni': float(commissioni_input),
-                    'Controvalore': float(controvalore_calcolato),
+                    'Controvalore': float((pmc_input * quantita_input) / tasso_cambio_input if tasso_cambio_input > 0 else 0),
                     'Lungo_breve': lungo_breve
+                    # ← RIMOSSO Nome_strumento
                 }
                 
                 with st.spinner("💾 Salvataggio transazione..."):
@@ -458,14 +465,16 @@ def transaction_tracker_app():
                         mime="text/csv",
                         use_container_width=True
                     )
-        
+
         with st.expander("💡 Suggerimenti"):
             st.markdown("""
             - **PMC**: Prezzo unitario di acquisto/vendita
             - **Quantità**: Numero di unità
             - **Tasso Cambio**: Se EUR metti 1.0, altrimenti il cambio EUR/VALUTA
             - **Totale e Controvalore**: Calcolati automaticamente
+            - **Bonifico/Prelievo**: Lascia vuoto Strumento, verrà impostato automaticamente a EURO
             """)
+
 
 
     # ==================== TAB 3: CONFIGURAZIONE ====================
