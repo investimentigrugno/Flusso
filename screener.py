@@ -1166,7 +1166,7 @@ Questa app utilizza un **algoritmo di scoring intelligente** e **notizie tradott
                     
                     # Genera PDF
                     pdf_bytes = generate_pdf_report(
-                        title=f"Analisi Fondamentale - {company_name}",
+                        title=f"Analisi Fondamentale - {symbol}",
                         content=ai_report,
                         filename_prefix="Fundamental_Report"
                     )
@@ -1177,7 +1177,7 @@ Questa app utilizza un **algoritmo di scoring intelligente** e **notizie tradott
                         st.download_button(
                             label="📥 Scarica Report PDF",
                             data=pdf_bytes,
-                            file_name=f"Fundamental_Report_{company_name}_{datetime.now().strftime('%Y%m%d')}.pdf",
+                            file_name=f"Fundamental_Report_{symbol}_{datetime.now().strftime('%Y%m%d')}.pdf",
                             mime="application/pdf",
                             key="download_fundamental_pdf_btn",
                             type="primary",
@@ -1188,7 +1188,7 @@ Questa app utilizza un **algoritmo di scoring intelligente** e **notizie tradott
                         st.download_button(
                             label="📄 Scarica TXT",
                             data=ai_report,
-                            file_name=f"Fundamental_Report_{company_name}_{datetime.now().strftime('%Y%m%d')}.txt",
+                            file_name=f"Fundamental_Report_{symbol}_{datetime.now().strftime('%Y%m%d')}.txt",
                             mime="text/plain",
                             key="download_fundamental_txt_btn",
                             use_container_width=True
