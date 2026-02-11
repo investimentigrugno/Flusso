@@ -12,6 +12,47 @@ import random
 from typing import List, Dict
 import re
 from ai_agent import call_groq_api, escape_markdown_latex
+from fpdf import FPDF
+
+def generate_pdf_report(title, content, filename_prefix):
+    """Genera un PDF da contenuto markdown/testo"""
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_auto_page_break(auto=True, margin=15)
+    
+    # Titolo
+    pdf.set_font("Arial", "B", 16)
+    pdf.cell(0, 10, title, ln=True, align='C')
+    pdf.ln(10)
+    
+    # Contenuto
+    pdf.set_font("Arial", "", 11)
+    
+    # Pulisci il contenuto da caratteri speciali
+    clean_content = content.replace('\\$', '$').replace('\\_', '_')
+    clean_content = clean_content.encode('latin-1', 'replace').decode('latin-1')
+    
+    # Aggiungi contenuto riga per riga
+    for line in clean_content.split('\n'):
+        if line.startswith('##'):
+            pdf.ln(5)
+            pdf.set_font("Arial", "B", 14)
+            pdf.multi_cell(0, 10, line.replace('##', '').strip())
+            pdf.set_font("Arial", "", 11)
+        elif line.startswith('#'):
+            pdf.ln(5)
+            pdf.set_font("Arial", "B", 15)
+            pdf.multi_cell(0, 10, line.replace('#', '').strip())
+            pdf.set_font("Arial", "", 11)
+        elif line.strip():
+            pdf.multi_cell(0, 6, line)
+        else:
+            pdf.ln(3)
+    
+    # Genera PDF in memoria
+    pdf_output = pdf.output(dest='S').encode('latin-1')
+    return pdf_output
+
 
 def format_technical_rating(rating: float) -> str:
     """Format technical rating"""
@@ -1123,13 +1164,36 @@ Questa app utilizza un **algoritmo di scoring intelligente** e **notizie tradott
                         
                         st.markdown(escape_markdown_latex(ai_report))
                     
-                    # Pulsante download
-                    st.download_button(
-                        label="📥 Scarica Report Completo",
-                        data=ai_report,
-                        file_name=f"report_fondamentale_{symbol}.txt",
-                        mime="text/plain"
+                    # Genera PDF
+                    pdf_bytes = generate_pdf_report(
+                        title=f"Analisi Fondamentale - {company_name}",
+                        content=ai_report,
+                        filename_prefix="Fundamental_Report"
                     )
+
+                    col_pdf, col_txt = st.columns(2)
+
+                    with col_pdf:
+                        st.download_button(
+                            label="📥 Scarica Report PDF",
+                            data=pdf_bytes,
+                            file_name=f"Fundamental_Report_{company_name}_{datetime.now().strftime('%Y%m%d')}.pdf",
+                            mime="application/pdf",
+                            key="download_fundamental_pdf_btn",
+                            type="primary",
+                            use_container_width=True
+                        )
+
+                    with col_txt:
+                        st.download_button(
+                            label="📄 Scarica TXT",
+                            data=ai_report,
+                            file_name=f"Fundamental_Report_{company_name}_{datetime.now().strftime('%Y%m%d')}.txt",
+                            mime="text/plain",
+                            key="download_fundamental_txt_btn",
+                            use_container_width=True
+                        )
+
 
     # ========== TAB 4: ANALISI TECNICA AVANZATA ==========
     with tab4:
@@ -1283,14 +1347,36 @@ Questa app utilizza un **algoritmo di scoring intelligente** e **notizie tradott
                         
                         st.markdown(escape_markdown_latex(ai_report))
                     
-                    # Pulsante download
-                    st.download_button(
-                        label="📥 Scarica Report Completo",
-                        data=ai_report,
-                        file_name=f"report_tecnico_{ticker}_{datetime.now().strftime('%Y%m%d')}.txt",
-                        mime="text/plain",
-                        key="download_tech_report"
+                    # Genera PDF
+                    pdf_bytes = generate_pdf_report(
+                        title=f"Analisi Tecnica - {ticker}",
+                        content=ai_report,
+                        filename_prefix="Technical_Report"
                     )
+
+                    col_pdf, col_txt = st.columns(2)
+
+                    with col_pdf:
+                        st.download_button(
+                            label="📥 Scarica Report PDF",
+                            data=pdf_bytes,
+                            file_name=f"Technical_Report_{ticker}_{datetime.now().strftime('%Y%m%d')}.pdf",
+                            mime="application/pdf",
+                            key="download_technical_pdf_btn",
+                            type="primary",
+                            use_container_width=True
+                        )
+
+                    with col_txt:
+                        st.download_button(
+                            label="📄 Scarica TXT",
+                            data=ai_report,
+                            file_name=f"Technical_Report_{ticker}_{datetime.now().strftime('%Y%m%d')}.txt",
+                            mime="text/plain",
+                            key="download_technical_txt_btn",
+                            use_container_width=True
+                        )
+
                 else:
                     st.error(f"❌ Impossibile trovare dati per il ticker **'{ticker}'**.")
                     st.info("""
