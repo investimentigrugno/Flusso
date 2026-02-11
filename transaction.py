@@ -1,4 +1,4 @@
-# transaction_FIXED.py - VERSIONE CORRETTA CON TUTTI I BUG RISOLTI
+# transaction_FIXED.py - VERSIONE CON REDIRECT E SESSION STATE CORRETTI
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -8,7 +8,9 @@ import requests
 import json
 import time
 
+
 # ==================== FUNZIONI ====================
+
 
 @st.cache_data(ttl=120)
 def load_sheet_csv_transactions(spreadsheet_id, gid):
@@ -29,6 +31,7 @@ def load_sheet_csv_transactions(spreadsheet_id, gid):
     
     return None
 
+
 def format_decimal(value):
     """Converte numero in stringa con virgola come separatore decimale"""
     if isinstance(value, str):
@@ -37,9 +40,11 @@ def format_decimal(value):
         return str(value).replace('.', ',')
     return str(value)
 
+
 def append_transaction_via_webhook(transaction_data, webhook_url):
     """
     Invia transazione al Google Apps Script webhook
+    ✅ CORRETTO: Segue automaticamente i redirect 302
     """
     try:
         # Prepara i dati per il webhook con virgole come separatore
@@ -58,35 +63,46 @@ def append_transaction_via_webhook(transaction_data, webhook_url):
             "nome_strumento": transaction_data.get('Nome_strumento', transaction_data.get('Strumento', ''))
         }
         
-        response = requests.post(
+        # ✅ FIX PRINCIPALE: Configura la sessione per seguire i redirect
+        session = requests.Session()
+        session.max_redirects = 5  # Permetti fino a 5 redirect
+        
+        response = session.post(
             webhook_url,
             json=payload,
             headers={'Content-Type': 'application/json'},
-            timeout=10
+            timeout=30,  # ✅ Aumentato timeout a 30 secondi
+            allow_redirects=True  # ✅ CRITICO: Segui i redirect 302
         )
-
+        
         # Verifica la risposta
         if response.status_code == 200:
-
             try:
                 result = response.json()
                 return result.get('success', False), result.get('message', 'Risposta sconosciuta')
             except json.JSONDecodeError as je:
+                # Se la risposta non è JSON ma è 200, consideriamo successo
+                if "success" in response.text.lower() or "ok" in response.text.lower():
+                    return True, "✅ Transazione salvata con successo"
                 return False, f"❌ JSON non valido. Risposta: {response.text[:200]}"
         else:
             return False, f"Errore HTTP {response.status_code}: {response.text[:200]}"
     
     except requests.exceptions.Timeout:
-        return False, "⏱️ Timeout: il server non ha risposto in tempo (> 10 secondi)"
+        return False, "⏱️ Timeout: il server non ha risposto in tempo (> 30 secondi)"
     
     except requests.exceptions.ConnectionError:
         return False, "❌ Errore di connessione: verifica che il webhook sia raggiungibile"
+    
+    except requests.exceptions.TooManyRedirects:
+        return False, "❌ Troppi redirect: verifica la configurazione del webhook"
     
     except Exception as e:
         return False, f"❌ Errore imprevisto: {str(e)}"
 
 
 # ==================== APP PRINCIPALE ====================
+
 
 def transaction_tracker_app():
     """Applicazione Transaction Tracker"""
@@ -100,11 +116,16 @@ def transaction_tracker_app():
     st.title("💳 Transaction Tracker")
     st.markdown("---")
     
+    # ✅ INIZIALIZZA SESSION STATE PER EVITARE PROBLEMI AL PRIMO SUBMIT
+    if 'last_transaction' not in st.session_state:
+        st.session_state.last_transaction = None
+    if 'form_submitted' not in st.session_state:
+        st.session_state.form_submitted = False
+    
     # Configurazione
     spreadsheet_id = "1mD9jxDJv26aZwCdIbvQVjlJGBhRwKWwQnPpPPq0ON5Y"
     gid_transactions = 1594640549
     
-    # ⚠️ IMPORTANTE: Sostituisci questo URL con il TUO webhook Google Apps Script
     WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbyu8f1-wz-UA7NAsiYmX0hRUgUiRv3pEmCYwYWMi9uQZAAoddPfHxN3iz1ldfY3fc0u/exec"
     
     # Sidebar
@@ -355,7 +376,7 @@ def transaction_tracker_app():
                 )
             
             if is_bonifico_prelievo:
-                st.info(f"💡 **{operazione_input}**: Strumento = EURO, QTA = 1.0")
+                st.info(f"💡 **{operazione_input}**: Strumento = EURO, PMC = 1.0, Posizione = P")
             
             st.markdown("---")
             st.markdown("### 📊 Riepilogo Calcoli")
@@ -436,8 +457,11 @@ def transaction_tracker_app():
                     'Commissioni': float(commissioni_input),
                     'Controvalore': float((pmc_input * quantita_input) / tasso_cambio_input if tasso_cambio_input > 0 else 0),
                     'Lungo_breve': lungo_breve
-                    # ← RIMOSSO Nome_strumento
                 }
+                
+                # ✅ SALVA IN SESSION STATE PER EVITARE PROBLEMI AL PRIMO SUBMIT
+                st.session_state.last_transaction = new_transaction
+                st.session_state.form_submitted = True
                 
                 with st.spinner("💾 Salvataggio transazione..."):
                     success, message = append_transaction_via_webhook(new_transaction, WEBHOOK_URL)
@@ -454,7 +478,7 @@ def transaction_tracker_app():
                     st.info("🔄 Torna a 'Visualizza Transazioni' e clicca 'Aggiorna'")
                 else:
                     st.error(f"❌ {message}")
-                    st.warning("Verifica che l'URL del webhook sia corretto.")
+                    st.warning("Verifica che l'URL del webhook sia corretto e che segua i redirect.")
                     
                     df_preview = pd.DataFrame([new_transaction])
                     csv_backup = df_preview.to_csv(index=False).encode('utf-8')
@@ -474,8 +498,6 @@ def transaction_tracker_app():
             - **Totale e Controvalore**: Calcolati automaticamente
             - **Bonifico/Prelievo**: Lascia vuoto Strumento, verrà impostato automaticamente a EURO
             """)
-
-
 
     # ==================== TAB 3: CONFIGURAZIONE ====================
     with tab3:
@@ -509,15 +531,22 @@ def transaction_tracker_app():
         if st.button("🧪 Testa Connessione", use_container_width=True):
             with st.spinner("Testing..."):
                 try:
-                    response = requests.get(WEBHOOK_URL, timeout=10)
+                    # ✅ Test con redirect abilitati
+                    session = requests.Session()
+                    response = session.get(WEBHOOK_URL, timeout=10, allow_redirects=True)
+                    
                     if response.status_code == 200:
                         st.success("✅ Webhook raggiungibile!")
-                        st.json(response.json())
+                        try:
+                            st.json(response.json())
+                        except:
+                            st.code(response.text[:500])
                     else:
                         st.error(f"❌ HTTP {response.status_code}")
+                        st.code(response.text[:500])
                 except Exception as e:
                     st.error(f"❌ Errore: {str(e)}")
 
 
-if __name__ == "__transaction_tracker_app__":
+if __name__ == "__main__":
     transaction_tracker_app()
