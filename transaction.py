@@ -321,6 +321,16 @@ def transaction_tracker_app():
                     help="Ticker dello strumento"
                 )
                 
+                valuta_input = st.selectbox(
+                    "Valuta *",
+                    options=valute_options,
+                    index=valute_options.index("EUR") if "EUR" in valute_options and is_bonifico_prelievo else 0,
+                    help="Valuta della transazione"
+                )
+                
+            
+            with col2:
+
                 pmc_input = st.number_input(
                     "PMC (Prezzo Medio) *",
                     value=1.0000 if is_bonifico_prelievo else 0.01,
@@ -335,14 +345,6 @@ def transaction_tracker_app():
                     step=0.0001,
                     format="%.4f",
                     help="Quantità acquistata"
-                )
-            
-            with col2:              
-                valuta_input = st.selectbox(
-                    "Valuta *",
-                    options=valute_options,
-                    index=valute_options.index("EUR") if "EUR" in valute_options and is_bonifico_prelievo else 0,
-                    help="Valuta della transazione"
                 )
                 
                 tasso_cambio_input = st.number_input(
