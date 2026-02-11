@@ -134,18 +134,21 @@ with st.sidebar.expander("ℹ️ Info App"):
         6. Link e immagini - Bottoni cliccabili per allegati
     
     **📈 Stock Screener**
-    - Analisi titoli azionari
-    - TOP 5 Picks con AI
-    - Integrazione TradingView
+    - Analisi titoli azionari tramite integrazione TradingView screener
+    - Link diretto al grafico del ticker su TradingView
+    - AI per analisi dati fondamentali e scaricamento report
+    - AI per analisi dati tecnici e scaricamento report           
                 
     **🔐 Password Decryptor**
     - Decripta file CSV crittografati
     - Visualizzazione tabellare interattiva
-    - Download dati decriptati
+    - Aggiungere righe, modificarle o cancellarle
+    - Ricriptare i dati modificati e scaricarli in formato CSV
+    - Download dati decriptati in formato CSV
     
     ---
     
-    **Versione:** 3.0.0
+    **Versione:** 5.0.0
     
     **Sicurezza:** Tutti i dati vengono elaborati localmente
     """)
