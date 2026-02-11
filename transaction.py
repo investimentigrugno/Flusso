@@ -323,16 +323,16 @@ def transaction_tracker_app():
                 
                 pmc_input = st.number_input(
                     "PMC (Prezzo Medio) *",
-                    value=1.0 if is_bonifico_prelievo else 0.01,
-                    step=0.01,
+                    value=1.0000 if is_bonifico_prelievo else 0.01,
+                    step=0.0001,
                     format="%.4f",
                     help="Prezzo medio di carico"
                 )
                 
                 quantita_input = st.number_input(
                     "Quantità *",
-                    value=0.01,
-                    step=0.01,
+                    value=1.0000,
+                    step=0.0001,
                     format="%.4f",
                     help="Quantità acquistata"
                 )
@@ -376,7 +376,7 @@ def transaction_tracker_app():
                 )
             
             if is_bonifico_prelievo:
-                st.info(f"💡 **{operazione_input}**: Strumento = EURO, PMC = 1.0, Posizione = P")
+                st.info(f"💡 **{operazione_input}**: Strumento = EURO, QTA = 1.0")
             
             st.markdown("---")
             st.markdown("### 📊 Riepilogo Calcoli")
@@ -425,8 +425,8 @@ def transaction_tracker_app():
             if operazione_input in ["Bonifico", "Prelievo"]:
                 if not strumento_input.strip():
                     strumento_input = "EURO"
-                if pmc_input != 1.0:
-                    pmc_input = 1.0
+                if quantita_input != 1.0:
+                    quantita_input = 1.0
                 if lungo_breve != "P":
                     lungo_breve = "P"
             
@@ -492,8 +492,8 @@ def transaction_tracker_app():
 
         with st.expander("💡 Suggerimenti"):
             st.markdown("""
-            - **PMC**: Prezzo unitario di acquisto/vendita
-            - **Quantità**: Numero di unità
+            - **PMC**: Prezzo unitario di acquisto/vendita, se bonifico o prelievo metti valore reale
+            - **Quantità**: Numero di unità, se bonifico o prelievo lascia invariato o metti 1
             - **Tasso Cambio**: Se EUR metti 1.0, altrimenti il cambio EUR/VALUTA
             - **Totale e Controvalore**: Calcolati automaticamente
             - **Bonifico/Prelievo**: Lascia vuoto Strumento, verrà impostato automaticamente a EURO
