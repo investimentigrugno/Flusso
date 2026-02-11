@@ -337,20 +337,7 @@ def transaction_tracker_app():
                     help="Quantità acquistata"
                 )
             
-            with col2:
-                lungo_breve = st.selectbox(
-                    "Posizione",
-                    options=["", "L", "B", "P"],
-                    index=3 if is_bonifico_prelievo else 0,
-                    format_func=lambda x: {
-                        "": "Non specificato",
-                        "L": "L - Lungo termine",
-                        "B": "B - Breve termine",
-                        "P": "P - Passività",
-                    }[x],
-                    help="Orizzonte temporale"
-                )
-                
+            with col2:              
                 valuta_input = st.selectbox(
                     "Valuta *",
                     options=valute_options,
@@ -456,7 +443,6 @@ def transaction_tracker_app():
                     'Tasso_cambio': float(tasso_cambio_input),
                     'Commissioni': float(commissioni_input),
                     'Controvalore': float((pmc_input * quantita_input) / tasso_cambio_input if tasso_cambio_input > 0 else 0),
-                    'Lungo_breve': lungo_breve
                 }
                 
                 # ✅ SALVA IN SESSION STATE PER EVITARE PROBLEMI AL PRIMO SUBMIT
