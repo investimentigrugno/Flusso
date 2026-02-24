@@ -1,12 +1,17 @@
 [theme]
-primaryColor="#cc4100"
-backgroundColor="#00000063"
-secondaryBackgroundColor="#00174660"
-textColor="#a7a7a727"
+base = "light"
+primaryColor = "#2563eb"        # Blu professionale (come Stripe/Twilio)
+backgroundColor = "#ffffff"     # Bianco pulito
+secondaryBackgroundColor = "#f8fafc"  # Grigio ghiaccio (sidebar)
+textColor = "#1e293b"          # Nero morbido
+font = "sans serif"
+
+[ui]
+hideTopBar = false
 
 [server]
-enableCORS=false
-enableXsrfProtection=false
+enableCORS = false
+enableXsrfProtection = false
 
 [browser]
-gatherUsageStats=false
+gatherUsageStats = false
