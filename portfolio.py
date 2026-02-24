@@ -62,7 +62,31 @@ def portfolio_tracker_app():
     """Applicazione Portfolio Tracker"""
     
     st.title("📊 Portfolio Tracker")
-    st.markdown("---")
+    # DOPO st.set_page_config()
+    st.markdown("""
+    <style>
+        .reportview-container .main .block-container {
+            padding-top: 2rem;
+            padding-bottom: 1rem;
+        }
+        .metric-container {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 1.5rem;
+            border-radius: 15px;
+            color: white !important;
+            text-align: center;
+        }
+        .status-active {
+            background: linear-gradient(90deg, #ff6b6b, #ffa500);
+            padding: 0.5rem 1rem;
+            border-radius: 25px;
+            color: white;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+    </style>
+    """, unsafe_allow_html=True)
+
     
     # ID del foglio Google Sheets
     spreadsheet_id = "1mD9jxDJv26aZwCdIbvQVjlJGBhRwKWwQnPpPPq0ON5Y"
