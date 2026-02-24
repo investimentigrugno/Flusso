@@ -57,49 +57,68 @@ def aggiorna_stato_ordine_via_webhook(row_number, stato_esecuzione, webhook_url)
         return False, f"Errore: {str(e)}"
 
 def get_exchange_rate(from_currency, to_currency='EUR'):
-    """Ottiene il tasso di cambio da Frankfurter API"""
+    """Ottiene il tasso di cambio da Frankfurter API con retry e timeout."""
     if from_currency == to_currency:
         return 1.0
     try:
-        url = f'https://api.frankfurter.app/latest?from={from_currency}&to={to_currency}'
-        response = requests.get(url, timeout=5)
+        url = f'https://api.frankfurter.app/latest'
+        params = {"from": from_currency, "to": to_currency}
+        response = requests.get(url, params=params, timeout=10)
         if response.status_code == 200:
             data = response.json()
-            return data['rates'].get(to_currency, 1.0)
+            return data.get('rates', {}).get(to_currency, 1.0)
         return 1.0
     except Exception as e:
         st.sidebar.warning(f"Errore tasso cambio {from_currency}: {str(e)}")
         return 1.0
 
 
+
 def calcola_valore_ordini_attivi(df_ordini):
-    """Calcola valore ordini attivi con conversione valuta"""
+    """Calcola valore ordini attivi con conversione valuta e salva VALORE_EUR nel df."""
     if df_ordini is None or df_ordini.empty:
+        df_ordini['VALORE_EUR'] = 0.0
         return 0.0
-    
-    ordini_attivi = df_ordini[df_ordini['STATO'] == 'ATTIVO'].copy()
-    
-    if ordini_attivi.empty:
-        return 0.0
-    
-    if 'N.AZIONI' in ordini_attivi.columns and 'ENTRY PRICE' in ordini_attivi.columns:
-        # Pulisci i valori numerici
-        ordini_attivi['N.AZIONI_CLEAN'] = ordini_attivi['N.AZIONI'].astype(str).str.replace(',', '.').str.replace(' ', '')
-        ordini_attivi['ENTRY_PRICE_CLEAN'] = ordini_attivi['ENTRY PRICE'].astype(str).str.replace(',', '.').str.replace(' ', '').str.replace('€', '').str.replace('$', '')
-        
-        ordini_attivi['N.AZIONI_NUM'] = pd.to_numeric(ordini_attivi['N.AZIONI_CLEAN'], errors='coerce')
-        ordini_attivi['ENTRY_PRICE_NUM'] = pd.to_numeric(ordini_attivi['ENTRY_PRICE_CLEAN'], errors='coerce')
-        
-        # ⭐ Usa colonna VALUTA e applica tasso cambio
-        ordini_attivi['VALUTA'] = ordini_attivi['VALUTA'].fillna('EUR').str.upper()
-        ordini_attivi['EXCHANGE_RATE'] = ordini_attivi['VALUTA'].apply(lambda x: get_exchange_rate(x, 'EUR'))
-        
-        # Calcola valore in EUR
-        ordini_attivi['VALORE_EUR'] = ordini_attivi['N.AZIONI_NUM'] * ordini_attivi['ENTRY_PRICE_NUM'] * ordini_attivi['EXCHANGE_RATE']
-        
+
+    # lavoriamo su una copia per i calcoli
+    ordini = df_ordini.copy()
+
+    if 'N.AZIONI' in ordini.columns and 'ENTRY PRICE' in ordini.columns:
+        ordini['N.AZIONI_CLEAN'] = (
+            ordini['N.AZIONI'].astype(str)
+            .str.replace(',', '.')
+            .str.replace(' ', '')
+        )
+        ordini['ENTRY_PRICE_CLEAN'] = (
+            ordini['ENTRY PRICE'].astype(str)
+            .str.replace(',', '.')
+            .str.replace(' ', '')
+            .str.replace('€', '')
+            .str.replace('$', '')
+        )
+
+        ordini['N.AZIONI_NUM'] = pd.to_numeric(ordini['N.AZIONI_CLEAN'], errors='coerce')
+        ordini['ENTRY_PRICE_NUM'] = pd.to_numeric(ordini['ENTRY_PRICE_CLEAN'], errors='coerce')
+
+        ordini['VALUTA'] = ordini['VALUTA'].fillna('EUR').str.upper()
+        ordini['EXCHANGE_RATE'] = ordini['VALUTA'].apply(lambda x: get_exchange_rate(x, 'EUR'))
+
+        ordini['VALORE_EUR'] = (
+            ordini['N.AZIONI_NUM']
+            * ordini['ENTRY_PRICE_NUM']
+            * ordini['EXCHANGE_RATE']
+        )
+
+        # riporta la colonna calcolata su df_ordini usando l'indice
+        df_ordini['VALORE_EUR'] = ordini['VALORE_EUR']
+
+        # somma solo gli ATTIVI
+        ordini_attivi = ordini[ordini['STATO'] == 'ATTIVO']
         return ordini_attivi['VALORE_EUR'].sum()
-    
+
+    df_ordini['VALORE_EUR'] = 0.0
     return 0.0
+
 
 
 def ordini_app():
@@ -209,7 +228,11 @@ def ordini_app():
                     with col_d3:
                         st.write(f"**TP:** {ordine.get('TP', 'N/A')} | **SL:** {ordine.get('SL', 'N/A')}")
                     with col_d4:
-                        st.write(f"**Totale:** {ordine.get('VALORE_EUR', 'N/A')}")
+                        valore_eur = ordine.get('VALORE_EUR', None)
+                        if pd.notna(valore_eur):
+                            st.write(f"**Totale EUR:** € {valore_eur:,.2f}")
+                        else:
+                            st.write("**Totale EUR:** N/A")
                     
                     col1, col2, col3 = st.columns([1, 1, 2])
                     with col1:
