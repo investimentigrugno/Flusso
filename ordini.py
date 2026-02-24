@@ -195,19 +195,21 @@ def ordini_app():
             
             for idx, ordine in ordini_attivi.iterrows():
                 with st.container():
-                    col_h, col_b = st.columns([3, 1])
+                    col_h, col_b = st.columns([4, 1])
                     with col_h:
                         st.markdown(f"### {ordine.get('ASSET', 'N/A')} - {ordine.get('PROPOSTA', 'N/A')}")
                     with col_b:
                         st.warning("⏳ ATTIVO")
                     
-                    col_d1, col_d2, col_d3 = st.columns(3)
+                    col_d1, col_d2, col_d3, col_d4= st.columns(4)
                     with col_d1:
                         st.write(f"**Entry:** {ordine.get('ENTRY PRICE', 'N/A')}")
                     with col_d2:
                         st.write(f"**Azioni:** {ordine.get('N.AZIONI', 'N/A')}")
                     with col_d3:
                         st.write(f"**TP:** {ordine.get('TP', 'N/A')} | **SL:** {ordine.get('SL', 'N/A')}")
+                    with col_d4:
+                        st.write(f"**Totale:** {ordine.get('VALORE_EUR', 'N/A')}")
                     
                     col1, col2, col3 = st.columns([1, 1, 2])
                     with col1:
