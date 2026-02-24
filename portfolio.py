@@ -4,9 +4,6 @@ import plotly.express as px
 import plotly.graph_objects as go
 import numpy as np
 import time
-from streamlit_extras.app_logo import st_logo
-st_logo("🕹️")  # SOLO questa riga
-
 
 @st.cache_data(ttl=30)
 def load_sheet_csv(spreadsheet_id, gid):
