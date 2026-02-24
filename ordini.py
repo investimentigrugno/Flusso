@@ -57,20 +57,23 @@ def aggiorna_stato_ordine_via_webhook(row_number, stato_esecuzione, webhook_url)
         return False, f"Errore: {str(e)}"
 
 def get_exchange_rate(from_currency, to_currency='EUR'):
-    """Ottiene il tasso di cambio da Frankfurter API con retry e timeout."""
+    """Ottiene il tasso di cambio da Frankfurter API (nuovo endpoint)"""
     if from_currency == to_currency:
         return 1.0
     try:
-        url = f'https://api.frankfurter.app/latest'
-        params = {"from": from_currency, "to": to_currency}
+        # NUOVO ENDPOINT con params
+        url = 'https://api.frankfurter.dev/v1/latest'
+        params = {'from': from_currency, 'to': to_currency}
         response = requests.get(url, params=params, timeout=10)
+        
         if response.status_code == 200:
             data = response.json()
-            return data.get('rates', {}).get(to_currency, 1.0)
+            return data['rates'].get(to_currency, 1.0)
         return 1.0
     except Exception as e:
         st.sidebar.warning(f"Errore tasso cambio {from_currency}: {str(e)}")
         return 1.0
+
 
 
 
