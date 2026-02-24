@@ -57,24 +57,24 @@ def aggiorna_stato_ordine_via_webhook(row_number, stato_esecuzione, webhook_url)
         return False, f"Errore: {str(e)}"
 
 def get_exchange_rate(from_currency, to_currency='EUR'):
-    """Ottiene il tasso di cambio da Frankfurter API (nuovo endpoint)"""
+    """Exchange API - 200+ valute, gratis, illimitato"""
     if from_currency == to_currency:
         return 1.0
+    
     try:
-        # NUOVO ENDPOINT con params
-        url = 'https://api.frankfurter.dev/v1/latest'
-        params = {'from': from_currency, 'to': to_currency}
-        response = requests.get(url, params=params, timeout=10)
+        # Data oggi (YYYY-MM-DD), v1=lates, endpoint=base_currency
+        today = datetime.now().strftime('%Y-%m-%d')
+        url = f"https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@{today}/v1/currencies/{from_currency}.json"
         
+        response = requests.get(url, timeout=10)
         if response.status_code == 200:
             data = response.json()
-            return data['rates'].get(to_currency, 1.0)
+            return 1 / data[from_currency][to_currency]  # Inverte perché è base→target
+        
         return 1.0
     except Exception as e:
         st.sidebar.warning(f"Errore tasso cambio {from_currency}: {str(e)}")
         return 1.0
-
-
 
 
 def calcola_valore_ordini_attivi(df_ordini):
