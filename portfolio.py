@@ -4,6 +4,9 @@ import plotly.express as px
 import plotly.graph_objects as go
 import numpy as np
 import time
+from streamlit_extras.app_logo import st_logo
+st_logo("🕹️")  # SOLO questa riga
+
 
 @st.cache_data(ttl=30)
 def load_sheet_csv(spreadsheet_id, gid):
@@ -62,30 +65,7 @@ def portfolio_tracker_app():
     """Applicazione Portfolio Tracker"""
     
     st.title("📊 Portfolio Tracker")
-    # DOPO st.set_page_config()
-    st.markdown("""
-    <style>
-        .reportview-container .main .block-container {
-            padding-top: 2rem;
-            padding-bottom: 1rem;
-        }
-        .metric-container {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 1.5rem;
-            border-radius: 15px;
-            color: white !important;
-            text-align: center;
-        }
-        .status-active {
-            background: linear-gradient(90deg, #ff6b6b, #ffa500);
-            padding: 0.5rem 1rem;
-            border-radius: 25px;
-            color: white;
-            font-weight: bold;
-            font-size: 0.9rem;
-        }
-    </style>
-    """, unsafe_allow_html=True)
+    st.markdown("---")
 
     
     # ID del foglio Google Sheets
