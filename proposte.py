@@ -27,19 +27,34 @@ def load_sheet_csv_proposte(spreadsheet_id, gid):
     return None
 
 def get_exchange_rate(from_currency, to_currency='EUR'):
-    """Ottiene il tasso di cambio da Frankfurter API"""
+    """Exchange API (200+ valute) + fallback Frankfurter"""
     if from_currency == to_currency:
         return 1.0
+    
+    # Prova prima exchange-api (200+ valute)
     try:
-        url = f'https://api.frankfurter.app/latest?from={from_currency}&to={to_currency}'
-        response = requests.get(url, timeout=5)
+        today = datetime.now().strftime('%Y-%m-%d')
+        url = f"https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@{today}/v1/currencies/{from_currency.lower()}.json"
+        response = requests.get(url, timeout=10)
         if response.status_code == 200:
             data = response.json()
-            return data['rates'].get(to_currency, 1.0)
-        return 1.0
+            rate = data[from_currency.lower()][to_currency.lower()]
+            return float(rate)
+    except:
+        pass  # Continua con fallback
+    
+    # Fallback Frankfurter
+    try:
+        url = 'https://api.frankfurter.dev/v1/latest'
+        params = {'from': from_currency, 'to': to_currency}
+        response = requests.get(url, params=params, timeout=10)
+        if response.status_code == 200:
+            data = response.json()
+            return data['rates'][to_currency]
     except Exception as e:
         st.sidebar.warning(f"Errore tasso cambio {from_currency}: {str(e)}")
-        return 1.0
+    
+    return 1.0
 
 
 def append_proposta_via_webhook(proposta_data, webhook_url):
