@@ -12,4 +12,3 @@ yfinance
 ta
 feedparser
 fpdf==1.7.2
-streamlit-extras
