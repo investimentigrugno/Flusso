@@ -42,11 +42,6 @@ def format_decimal(value):
 
 
 def append_transaction_via_webhook(transaction_data, webhook_url):
-    """
-    Invia transazione al Google Apps Script webhook
-    ✅ Mantiene redirect, timeout e payload attuali
-    ✅ Gestisce anche risposte HTML non JSON dopo un salvataggio riuscito
-    """
     try:
         payload = {
             "data": transaction_data['Data'],
@@ -68,42 +63,29 @@ def append_transaction_via_webhook(transaction_data, webhook_url):
 
         response = session.post(
             webhook_url,
-            data=payload,
+            json=payload,
+            headers={'Content-Type': 'application/json'},
             timeout=30,
             allow_redirects=True
         )
 
         if response.status_code == 200:
-            content_type = response.headers.get('Content-Type', '').lower()
-            response_text = response.text.strip()
-
             try:
                 result = response.json()
                 return result.get('success', False), result.get('message', 'Risposta sconosciuta')
-
             except json.JSONDecodeError:
-                if "success" in response_text.lower() or "ok" in response_text.lower():
-                    return True, "✅ Transazione salvata con successo"
-
-                if "<!doctype html" in response_text.lower() or "<html" in response_text.lower():
-                    return True, "✅ Transazione salvata con successo (il webhook ha restituito HTML invece di JSON)"
-
-                return False, f"❌ Risposta non JSON ({content_type}). Anteprima: {response_text[:200]}"
+                return False, f"❌ JSON non valido. Risposta: {response.text[:200]}"
 
         return False, f"Errore HTTP {response.status_code}: {response.text[:200]}"
 
     except requests.exceptions.Timeout:
         return False, "⏱️ Timeout: il server non ha risposto in tempo (> 30 secondi)"
-
     except requests.exceptions.ConnectionError:
         return False, "❌ Errore di connessione: verifica che il webhook sia raggiungibile"
-
     except requests.exceptions.TooManyRedirects:
         return False, "❌ Troppi redirect: verifica la configurazione del webhook"
-
     except Exception as e:
         return False, f"❌ Errore imprevisto: {str(e)}"
-
 
 # ==================== APP PRINCIPALE ====================
 
