@@ -410,64 +410,66 @@ def transaction_tracker_app():
         
         # ==================== GESTIONE SUBMIT (FUORI DAL FORM) ====================
         if submitted:
-            # ✅ Auto-correzione per Bonifico/Prelievo PRIMA della validazione
+            strumento_finale = str(strumento_input).strip().upper()
+            quantita_finale = float(quantita_input)
+        
             if operazione_input in ["Bonifico", "Prelievo"]:
-                if not strumento_input.strip():
-                    strumento_input = "EURO"
-                if quantita_input != 1.0:
-                    quantita_input = 1.0
-                if lungo_breve != "P":
-                    lungo_breve = "P"
-            
+                strumento_finale = "EURO"
+                quantita_finale = 1.0
+        
             errors = []
-            
-            if not strumento_input.strip():
+        
+            if not strumento_finale:
                 errors.append("⚠️ Il campo 'Strumento' è obbligatorio")
-            
+        
             if pmc_input <= 0:
                 errors.append("⚠️ Il 'PMC' deve essere > 0")
-            
+        
             if tasso_cambio_input <= 0:
                 errors.append("⚠️ Il 'Tasso di Cambio' deve essere > 0")
-            
+        
             if errors:
                 for error in errors:
                     st.error(error)
             else:
+                totale_finale = float(pmc_input * quantita_finale)
+                controvalore_finale = float(
+                    totale_finale / tasso_cambio_input if tasso_cambio_input > 0 else 0
+                )
+        
                 new_transaction = {
                     'Data': data_input.strftime('%d/%m/%Y'),
                     'Operazione': operazione_input.strip(),
-                    'Strumento': str(strumento_input).upper().strip(),
+                    'Strumento': strumento_finale,
                     'PMC': float(pmc_input),
-                    'Quantita': float(quantita_input),
-                    'Totale': float(pmc_input * quantita_input),
+                    'Quantita': quantita_finale,
+                    'Totale': totale_finale,
                     'Valuta': valuta_input,
                     'Tasso_cambio': float(tasso_cambio_input),
                     'Commissioni': float(commissioni_input),
-                    'Controvalore': float((pmc_input * quantita_input) / tasso_cambio_input if tasso_cambio_input > 0 else 0),
+                    'Controvalore': controvalore_finale,
                 }
-                
-                # ✅ SALVA IN SESSION STATE PER EVITARE PROBLEMI AL PRIMO SUBMIT
+        
                 st.session_state.last_transaction = new_transaction
                 st.session_state.form_submitted = True
-                
+        
                 with st.spinner("💾 Salvataggio transazione..."):
                     success, message = append_transaction_via_webhook(new_transaction, WEBHOOK_URL)
-                
+        
                 if success:
                     st.success(f"✅ {message}")
                     st.balloons()
-                    
+        
                     st.markdown("### 👀 Transazione Salvata")
                     df_preview = pd.DataFrame([new_transaction])
                     st.dataframe(df_preview, use_container_width=True, hide_index=True)
-                    
+        
                     st.cache_data.clear()
                     st.info("🔄 Torna a 'Visualizza Transazioni' e clicca 'Aggiorna'")
                 else:
                     st.error(f"❌ {message}")
                     st.warning("Verifica che l'URL del webhook sia corretto e che segua i redirect.")
-                    
+        
                     df_preview = pd.DataFrame([new_transaction])
                     csv_backup = df_preview.to_csv(index=False).encode('utf-8')
                     st.download_button(
