@@ -125,8 +125,8 @@ def transaction_tracker_app():
     # Configurazione
     spreadsheet_id = "1mD9jxDJv26aZwCdIbvQVjlJGBhRwKWwQnPpPPq0ON5Y"
     gid_transactions = 1594640549
-    
-    WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbyu8f1-wz-UA7NAsiYmX0hRUgUiRv3pEmCYwYWMi9uQZAAoddPfHxN3iz1ldfY3fc0u/exec"
+
+    WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbx_lAUdZTKFgybEbjG_6RHTf08hnXtOlLfSaSxuP7RR5-HmEKiDpjwDpJKIAayXQSjLQw/exec"
     
     # Sidebar
     st.sidebar.markdown("### ⚙️ Opzioni Transazioni")
