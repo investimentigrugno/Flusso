@@ -68,8 +68,7 @@ def append_transaction_via_webhook(transaction_data, webhook_url):
 
         response = session.post(
             webhook_url,
-            json=payload,
-            headers={'Content-Type': 'application/json'},
+            data=payload,
             timeout=30,
             allow_redirects=True
         )
