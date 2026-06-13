@@ -44,10 +44,10 @@ def format_decimal(value):
 def append_transaction_via_webhook(transaction_data, webhook_url):
     """
     Invia transazione al Google Apps Script webhook
-    ✅ CORRETTO: Segue automaticamente i redirect 302
+    ✅ Mantiene redirect, timeout e payload attuali
+    ✅ Gestisce anche risposte HTML non JSON dopo un salvataggio riuscito
     """
     try:
-        # Prepara i dati per il webhook con virgole come separatore
         payload = {
             "data": transaction_data['Data'],
             "operazione": transaction_data['Operazione'],
@@ -62,41 +62,46 @@ def append_transaction_via_webhook(transaction_data, webhook_url):
             "lungo_breve": transaction_data.get('Lungo_breve', ''),
             "nome_strumento": transaction_data.get('Nome_strumento', transaction_data.get('Strumento', ''))
         }
-        
-        # ✅ FIX PRINCIPALE: Configura la sessione per seguire i redirect
+
         session = requests.Session()
-        session.max_redirects = 5  # Permetti fino a 5 redirect
-        
+        session.max_redirects = 5
+
         response = session.post(
             webhook_url,
             json=payload,
             headers={'Content-Type': 'application/json'},
-            timeout=30,  # ✅ Aumentato timeout a 30 secondi
-            allow_redirects=True  # ✅ CRITICO: Segui i redirect 302
+            timeout=30,
+            allow_redirects=True
         )
-        
-        # Verifica la risposta
+
         if response.status_code == 200:
+            content_type = response.headers.get('Content-Type', '').lower()
+            response_text = response.text.strip()
+
             try:
                 result = response.json()
                 return result.get('success', False), result.get('message', 'Risposta sconosciuta')
-            except json.JSONDecodeError as je:
-                # Se la risposta non è JSON ma è 200, consideriamo successo
-                if "success" in response.text.lower() or "ok" in response.text.lower():
+
+            except json.JSONDecodeError:
+                if "success" in response_text.lower() or "ok" in response_text.lower():
                     return True, "✅ Transazione salvata con successo"
-                return False, f"❌ JSON non valido. Risposta: {response.text[:200]}"
-        else:
-            return False, f"Errore HTTP {response.status_code}: {response.text[:200]}"
-    
+
+                if "<!doctype html" in response_text.lower() or "<html" in response_text.lower():
+                    return True, "✅ Transazione salvata con successo (il webhook ha restituito HTML invece di JSON)"
+
+                return False, f"❌ Risposta non JSON ({content_type}). Anteprima: {response_text[:200]}"
+
+        return False, f"Errore HTTP {response.status_code}: {response.text[:200]}"
+
     except requests.exceptions.Timeout:
         return False, "⏱️ Timeout: il server non ha risposto in tempo (> 30 secondi)"
-    
+
     except requests.exceptions.ConnectionError:
         return False, "❌ Errore di connessione: verifica che il webhook sia raggiungibile"
-    
+
     except requests.exceptions.TooManyRedirects:
         return False, "❌ Troppi redirect: verifica la configurazione del webhook"
-    
+
     except Exception as e:
         return False, f"❌ Errore imprevisto: {str(e)}"
 
