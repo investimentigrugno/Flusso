@@ -989,10 +989,10 @@ def stock_screener_app():
                 styled_df = display_df.style
                 
                 if 'Score' in display_df.columns:
-                    styled_df = styled_df.applymap(color_score, subset=['Score'])
+                    styled_df = styled_df.map(color_score, subset=['Score'])
                 
                 if 'Rating' in display_df.columns:
-                    styled_df = styled_df.applymap(color_rating, subset=['Rating'])
+                    styled_df = styled_df.map(color_rating, subset=['Rating'])
                 
                 st.dataframe(
                     display_df,
