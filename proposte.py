@@ -61,7 +61,7 @@ def append_proposta_via_webhook(proposta_data, webhook_url):
     """Invia proposta al Google Apps Script webhook"""
     try:
         payload = {
-            "data_cronologica": proposta_data['DATA'],
+            "data": proposta_data['DATA'],
             "responsabile": proposta_data['RESPONSABILE'],
             "buy_sell": proposta_data['OPERAZIONE'],
             "strumento": proposta_data['STRUMENTO'],
