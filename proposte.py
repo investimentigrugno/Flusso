@@ -651,7 +651,7 @@ def proposte_app():
                             success, message = vote_proposta_via_webhook(
                                 proposta['ROW_NUMBER'],
                                 votante,
-                                'x',
+                                'X',
                                 WEBHOOK_URL
                             )
                         if success:
@@ -667,7 +667,7 @@ def proposte_app():
                             success, message = vote_proposta_via_webhook(
                                 proposta['ROW_NUMBER'],
                                 votante,
-                                'o',
+                                'O',
                                 WEBHOOK_URL
                             )
                         if success:
