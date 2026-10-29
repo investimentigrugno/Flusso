@@ -664,7 +664,7 @@ Powered by Groq AI - Llama 3.3 70B
             
             ### ⚡ Tecnologia
             - **Cloud AI**: Groq (ultra-veloce)
-            - **Modello**: Llama 3.3 70B
+            - **Modello**: GPT-OSS 120B
             - **API**: Completamente gratuita
             - **Limiti**: 6000 analisi/giorno
             
