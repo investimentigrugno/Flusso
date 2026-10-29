@@ -531,7 +531,7 @@ def proposte_app():
                     return formato.format(numero).replace('.', ',')
                 
                 new_proposta = {
-                    'DATA': now.strftime('%d/%m/%Y %H:%M:%S'),
+                    'DATA': now.strftime('%d/%m/%Y'),
                     'RESPONSABILE': ', '.join(responsabili),
                     'OPERAZIONE': buy_sell,
                     'STRUMENTO': strumento,
