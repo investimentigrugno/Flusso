@@ -330,9 +330,6 @@ def calculate_trade_plan(df, portfolio_value):
     for column in trade_columns:
         result[column] = np.nan
 
-    if portfolio_value is None or not np.isfinite(portfolio_value) or portfolio_value <= 0:
-        return result
-
     for index, row in result.iterrows():
 
         try:
