@@ -13,6 +13,7 @@ from typing import List, Dict
 import re
 from ai_agent import call_groq_api, escape_markdown_latex
 from fpdf import FPDF
+from portfolio_global import get_portfolio_value
 
 def generate_pdf_report(title, content, filename_prefix):
     """Genera un PDF da contenuto markdown/testo"""
@@ -230,7 +231,187 @@ def get_tradingview_url(symbol):
         clean_symbol = symbol
     # Ritorna SOLO l'URL (senza HTML)
     return f"https://www.tradingview.com/chart/?symbol={symbol}"
-    
+
+# ============================================================
+# TRADE PLANNER - POSITION SIZING E LIVELLI OPERATIVI
+# ============================================================
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def get_fx_rate_from_eur(currency):
+    """
+    Restituisce quante unità della valuta estera corrispondono
+    a 1 EUR. Se la valuta non è disponibile, restituisce None.
+    """
+    currency = str(currency).upper().strip()
+
+    if currency == "EUR":
+        return 1.0
+
+    try:
+        response = requests.get(
+            f"https://api.frankfurter.app/latest?from=EUR&to={currency}",
+            timeout=8
+        )
+        response.raise_for_status()
+
+        rate = response.json().get("rates", {}).get(currency)
+
+        if rate is not None and float(rate) > 0:
+            return float(rate)
+
+    except Exception:
+        pass
+
+    return None
+
+
+@st.cache_data(ttl=1800, show_spinner=False)
+def get_global_market_regime():
+    """
+    Usa ACWI come riferimento azionario globale.
+    Restituisce un moltiplicatore per l'allocazione.
+    """
+    try:
+        _, market_df = (
+            Query()
+            .set_markets("america")
+            .set_tickers("AMEX:ACWI")
+            .select("close", "SMA200", "Volatility.D")
+            .get_scanner_data()
+        )
+
+        if market_df.empty:
+            return 1.0, "Neutrale"
+
+        row = market_df.iloc[0]
+
+        price = float(row.get("close", np.nan))
+        sma200 = float(row.get("SMA200", np.nan))
+        volatility = float(row.get("Volatility.D", np.nan))
+
+        if not np.isfinite(price) or not np.isfinite(sma200):
+            return 1.0, "Neutrale"
+
+        if price > sma200 and (
+            not np.isfinite(volatility) or volatility <= 2.5
+        ):
+            return 1.20, "Favorevole"
+
+        if price < sma200:
+            return 0.80, "Debole"
+
+        return 1.0, "Neutrale"
+
+    except Exception:
+        return 1.0, "Neutrale"
+
+
+def calculate_trade_plan(df, portfolio_value):
+    """
+    Calcola entry, stop loss, target, R/R e quantità.
+
+    Il capitale allocato è una percentuale del valore totale
+    del portafoglio, non il rischio monetario dell'operazione.
+    """
+
+    result = df.copy()
+
+    market_factor, market_regime = get_global_market_regime()
+
+    result["Market_Regime"] = market_regime
+
+    # Inizializza le colonne operative
+    trade_columns = [
+        "Entry", "Stop_Loss", "Target_1", "Target_2",
+        "RR_1", "RR_2", "Allocation %", "Capital_EUR",
+        "Quantity", "Potential_Loss_EUR"
+    ]
+
+    for column in trade_columns:
+        result[column] = np.nan
+
+    if portfolio_value is None or not np.isfinite(portfolio_value) or portfolio_value <= 0:
+        return result
+
+    for index, row in result.iterrows():
+
+        try:
+            price = float(row["close"])
+            atr = float(row["ATR"])
+            currency = str(row["Currency"]).upper().strip()
+
+            if (
+                not np.isfinite(price)
+                or not np.isfinite(atr)
+                or price <= 0
+                or atr <= 0
+                or not currency
+            ):
+                continue
+
+            # Volatilità del singolo titolo: ATR in percentuale del prezzo
+            atr_pct = (atr / price) * 100
+
+            if atr_pct <= 2:
+                stock_factor = 1.20
+            elif atr_pct <= 4:
+                stock_factor = 1.00
+            else:
+                stock_factor = 0.80
+
+            # Allocazione dinamica: riferimento 3,5%, limite 1-5%
+            allocation_pct = 3.5 * stock_factor * market_factor
+            allocation_pct = float(np.clip(allocation_pct, 1.0, 5.0))
+
+            capital_eur = portfolio_value * allocation_pct / 100
+
+            # Livelli operativi LONG basati su ATR
+            entry = price - (0.5 * atr)
+            stop_loss = entry - (1.5 * atr)
+
+            risk_per_share = entry - stop_loss
+
+            if entry <= 0 or risk_per_share <= 0:
+                continue
+
+            target_1 = entry + (2 * risk_per_share)
+            target_2 = entry + (3 * risk_per_share)
+
+            rr_1 = (target_1 - entry) / risk_per_share
+            rr_2 = (target_2 - entry) / risk_per_share
+
+            # Conversione del capitale da EUR alla valuta del titolo
+            fx_rate = get_fx_rate_from_eur(currency)
+
+            if fx_rate is not None:
+                capital_local = capital_eur * fx_rate
+                quantity = int(np.floor(capital_local / entry))
+
+                if quantity > 0:
+                    potential_loss = quantity * risk_per_share / fx_rate
+                else:
+                    quantity = np.nan
+                    potential_loss = np.nan
+            else:
+                quantity = np.nan
+                potential_loss = np.nan
+
+            result.at[index, "Entry"] = entry
+            result.at[index, "Stop_Loss"] = stop_loss
+            result.at[index, "Target_1"] = target_1
+            result.at[index, "Target_2"] = target_2
+            result.at[index, "RR_1"] = rr_1
+            result.at[index, "RR_2"] = rr_2
+            result.at[index, "Allocation %"] = allocation_pct
+            result.at[index, "Capital_EUR"] = capital_eur
+            result.at[index, "Quantity"] = quantity
+            result.at[index, "Potential_Loss_EUR"] = potential_loss
+
+        except (ValueError, TypeError, KeyError, ZeroDivisionError):
+            continue
+
+    return result
+
 def fetch_screener_data():
     """Fetch data from TradingView screener with enhanced columns for scoring"""
     try:
@@ -245,10 +426,10 @@ def fetch_screener_data():
                             'singapore', 'slovakia', 'spain', 'sweden', 'switzerland', 'taiwan', 'uae', 'uk',
                             'venezuela', 'vietnam', 'crypto')
                 .select('name', 'description', 'country', 'sector', 'currency', 'close', 'change', 'volume',
-                       'market_cap_basic', 'RSI', 'MACD.macd', 'MACD.signal', 'SMA50', 'SMA200',
-                       'Volatility.D', 'Recommend.All', 'float_shares_percent_current',
-                       'relative_volume_10d_calc', 'price_earnings_ttm', 'earnings_per_share_basic_ttm',
-                       'Perf.W', 'Perf.1M')
+                   'market_cap_basic', 'RSI', 'MACD.macd', 'MACD.signal', 'SMA50', 'SMA200',
+                   'ATR', 'Volatility.D', 'Recommend.All', 'float_shares_percent_current',
+                   'relative_volume_10d_calc', 'price_earnings_ttm', 'earnings_per_share_basic_ttm',
+                   'Perf.W', 'Perf.1M')
                 .where(
                     Column('type').isin(['stock','etf']),
                     Column('is_primary') == True,
@@ -290,6 +471,14 @@ def fetch_screener_data():
                     'sector': 'Sector',
                     'currency': 'Currency'
                 })
+                
+                # Piano operativo basato sul valore totale del portfolio
+                portfolio_value = get_portfolio_value()
+
+                df = calculate_trade_plan(
+                    df,
+                    portfolio_value=portfolio_value
+                )
                 
             return df
             
@@ -844,6 +1033,15 @@ def stock_screener_app():
             with col4:
                 min_score = st.slider("Score Minimo", 0, 100, 50)
             
+                min_rr = st.slider(
+                "R/R minimo (Target 1)",
+                min_value=1.0,
+                max_value=4.0,
+                value=1.5,
+                step=0.25,
+                help="Mostra solo titoli con rapporto rendimento/rischio almeno pari al valore selezionato."
+                )
+            
             # Apply filters
             filtered_df = df.copy()
             
@@ -857,6 +1055,13 @@ def stock_screener_app():
                 filtered_df = filtered_df[filtered_df['Rating'] == selected_rating]
             
             filtered_df = filtered_df[filtered_df['Investment_Score'] >= min_score]
+            
+            # Filtro sul rapporto rischio/rendimento
+            if "RR_1" in filtered_df.columns:
+                filtered_df = filtered_df[
+                    filtered_df["RR_1"].notna()
+                    & (filtered_df["RR_1"] >= min_rr)
+                ]
             
             # ============================================================
             # GRAFICI PLOTLY - PERFORMANCE SETTORI SETTIMANALE
@@ -935,8 +1140,26 @@ def stock_screener_app():
             st.subheader("📋 Dati Dettagliati")
             st.markdown(f"**Visualizzati {len(filtered_df)} di {len(df)} titoli**")
             
-            available_columns = ['Company', 'Symbol', 'Country', 'Sector', 'Currency', 'Price', 'Rating',
-                                'Investment_Score', 'Recommend.All', 'RSI', 'Volume', 'TradingView_URL']
+            available_columns = [
+                'Company', 'Symbol', 'Country', 'Sector', 'Currency',
+                'Price', 'Rating', 'Investment_Score', 'Recommend.All',
+                'RSI', 'Volume',
+
+                # Piano operativo
+                'Market_Regime',
+                'Allocation %',
+                'Capital_EUR',
+                'Entry',
+                'Stop_Loss',
+                'Target_1',
+                'Target_2',
+                'RR_1',
+                'RR_2',
+                'Quantity',
+                'Potential_Loss_EUR',
+
+                'TradingView_URL'
+            ]
             
             display_columns = st.multiselect(
                 "Seleziona colonne da visualizzare:",
@@ -946,6 +1169,28 @@ def stock_screener_app():
             
             if display_columns:
                 display_df = filtered_df[display_columns].copy()
+                
+                # Arrotondamento dei valori numerici
+                price_columns = [
+                    'Entry', 'Stop_Loss', 'Target_1', 'Target_2'
+                ]
+
+                for col in price_columns:
+                    if col in display_df.columns:
+                        display_df[col] = display_df[col].round(2)
+
+                if 'Allocation %' in display_df.columns:
+                    display_df['Allocation %'] = display_df['Allocation %'].round(2)
+
+                if 'Capital_EUR' in display_df.columns:
+                    display_df['Capital_EUR'] = display_df['Capital_EUR'].round(2)
+
+                if 'Potential_Loss_EUR' in display_df.columns:
+                    display_df['Potential_Loss_EUR'] = display_df['Potential_Loss_EUR'].round(2)
+
+                for col in ['RR_1', 'RR_2']:
+                    if col in display_df.columns:
+                        display_df[col] = display_df[col].round(2)
                 
                 if 'Investment_Score' in display_df.columns:
                     display_df['Investment_Score'] = display_df['Investment_Score'].round(1)
@@ -962,7 +1207,19 @@ def stock_screener_app():
                     'Recommend.All': 'Rating Numerico',
                     'RSI': 'RSI',
                     'Volume': 'Volume',
-                    'TradingView_URL': 'Chart'
+                    'TradingView_URL': 'Chart',
+
+                    'Market_Regime': 'Regime Mercato',
+                    'Allocation %': 'Allocazione %',
+                    'Capital_EUR': 'Capitale €',
+                    'Entry': 'Ingresso',
+                    'Stop_Loss': 'Stop Loss',
+                    'Target_1': 'Target 1',
+                    'Target_2': 'Target 2',
+                    'RR_1': 'R/R Target 1',
+                    'RR_2': 'R/R Target 2',
+                    'Quantity': 'Quantità',
+                    'Potential_Loss_EUR': 'Perdita potenziale €'
                 }
                 
                 display_df = display_df.rename(columns=column_names)
