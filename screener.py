@@ -1166,8 +1166,8 @@ def stock_screener_app():
             display_columns = st.multiselect(
                 "Seleziona colonne da visualizzare:",
                 available_columns,
-                default=['Company', 'Symbol', 'Investment_Score', 'Price', 'Country','Sector','TradingView_URL', 'Entry',
-                'Stop_Loss','Target_1','Target_2','Capital_EUR','Allocation %']
+                default=['Company', 'Symbol', 'Investment_Score', 'Price', 'Country','Sector','TradingView_URL','Entry','Quantity',
+                'Stop_Loss','Target_1','Target_2','RR_1','RR_2']
             )
             
             if display_columns:
