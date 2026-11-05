@@ -363,7 +363,13 @@ def calculate_trade_plan(df, portfolio_value):
             allocation_pct = 3.5 * stock_factor * market_factor
             allocation_pct = float(np.clip(allocation_pct, 1.0, 5.0))
 
-            capital_eur = portfolio_value * allocation_pct / 100
+            capital_eur = (
+                portfolio_value * allocation_pct / 100
+                if portfolio_value is not None
+                and np.isfinite(portfolio_value)
+                and portfolio_value > 0
+                else np.nan
+            )
 
             # Livelli operativi LONG basati su ATR
             entry = price - (0.5 * atr)
@@ -383,7 +389,7 @@ def calculate_trade_plan(df, portfolio_value):
             # Conversione del capitale da EUR alla valuta del titolo
             fx_rate = get_fx_rate_from_eur(currency)
 
-            if fx_rate is not None:
+            if fx_rate is not None and pd.notna(capital_eur):
                 capital_local = capital_eur * fx_rate
                 quantity = int(np.floor(capital_local / entry))
 
