@@ -1167,7 +1167,7 @@ def stock_screener_app():
                 "Seleziona colonne da visualizzare:",
                 available_columns,
                 default=['Company', 'Symbol', 'Investment_Score', 'Price', 'Country','Sector','TradingView_URL', 'Entry',
-                'Stop_Loss','Target_1','Target_2','Allocation %']
+                'Stop_Loss','Target_1','Target_2','Capital_EUR','Allocation %']
             )
             
             if display_columns:
